@@ -113,7 +113,7 @@ def create_main_mockup(input_folder, title):
     radius = 40
 
     # Define custom width for the center rectangle
-    center_width = 1500  # Adjust this value to change the width
+    center_width = 1650  # Adjust this value to change the width
     center_x_start = (grid_width - center_width) // 2
     center_x_end = center_x_start + center_width
 
