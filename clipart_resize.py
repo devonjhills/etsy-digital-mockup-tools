@@ -1,17 +1,61 @@
 import os
 from PIL import Image
 
+
 def trim(im):
     """Remove empty space around an image with transparency"""
-    bbox = im.convert('RGBA').getbbox()
+    bbox = im.convert("RGBA").getbbox()
     if bbox:
         return im.crop(bbox)
     return im
 
+
+def meets_requirements(img_path, max_size=1500):
+    """Check if image meets all requirements: size, DPI, and naming"""
+    try:
+        with Image.open(img_path) as img:
+            # Check if it's PNG and RGBA
+            if img.format != "PNG" or img.mode != "RGBA":
+                return False
+
+            # Check dimensions
+            width, height = img.size
+            if width > max_size or height > max_size:
+                return False
+
+            # Check DPI
+            if "dpi" not in img.info or img.info["dpi"] != (300, 300):
+                return False
+
+            # Check if properly named
+            dirname = os.path.dirname(img_path)
+            basename = os.path.basename(dirname)
+            safe_name = basename.replace(" ", "_").lower()
+
+            # Extract index from filename (assumes format: foldername_number.png)
+            current_name = os.path.basename(img_path)
+            expected_prefix = f"{safe_name}_"
+            if not current_name.startswith(expected_prefix):
+                return False
+
+            try:
+                index = int(current_name[len(expected_prefix) : -4])  # Remove .png
+                if not current_name == f"{safe_name}_{index}.png":
+                    return False
+            except ValueError:
+                return False
+
+            return True
+
+    except Exception:
+        return False
+
+
 def process_images(input_folder, max_size=1500):
     """
-    Processes images: converts to PNG, trims empty space, and resizes maintaining aspect ratio.
-    
+    Processes images: converts to PNG, trims empty space, and resizes if needed.
+    Sets DPI to 300 for all images. Skips already processed files.
+
     Parameters:
         input_folder (str): Path to the input folder containing subfolders with images.
         max_size (int): Maximum size for the longest edge while maintaining aspect ratio.
@@ -23,38 +67,49 @@ def process_images(input_folder, max_size=1500):
             safe_subfolder_name = subfolder.replace(" ", "_").lower()
 
             image_files = [
-                f for f in os.listdir(subfolder_path)
+                f
+                for f in os.listdir(subfolder_path)
                 if f.lower().endswith((".jpg", ".jpeg", ".png"))
             ]
 
             for index, image_file in enumerate(image_files, start=1):
                 image_path = os.path.join(subfolder_path, image_file)
+                new_name = f"{safe_subfolder_name}_{index}.png"
+                new_path = os.path.join(subfolder_path, new_name)
+
+                # Skip if file meets all requirements
+                if meets_requirements(image_path, max_size):
+                    print(f"Skipping already processed file: {image_path}")
+                    continue
 
                 try:
                     with Image.open(image_path) as img:
                         # Convert to RGBA to ensure transparency support
-                        img = img.convert('RGBA')
-                        
+                        img = img.convert("RGBA")
+
                         # Trim empty space
                         img = trim(img)
-                        
-                        # Calculate new size maintaining aspect ratio
+
                         width, height = img.size
-                        if width > height:
-                            new_width = max_size
-                            new_height = int(height * (max_size / width))
-                        else:
-                            new_height = max_size
-                            new_width = int(width * (max_size / height))
-                        
-                        # Resize image
-                        img = img.resize((new_width, new_height), Image.LANCZOS)
+                        needs_resize = width > max_size or height > max_size
+
+                        if needs_resize:
+                            # Calculate new size maintaining aspect ratio
+                            if width > height:
+                                new_width = max_size
+                                new_height = int(height * (max_size / width))
+                            else:
+                                new_height = max_size
+                                new_width = int(width * (max_size / height))
+
+                            # Resize image
+                            img = img.resize((new_width, new_height), Image.LANCZOS)
+
+                        # Set DPI to 300
+                        img.info["dpi"] = (300, 300)
 
                         # Save as PNG with new name
-                        new_name = f"{safe_subfolder_name}_{index}.png"
-                        new_path = os.path.join(subfolder_path, new_name)
-                        
-                        img.save(new_path, format="PNG")
+                        img.save(new_path, format="PNG", dpi=(300, 300))
 
                         # Remove the original file if the name has changed
                         if new_path != image_path:
@@ -64,6 +119,7 @@ def process_images(input_folder, max_size=1500):
 
                 except Exception as e:
                     print(f"Error processing {image_path}: {e}")
+
 
 if __name__ == "__main__":
     input_folder = "input"  # Replace with your input folder path

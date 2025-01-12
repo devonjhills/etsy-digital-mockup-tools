@@ -1,7 +1,8 @@
 import os
 import glob
-from PIL import Image, ImageFont, ImageDraw
+from PIL import Image, ImageFont, ImageDraw, ImageEnhance
 import numpy as np
+from moviepy.editor import ImageSequenceClip
 
 
 # Set up constants for size and padding
@@ -19,39 +20,42 @@ def load_images(image_paths):
     return loaded_imgs
 
 
-def apply_watermark(image, logo_path="./logo.png", opacity=40, spacing_multiplier=8):
-    """Apply logo watermark in a grid pattern with adjustable opacity and spacing."""
-    image = image.convert("RGBA")  # Ensure image is RGBA
-    watermark = Image.new("RGBA", image.size, (0, 0, 0, 0))  # Create watermark canvas
+def apply_watermark(image, logo_path="logo.png", opacity=45, spacing_multiplier=3):
+    """Apply a logo watermark in a grid pattern with adjustable opacity and spacing."""
+    image = image.convert("RGBA")
+    watermark_layer = Image.new("RGBA", image.size, (0, 0, 0, 0))
 
     # Load and resize the logo
     logo = Image.open(logo_path).convert("RGBA")
-    logo_width = image.width // 8
+    logo_width = image.width // 12  # Even smaller logo for more repeats
     logo_height = int(logo_width * logo.height / logo.width)
     logo = logo.resize((logo_width, logo_height), Image.LANCZOS)
+    
+    # Adjust opacity
+    logo = logo.copy()
+    alpha = logo.split()[3]
+    alpha = ImageEnhance.Brightness(alpha).enhance(opacity / 100)
+    logo.putalpha(alpha)
 
-    # Adjust logo opacity
-    logo_array = np.array(logo)
-    logo_array[:, :, 3] = (logo_array[:, :, 3] * opacity // 100).astype(np.uint8)
-    logo = Image.fromarray(logo_array)
-
-    # Calculate spacing for watermark grid
+    # Tighter spacing for denser watermark grid
     spacing_x = logo_width * spacing_multiplier
     spacing_y = logo_height * spacing_multiplier
 
-    # Add watermarks in a grid pattern
-    for y in range(0, image.height, spacing_y):
-        for x in range(0, image.width, spacing_x):
-            watermark.paste(logo, (x, y), logo)
+    # Add watermarks in a denser grid pattern with double-offset
+    for y in range(-spacing_y * 2, image.height + spacing_y * 2, spacing_y):
+        offset_x = (y // spacing_y % 2) * (spacing_x // 2)
+        for x in range(-spacing_x * 2, image.width + spacing_x * 2, spacing_x):
+            watermark_layer.paste(logo, (x, y), logo)
 
-    # Composite the watermark with the original image
-    return Image.alpha_composite(image, watermark)
+    return Image.alpha_composite(image, watermark_layer)
 
 
 def grid_mockup(input_images, output_folder, title):
     """Create mockups with grid layouts and optional text overlays."""
-    main_mockup, _, text_info = create_grid(input_images[:6], title, with_text_overlay=True)
-    main_mockup = add_text_background(main_mockup)
+    main_mockup, _, text_info = create_grid(
+        input_images[:6], title, with_text_overlay=True
+    )
+    main_mockup, text_area_y_start, text_area_height = add_text_background(main_mockup)
 
     if text_info:
         draw_text(main_mockup, text_info)
@@ -66,7 +70,7 @@ def grid_mockup(input_images, output_folder, title):
 
     output_filenames = [output_main, output_no_text]
     for i in range(4, len(input_images), 4):
-        mockup = create_grid(input_images[i:i + 4], with_text_overlay=False)[0]
+        mockup = create_grid(input_images[i : i + 4], with_text_overlay=False)[0]
         mockup_with_watermark = apply_watermark(mockup)
         output_filename = os.path.join(output_folder, f"mockup_{i // 4 + 1}.png")
         mockup_with_watermark.save(output_filename, "PNG")
@@ -77,6 +81,12 @@ def grid_mockup(input_images, output_folder, title):
         output_trans_demo = os.path.join(output_folder, "transparency_demo.png")
         trans_demo.save(output_trans_demo, "PNG")
         output_filenames.append(output_trans_demo)
+
+    # Add video mockup
+    if len(output_filenames) > 1:  # Only create video if we have multiple mockups
+        video_path = os.path.join(output_folder, "mockup_video.mp4")
+        create_video_mockup(output_filenames, video_path)
+        output_filenames.append(video_path)
 
     return output_filenames
 
@@ -91,9 +101,9 @@ def create_grid(input_images, title=None, with_text_overlay=True):
     total_v_padding = padding * (rows + 1)
     cell_width = (OUTPUT_SIZE[0] - total_h_padding) // cols
     cell_height = (OUTPUT_SIZE[1] - total_v_padding) // rows
-    grid_img = Image.new("RGBA", OUTPUT_SIZE, (225, 213, 213, 255))
+    grid_img = Image.new("RGBA", OUTPUT_SIZE, (255, 255, 255, 255))  # Changed to white
 
-    for idx, img in enumerate(input_images[:cols * rows]):
+    for idx, img in enumerate(input_images[: cols * rows]):
         row, col = divmod(idx, cols)
         x = padding + col * (cell_width + padding)
         y = padding + row * (cell_height + padding)
@@ -110,15 +120,20 @@ def create_grid(input_images, title=None, with_text_overlay=True):
         grid_img.paste(img, (x_center, y_center), img)
 
     if with_text_overlay and title:
-        title_font = ImageFont.truetype("./fonts/Quando.TTF", 100)
-        details_font = ImageFont.truetype("./fonts/Quando.TTF", 60)
-        return grid_img, None, (title_font, details_font, title)
+        title_font = ImageFont.truetype("./fonts/Clattering.ttf", 150)  # Larger title
+        details_font = ImageFont.truetype(
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 80
+        )
+        subtitle_font = ImageFont.truetype(
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 65
+        )
+        return grid_img, None, (title_font, details_font, subtitle_font, title)
 
     return grid_img, None, None
 
 
-def add_text_background(image, text_block_width=1650, text_area_height=375):
-    """Adds a white rectangular background with a border and rounded corners."""
+def add_text_background(image, text_block_width=1550, text_area_height=500):
+    """Adds a colored rectangular background with exact dimensions."""
     text_area_y_start = (OUTPUT_SIZE[1] - text_area_height) // 2
     text_area_x_start = (OUTPUT_SIZE[0] - text_block_width) // 2
     overlay = Image.new("RGBA", (text_block_width, text_area_height), (0, 0, 0, 0))
@@ -126,45 +141,151 @@ def add_text_background(image, text_block_width=1650, text_area_height=375):
     draw.rounded_rectangle(
         [0, 0, text_block_width - 1, text_area_height - 1],
         radius=40,
-        fill=(255, 255, 255, 255),
+        fill=(225, 213, 213, 255),  # Changed to pink/beige
         width=2,
     )
     image.paste(overlay, (text_area_x_start, text_area_y_start), overlay)
-    return image
+    return image, text_area_y_start, text_area_height
 
 
 def draw_text(image, text_info):
-    """Draw title text on the image."""
+    """Draw title and additional text on the image."""
     if not text_info:
         return
-    title_font, details_font, title = text_info
+    title_font, details_font, subtitle_font, title = text_info
     draw = ImageDraw.Draw(image)
-    text_x = OUTPUT_SIZE[0] // 2
-    text_y = OUTPUT_SIZE[1] // 2
-    draw.text((text_x, text_y), title, font=title_font, fill=(0, 0, 0, 255), anchor="mm")
+    
+    # Get text background area
+    _, text_top, text_height = add_text_background(image)  # Get actual dimensions
+    text_bottom = text_top + text_height
+    center_x = OUTPUT_SIZE[0] // 2
+    center_y = text_top + (text_height // 2)
+
+    # Draw texts at specific positions
+    draw.text(
+        (center_x, text_top + 60),
+        "12 Clipart Graphics",
+        font=subtitle_font,
+        fill=(0, 0, 0, 255),
+        anchor="mm",
+    )
+    draw.text(
+        (center_x, center_y),
+        title,
+        font=title_font,
+        fill=(0, 0, 0, 255),
+        anchor="mm",
+    )
+    draw.text(
+        (center_x, text_bottom - 70),
+        "Transparent PNG  |  300 DPI",
+        font=subtitle_font,
+        fill=(0, 0, 0, 255),
+        anchor="mm",
+    )
+
 
 def create_transparency_demo(image, text="Transparent PNG for all your design needs"):
-    """Creates a mockup showing transparency with an offset checkerboard pattern."""
+    """Creates a mockup showing transparency with split dark/light checkerboard pattern."""
     canvas_size = (3000, 2250)
     demo = Image.new("RGBA", canvas_size, (255, 255, 255, 255))
     draw = ImageDraw.Draw(demo)
 
-    # Checkerboard pattern
+    # Split checkerboard pattern
     square_size = 40
-    start_x, start_y = 600, 1250
-    for y in range(start_y, start_y + 1400, square_size):
-        for x in range(start_x, start_x + 1800, square_size):
+    split_x = canvas_size[0] // 2
+    
+    # Draw checkerboard patterns
+    for y in range(0, canvas_size[1], square_size):
+        for x in range(0, canvas_size[0], square_size):
             if (x + y) // square_size % 2 == 0:
-                draw.rectangle([x, y, x + square_size, y + square_size], fill=(200, 200, 200, 255))
+                # Darker squares on left side
+                if x < split_x:
+                    fill_color = (100, 100, 100, 255)
+                # Lighter squares on right side
+                else:
+                    fill_color = (200, 200, 200, 255)
+                draw.rectangle(
+                    [x, y, x + square_size, y + square_size],
+                    fill=fill_color
+                )
 
+    # Center the image vertically and horizontally
     aspect = image.width / image.height
-    target_width, target_height = 1500, int(1500 / aspect)
-    resized_img = image.resize((target_width, target_height), Image.LANCZOS)
-    demo.paste(resized_img, ((canvas_size[0] - target_width) // 2, start_y), resized_img)
+    target_width, target_height = 1800, int(1800 / aspect)  # Made image larger
+    if target_height > canvas_size[1] - 400:  # Ensure it fits with padding
+        target_height = canvas_size[1] - 400
+        target_width = int(target_height * aspect)
 
-    font = ImageFont.truetype("./fonts/Quando.TTF", 110)
-    draw.text((300, 200), text, font=font, fill=(0, 0, 0, 255), anchor="lm")
+    resized_img = image.resize((target_width, target_height), Image.LANCZOS)
+
+    # Calculate center position
+    x_pos = (canvas_size[0] - target_width) // 2
+    y_pos = (
+        canvas_size[1] - target_height
+    ) // 2 + 100  # Slight offset to account for text
+
+    demo.paste(resized_img, (x_pos, y_pos), resized_img)
+
+    # Create text background with more opacity
+    font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 120)
+    text_width = font.getlength(text)
+    text_height = 150
+    
+    # Fully opaque white background for text
+    text_bg = Image.new("RGBA", (int(text_width + 100), text_height + 40), (255, 255, 255, 255))
+    demo.paste(text_bg, ((canvas_size[0] - text_bg.width) // 2, 80), text_bg)
+    
+    # Draw text
+    draw.text(
+        (canvas_size[0] // 2, 150),
+        text,
+        font=font,
+        fill=(0, 0, 0, 255),
+        anchor="mm"
+    )
+
     return demo
+
+
+def create_video_mockup(image_files, output_path, size=(1200, 1200)):
+    """Creates a video transitioning through mockup images."""
+    frames = []
+    
+    for img_path in image_files:
+        if "main.png" in img_path:  # Skip main mockup
+            continue
+            
+        # Open and resize image to square format
+        with Image.open(img_path) as img:
+            # Convert to RGB (required for video)
+            img = img.convert('RGB')
+            
+            # Calculate sizing to maintain aspect ratio within square
+            aspect = img.width / img.height
+            if aspect > 1:
+                new_width = size[0]
+                new_height = int(size[0] / aspect)
+            else:
+                new_height = size[1]
+                new_width = int(size[1] * aspect)
+                
+            img = img.resize((new_width, new_height), Image.LANCZOS)
+            
+            # Create white background
+            bg = Image.new('RGB', size, (255, 255, 255))
+            
+            # Paste image in center
+            x = (size[0] - new_width) // 2
+            y = (size[1] - new_height) // 2
+            bg.paste(img, (x, y))
+            
+            # Convert to numpy array for moviepy
+            frames.append(np.array(bg))
+
+    # Create video with 2-second transitions
+    clip = ImageSequenceClip(frames, fps=1/2)  # 2 seconds per frame
+    clip.write_videofile(output_path, fps=30)
 
 
 if __name__ == "__main__":

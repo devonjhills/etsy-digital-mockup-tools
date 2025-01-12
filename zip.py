@@ -1,16 +1,63 @@
 import os
 import zipfile
 import shutil
+from PIL import Image
+
+def verify_image(img_path):
+    """Verify that an image can be properly loaded"""
+    try:
+        with Image.open(img_path) as img:
+            # Force load image data to ensure it's valid
+            img.load()
+        return True
+    except Exception as e:
+        print(f"Error verifying image {img_path}: {e}")
+        return False
+
+def verify_zip(zip_path):
+    """Verify zip file integrity and ability to extract all files"""
+    try:
+        with zipfile.ZipFile(zip_path, 'r') as zipf:
+            # Test zip file integrity
+            if zipf.testzip() is not None:
+                raise Exception("Zip file is corrupted")
+            
+            # Try reading each file in the zip
+            for filename in zipf.namelist():
+                with zipf.open(filename) as f:
+                    f.read()
+        return True
+    except Exception as e:
+        print(f"Error verifying zip {zip_path}: {e}")
+        return False
 
 def create_zip_group(files, subfolder_path, zipped_folder, sanitized_subfolder_name, group_num, total_groups):
-    """Helper function to create a single zip file"""
+    """Helper function to create a single zip file with verification"""
+    # Verify all images before creating zip
+    valid_files = []
+    for img in files:
+        img_path = os.path.join(subfolder_path, img)
+        if verify_image(img_path):
+            valid_files.append(img)
+        else:
+            print(f"Skipping invalid image: {img}")
+    
+    if not valid_files:
+        raise Exception("No valid images to zip")
+    
     zip_filename = f"{sanitized_subfolder_name}_part{group_num}of{total_groups}.zip"
     zip_path = os.path.join(zipped_folder, zip_filename)
     
+    # Create zip file
     with zipfile.ZipFile(zip_path, "w", compression=zipfile.ZIP_DEFLATED, compresslevel=9) as zipf:
-        for img in files:
+        for img in valid_files:
             img_path = os.path.join(subfolder_path, img)
             zipf.write(img_path, os.path.basename(img_path))
+    
+    # Verify zip after creation
+    if not verify_zip(zip_path):
+        os.remove(zip_path)
+        raise Exception(f"Failed to create valid zip file: {zip_filename}")
     
     return zip_path, os.path.getsize(zip_path) / (1024 * 1024)
 
