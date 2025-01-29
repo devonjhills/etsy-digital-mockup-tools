@@ -1,0 +1,8 @@
+numpy
+opencv-python
+pandas
+requests
+flask
+pytest
+Pillow
+moviepy

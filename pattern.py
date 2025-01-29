@@ -2,7 +2,8 @@ import os
 import cv2
 import numpy as np
 import glob
-from PIL import Image, ImageDraw, ImageFont, ImageFilter
+from PIL import Image, ImageDraw, ImageFont
+
 
 def create_main_mockup(input_folder, title):
     global INPUT_FOLDER, OUTPUT_FOLDER
@@ -12,8 +13,6 @@ def create_main_mockup(input_folder, title):
     OUTPUT_FOLDER = output_folder
 
     GRID_ROWS, GRID_COLS = 2, 6
-    TEXT_PADDING = 30  # Padding around text in center rectangle
-
     print(f"  Creating main mockup for '{title}'...")
 
     images = sorted(glob.glob(os.path.join(INPUT_FOLDER, "*.[jp][pn][g]")))
@@ -22,15 +21,10 @@ def create_main_mockup(input_folder, title):
     grid_height = 2250
 
     background_color = (222, 215, 211, 255)
-
     grid_canvas = Image.new("RGBA", (grid_width, grid_height), background_color)
 
     cell_width = grid_width // GRID_COLS
     cell_height = grid_height // GRID_ROWS
-
-    text_color = (44, 46, 58)
-    border_color = (0, 0, 0, 255)  # Fully opaque black
-    border_width = 1  # Thinner border width
 
     # Spacing between images
     total_spacing = grid_width - (cell_width * GRID_COLS)
@@ -40,7 +34,7 @@ def create_main_mockup(input_folder, title):
     script_dir = os.path.dirname(os.path.abspath(__file__))
     shadow_path = os.path.join(script_dir, "shadow.png")
     shadow = Image.open(shadow_path).convert("RGBA")
-    
+
     # Calculate scale factor based on height while maintaining aspect ratio
     scale_factor = cell_height / shadow.height
     shadow_new_width = int(shadow.width * scale_factor)
@@ -50,7 +44,9 @@ def create_main_mockup(input_folder, title):
     image_positions = []  # Store positions for shadow placement
     for i, img_path in enumerate(images[: GRID_ROWS * GRID_COLS]):
         img = Image.open(img_path).convert("RGBA")
-        img = img.resize((int(img.width * cell_height / img.height), cell_height), Image.LANCZOS)
+        img = img.resize(
+            (int(img.width * cell_height / img.height), cell_height), Image.LANCZOS
+        )
 
         row_index = i // GRID_COLS
         col_index = i % GRID_COLS
@@ -58,110 +54,55 @@ def create_main_mockup(input_folder, title):
         x_pos = int((col_index + 1) * spacing_between + col_index * cell_width)
         y_pos = int(row_index * cell_height)
 
-        # Add left border to image (now thin and opaque)
-        img_with_border = Image.new("RGBA", (img.width + 2, img.height), border_color)
-        img_with_border.paste(img, (2, 0), img)
-        
-        # Store position for shadow placement
         image_positions.append((x_pos, y_pos))
-        
-        # Paste the actual image
-        grid_canvas.paste(img_with_border, (x_pos, y_pos), img_with_border)
+        grid_canvas.paste(img, (x_pos, y_pos), img)
 
     # Second pass: Add shadows on top of all images
     for x_pos, y_pos in image_positions:
-        shadow_x = x_pos - shadow_new_width + 5  # Changed from 20 to 5 to move shadow more to the left
+        shadow_x = x_pos - shadow_new_width + 5
         grid_canvas.paste(shadow, (shadow_x, y_pos), shadow)
 
-    draw = ImageDraw.Draw(grid_canvas)
-    title_font = ImageFont.truetype("./fonts/Clattering.ttf", 195)
-    info_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 80)
+    # Add overlay image and create final composition
+    overlay_path = os.path.join(script_dir, "overlay.png")
+    overlay = Image.open(overlay_path).convert("RGBA")
+    overlay = overlay.resize((grid_width, grid_height), Image.LANCZOS)
+    final_image = Image.alpha_composite(grid_canvas, overlay)
 
-    pattern_text = "12 Seamless Patterns"
-    title_text = f"{title}"
-    info_text = "12x12 in.  |  300 DPI  |  JPG"
-
-    # Get text bounding box for layout calculations
-    text_bbox_pattern = draw.textbbox((0, 0), pattern_text, font=info_font)
-    text_bbox_title = draw.textbbox((0, 0), title_text, font=title_font)
-    text_bbox_info = draw.textbbox((0, 0), info_text, font=info_font)
-
-    # Calculate total height and positions
-    total_height = (text_bbox_pattern[3] - text_bbox_pattern[1] +
-                   text_bbox_title[3] - text_bbox_title[1] +
-                   text_bbox_info[3] - text_bbox_info[1])
+    # Add centered title text with dynamic font sizing
+    draw = ImageDraw.Draw(final_image)
+    initial_font_size = 160  # Start with larger size
+    max_width = 1380  # Maximum allowed width
     
-    text_width = max(text_bbox_pattern[2] - text_bbox_pattern[0],
-                    text_bbox_title[2] - text_bbox_title[0],
-                    text_bbox_info[2] - text_bbox_info[0])
-
-    center_width = text_width + TEXT_PADDING * 1.5
-    center_height = total_height + TEXT_PADDING * 1.1 + 100  # Added extra spacing between lines
-    side_rect_height = center_height * 0.25
-
-    center_x_start = (grid_width - center_width) // 2
-    center_x_end = center_x_start + center_width
-
-    draw.rectangle(
-        [(0, grid_height // 2 - side_rect_height // 2),
-         (center_x_start, grid_height // 2 + side_rect_height // 2)],
-        fill=background_color,
-        outline=border_color,
-        width=border_width,
-    )
-
-    radius = 40
-
-    # Define custom width for the center rectangle
-    center_width = 1650  # Adjust this value to change the width
-    center_x_start = (grid_width - center_width) // 2
-    center_x_end = center_x_start + center_width
-
-    draw.rounded_rectangle(
-        [(center_x_start, grid_height // 2 - center_height // 2),
-         (center_x_end, grid_height // 2 + center_height // 2)],
-        radius=radius,
-        fill=background_color,
-        outline=border_color,
-        width=border_width,
-    )
-
-    draw.rectangle(
-        [(center_x_end, grid_height // 2 - side_rect_height // 2),
-         (grid_width, grid_height // 2 + side_rect_height // 2)],
-        fill=background_color,
-        outline=border_color,
-        width=border_width,
-    )
-
-    # Calculate positions for text elements
-    text_y_start = grid_height / 2 - center_height / 2
-    text_y_end = grid_height / 2 + center_height / 2
+    # Function to get font and text size
+    def get_font_and_size(size):
+        font = ImageFont.truetype("./fonts/Free Version Angelina.ttf", size)
+        bbox = draw.textbbox((0, 0), title, font=font)
+        return font, bbox[2] - bbox[0], bbox[3] - bbox[1]
     
-    # Position pattern text near top of rectangle
-    pattern_y = text_y_start + TEXT_PADDING/2
+    # Find appropriate font size
+    font_size = initial_font_size
+    font, text_width, text_height = get_font_and_size(font_size)
+    while text_width > max_width and font_size > 50:  # Don't go smaller than 50
+        font_size -= 5
+        font, text_width, text_height = get_font_and_size(font_size)
     
-    # Position title text slightly above center
-    title_offset = 40  # Pixels to move up from center
-    title_y = grid_height / 2 - title_offset
+    # Calculate center position with vertical offset
+    text_x = (grid_width - text_width) // 2
+    vertical_offset = 50  # Move up by 200 pixels
+    text_y = (grid_height - text_height) // 2 - vertical_offset
     
-    info_y = text_y_end - TEXT_PADDING/2
-
-    # Draw each text element separately
-    draw.text((grid_width / 2, pattern_y), pattern_text,
-              anchor="mt", fill=text_color, font=info_font)
-    draw.text((grid_width / 2, title_y), title_text,
-              anchor="mm", fill=text_color, font=title_font)
-    draw.text((grid_width / 2, info_y), info_text,
-              anchor="mb", fill=text_color, font=info_font)
+    # Draw the text
+    draw.text((text_x, text_y), title, font=font, fill=(0, 0, 0), anchor="lt")
 
     os.makedirs(OUTPUT_FOLDER, exist_ok=True)
     grid_filename = "main.png"
-    grid_canvas.save(os.path.join(OUTPUT_FOLDER, grid_filename), "PNG")
+    final_image.save(os.path.join(OUTPUT_FOLDER, grid_filename), "PNG")
+
 
 def create_large_grid(input_folder):
     images = sorted(glob.glob(os.path.join(input_folder, "*.jpg")))
-
+    script_dir = os.path.dirname(os.path.abspath(__file__)) 
+    
     GRID_ROWS = 2
     GRID_COLS = 2
     GRID_SIZE = 2025
@@ -172,7 +113,9 @@ def create_large_grid(input_folder):
 
     num_images = len(images)
     if num_images < GRID_ROWS * GRID_COLS * 3:
-        raise ValueError(f"At least {GRID_ROWS * GRID_COLS * 3} images required, but only {num_images} found.")
+        raise ValueError(
+            f"At least {GRID_ROWS * GRID_COLS * 3} images required, but only {num_images} found."
+        )
 
     for grid_set in range(num_images // (GRID_ROWS * GRID_COLS)):
         grid_width = GRID_SIZE
@@ -199,36 +142,61 @@ def create_large_grid(input_folder):
 
             grid_canvas.paste(img, (img_x, img_y), img)
 
-        border_thickness = 5
+        border_thickness = 15  # Increased from 10 to 15
         for j in range(1, GRID_COLS):
             border_x = j * square_width
-            draw.line([(border_x, 0), (border_x, grid_height)], fill="black", width=border_thickness)
+            draw.line(
+                [(border_x, 0), (border_x, grid_height)],
+                fill="white",  # Changed from black to white
+                width=border_thickness,
+            )
 
         for k in range(1, GRID_ROWS):
             border_y = k * square_height
-            draw.line([(0, border_y), (grid_width, border_y)], fill="black", width=border_thickness)
+            draw.line(
+                [(0, border_y), (grid_width, border_y)],
+                fill="white",  # Changed from black to white
+                width=border_thickness,
+            )
 
-        txt = Image.new("RGBA", grid_canvas.size, (255, 255, 255, 0))
-        font = ImageFont.truetype("./fonts/Clattering.ttf", 260)
+        # Replace text watermark with semi-transparent logo
+        logo_path = os.path.join(script_dir, "logo.png")
+        logo = Image.open(logo_path).convert("RGBA")
+        
+        # Calculate logo size (e.g. 50% of grid width)
+        logo_width = int(grid_width * 0.50)
+        logo_height = int(logo_width * logo.size[1] / logo.size[0])
+        logo = logo.resize((logo_width, logo_height), Image.LANCZOS)
 
-        text = "Digital Veil"
-        text_position = (grid_width // 2, grid_height // 2)
+        # Make logo semi-transparent by adjusting alpha channel
+        logo_data = logo.getdata()
+        new_data = []
+        for item in logo_data:
+            # Preserve original RGB but reduce alpha to 50%
+            new_data.append((item[0], item[1], item[2], int(item[3] * 0.5)))
+        logo.putdata(new_data)
 
-        txtLayer = ImageDraw.Draw(txt)
-        txtLayer.text(
-            text_position,
-            text,
-            font=font,
-            fill=(0, 0, 0, 128),
-            anchor="mm",
-            align="center",
+        # Calculate center position
+        logo_x = (grid_width - logo_width) // 2
+        logo_y = (grid_height - logo_height) // 2
+
+        # Create new transparent layer and paste logo
+        overlay = Image.new("RGBA", grid_canvas.size, (255, 255, 255, 0))
+        overlay.paste(logo, (logo_x, logo_y), logo)
+
+        combined = Image.alpha_composite(grid_canvas, overlay)
+
+        # Save with optimized JPEG settings
+        os.makedirs(output_folder, exist_ok=True)
+        grid_filename = f"large_grid_set_{grid_set + 1}.jpg"
+        combined.convert("RGB").save(
+            os.path.join(output_folder, grid_filename),
+            "JPEG",
+            quality=85,
+            optimize=True,
+            subsampling="4:2:0",
         )
 
-        combined = Image.alpha_composite(grid_canvas, txt)
-
-        os.makedirs(output_folder, exist_ok=True)
-        grid_filename = f"large_grid_set_{grid_set + 1}.png"
-        combined.save(os.path.join(output_folder, grid_filename), "PNG")
 
 def create_pattern(input_folder):
     IMAGE_SIZE = 2048
@@ -237,19 +205,22 @@ def create_pattern(input_folder):
     images = sorted(glob.glob(os.path.join(input_folder, "*.jpg")))[:3]
     output_folder = os.path.join(input_folder, "mocks")
 
-    print("   Creating 2x2 image grids...")
+    print("   Creating seamless mockups...")
 
     for index, image_path in enumerate(images):
         output_image = Image.new("RGBA", (IMAGE_SIZE, IMAGE_SIZE))
         source_image = Image.open(image_path).convert("RGBA")
 
-        square_size = IMAGE_SIZE // GRID_SIZE
-        source_image = source_image.resize((square_size, square_size), Image.LANCZOS)
+        # Resize source image to half the canvas size since we'll use it in 2x2 grid
+        cell_size = IMAGE_SIZE // GRID_SIZE
+        source_image = source_image.resize((cell_size, cell_size), Image.LANCZOS)
 
-        for i in range(GRID_SIZE):
-            for j in range(GRID_SIZE):
-                output_image.paste(source_image, (i * square_size, j * square_size))
+        # Create 2x2 grid using the same image for seamless pattern
+        for row in range(GRID_SIZE):
+            for col in range(GRID_SIZE):
+                output_image.paste(source_image, (col * cell_size, row * cell_size))
 
+        # Create text layer for white border
         txt = Image.new("RGBA", output_image.size, (255, 255, 255, 0))
         font = ImageFont.truetype("./fonts/Clattering.ttf", 185)
 
@@ -257,6 +228,18 @@ def create_pattern(input_folder):
         text_position = (IMAGE_SIZE // 2, IMAGE_SIZE // 2)
 
         txtLayer = ImageDraw.Draw(txt)
+        # Draw white border by rendering text multiple times with offset
+        offsets = [(x,y) for x in (-3,3) for y in (-3,3)]
+        for offset_x, offset_y in offsets:
+            txtLayer.text(
+            (text_position[0] + offset_x, text_position[1] + offset_y),
+            text,
+            font=font,
+            fill=(255, 255, 255, 192),
+            anchor="mm",
+            align="center"
+            )
+        # Draw main black text on top
         txtLayer.text(
             text_position,
             text,
@@ -268,16 +251,53 @@ def create_pattern(input_folder):
 
         combined = Image.alpha_composite(output_image, txt)
 
+        # Save with optimized JPEG settings
         os.makedirs(output_folder, exist_ok=True)
-        filename = f"seamless_{index + 1}.png"
-        combined.save(os.path.join(output_folder, filename), "PNG")
+        filename = f"seamless_{index + 1}.jpg"
+        combined.convert("RGB").save(
+            os.path.join(output_folder, filename),
+            "JPEG",
+            quality=85,
+            optimize=True,
+            subsampling="4:2:0",
+        )
 
-    videoSource = "seamless_1.png"
+    # Resize image for video
+    def resize_for_video(img):
+        target_size = (1500, 1500)
+        h, w = img.shape[:2]
+        aspect = w / h
+        if aspect > 1:
+            new_w = target_size[0]
+            new_h = int(target_size[0] / aspect)
+            pad_y = (target_size[1] - new_h) // 2
+            pad_x = 0
+        else:
+            new_h = target_size[1]
+            new_w = int(target_size[1] * aspect)
+            pad_x = (target_size[0] - new_w) // 2
+            pad_y = 0
+
+        resized = cv2.resize(img, (new_w, new_h))
+        return cv2.copyMakeBorder(
+            resized,
+            pad_y,
+            pad_y,
+            pad_x,
+            pad_x,
+            cv2.BORDER_CONSTANT,
+            value=(255, 255, 255),
+        )
+
+    videoSource = "seamless_1.jpg"
     img = cv2.imread(os.path.join(output_folder, videoSource))
-    height, width, _ = img.shape
+    img = resize_for_video(img)
+    height, width = 1500, 1500  # Fixed dimensions
 
     fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-    video = cv2.VideoWriter(os.path.join(output_folder, "zoom_out.mp4"), fourcc, 30.0, (width, height))
+    video = cv2.VideoWriter(
+        os.path.join(output_folder, "zoom_out.mp4"), fourcc, 30.0, (width, height)
+    )
 
     for zoom in np.linspace(0.5, 1.0, 180):
         start_row = int((1 - zoom) * height / 2)
@@ -295,17 +315,6 @@ if __name__ == "__main__":
     script_directory = os.path.dirname(os.path.abspath(__file__))
     input_folder = os.path.join(script_directory, "input")
 
-    print("Deleting all .Identifier files...")
-    for root, _, files in os.walk(input_folder):
-        for file in files:
-            if file.endswith(".Identifier"):
-                file_path = os.path.join(root, file)
-                try:
-                    os.remove(file_path)
-                    print(f"Deleted: {file_path}")
-                except Exception as e:
-                    print(f"Error deleting {file_path}: {e}")
-
     for subfolder in os.listdir(input_folder):
         subfolder_path = os.path.join(input_folder, subfolder)
         if os.path.isdir(subfolder_path):
@@ -314,4 +323,3 @@ if __name__ == "__main__":
             create_main_mockup(subfolder_path, title)
             create_pattern(subfolder_path)
             create_large_grid(subfolder_path)
-

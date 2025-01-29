@@ -13,41 +13,52 @@ def trim(im):
 def meets_requirements(img_path, max_size=1500):
     """Check if image meets all requirements: size, DPI, and naming"""
     try:
+        print(f"\nChecking requirements for: {img_path}")
         with Image.open(img_path) as img:
-            # Check if it's PNG and RGBA
-            if img.format != "PNG" or img.mode != "RGBA":
+            # Check if PNG format
+            print(f"Format check: {img.format}")
+            if img.format != 'PNG':
+                print("Failed: Not PNG format")
                 return False
 
             # Check dimensions
             width, height = img.size
+            print(f"Size check: {width}x{height} (max: {max_size})")
             if width > max_size or height > max_size:
+                print("Failed: Image too large")
                 return False
 
-            # Check DPI
-            if "dpi" not in img.info or img.info["dpi"] != (300, 300):
-                return False
-
-            # Check if properly named
+            # Check filename format
             dirname = os.path.dirname(img_path)
             basename = os.path.basename(dirname)
             safe_name = basename.replace(" ", "_").lower()
-
-            # Extract index from filename (assumes format: foldername_number.png)
             current_name = os.path.basename(img_path)
             expected_prefix = f"{safe_name}_"
+            
+            print(f"Filename check:")
+            print(f"  Expected prefix: {expected_prefix}")
+            print(f"  Current name: {current_name}")
+            
             if not current_name.startswith(expected_prefix):
+                print("Failed: Wrong filename prefix")
                 return False
 
             try:
-                index = int(current_name[len(expected_prefix) : -4])  # Remove .png
-                if not current_name == f"{safe_name}_{index}.png":
+                index = int(current_name[len(expected_prefix):-4])  # Remove .png
+                expected_name = f"{safe_name}_{index}.png"
+                print(f"  Expected full name: {expected_name}")
+                if not current_name == expected_name:
+                    print("Failed: Wrong filename format")
                     return False
             except ValueError:
+                print("Failed: Invalid index number in filename")
                 return False
 
+            print("All requirements met!")
             return True
 
-    except Exception:
+    except Exception as e:
+        print(f"Failed with error: {str(e)}")
         return False
 
 
