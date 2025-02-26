@@ -1,5 +1,6 @@
 import os
 from PIL import Image
+import argparse
 
 
 def trim(im):
@@ -10,7 +11,7 @@ def trim(im):
     return im
 
 
-def meets_requirements(img_path, max_size=1500):
+def meets_requirements(img_path, max_size):
     """Check if image meets all requirements: size, DPI, and naming"""
     try:
         print(f"\nChecking requirements for: {img_path}")
@@ -62,7 +63,7 @@ def meets_requirements(img_path, max_size=1500):
         return False
 
 
-def process_images(input_folder, max_size=1500):
+def process_images(input_folder, max_size):
     """
     Processes images: converts to PNG, trims empty space, and resizes if needed.
     Sets DPI to 300 for all images. Skips already processed files.
@@ -133,5 +134,8 @@ def process_images(input_folder, max_size=1500):
 
 
 if __name__ == "__main__":
-    input_folder = "input"  # Replace with your input folder path
-    process_images(input_folder)
+    parser = argparse.ArgumentParser(description="Resize clipart images")
+    parser.add_argument("--input_folder", default="input", help="Path to the input folder")
+    parser.add_argument("--max_size", type=int, default=1500, help="Maximum size for the longest edge")
+    args = parser.parse_args()
+    process_images(args.input_folder, args.max_size)

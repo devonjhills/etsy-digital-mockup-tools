@@ -172,8 +172,8 @@ def create_large_grid(input_folder):
         logo_data = logo.getdata()
         new_data = []
         for item in logo_data:
-            # Preserve original RGB but reduce alpha to 50%
-            new_data.append((item[0], item[1], item[2], int(item[3] * 0.5)))
+            # Preserve original RGB but reduce alpha to 70%
+            new_data.append((item[0], item[1], item[2], int(item[3] * 0.7)))
         logo.putdata(new_data)
 
         # Calculate center position
@@ -202,10 +202,10 @@ def create_pattern(input_folder):
     IMAGE_SIZE = 2048
     GRID_SIZE = 2
 
-    images = sorted(glob.glob(os.path.join(input_folder, "*.jpg")))[:3]
+    images = sorted(glob.glob(os.path.join(input_folder, "*.jpg")))[:1]  # Only take first image
     output_folder = os.path.join(input_folder, "mocks")
 
-    print("   Creating seamless mockups...")
+    print("   Creating seamless mockup...")
 
     for index, image_path in enumerate(images):
         output_image = Image.new("RGBA", (IMAGE_SIZE, IMAGE_SIZE))
@@ -262,53 +262,88 @@ def create_pattern(input_folder):
             subsampling="4:2:0",
         )
 
-    # Resize image for video
-    def resize_for_video(img):
-        target_size = (1500, 1500)
-        h, w = img.shape[:2]
-        aspect = w / h
-        if aspect > 1:
-            new_w = target_size[0]
-            new_h = int(target_size[0] / aspect)
-            pad_y = (target_size[1] - new_h) // 2
-            pad_x = 0
-        else:
-            new_h = target_size[1]
-            new_w = int(target_size[1] * aspect)
-            pad_x = (target_size[0] - new_w) // 2
-            pad_y = 0
-
-        resized = cv2.resize(img, (new_w, new_h))
-        return cv2.copyMakeBorder(
-            resized,
-            pad_y,
-            pad_y,
-            pad_x,
-            pad_x,
-            cv2.BORDER_CONSTANT,
-            value=(255, 255, 255),
-        )
-
-    videoSource = "seamless_1.jpg"
-    img = cv2.imread(os.path.join(output_folder, videoSource))
-    img = resize_for_video(img)
+def create_irl_video(irl_folder):
+    """Create a video from IRL images with fade transitions"""
+    # Updated output folder to be in the parent directory's mocks subfolder
+    output_folder = os.path.join(os.path.dirname(irl_folder), "mocks")
+    os.makedirs(output_folder, exist_ok=True)
+    
+    images = sorted(glob.glob(os.path.join(irl_folder, "*.[jp][pn][g]")))
+    if not images:
+        return
+        
+    # Read first image to get dimensions
+    img = cv2.imread(images[0])
     height, width = 1500, 1500  # Fixed dimensions
-
+    
     fourcc = cv2.VideoWriter_fourcc(*"mp4v")
     video = cv2.VideoWriter(
-        os.path.join(output_folder, "zoom_out.mp4"), fourcc, 30.0, (width, height)
+        os.path.join(output_folder, "irl_showcase.mp4"), 
+        fourcc, 30.0, (width, height)
     )
+    
+    def resize_image(img):
+        # Resize and pad to square
+        aspect = img.shape[1] / img.shape[0]
+        if aspect > 1:
+            new_w = width
+            new_h = int(width / aspect)
+            img = cv2.resize(img, (new_w, new_h))
+            pad_y = (height - new_h) // 2
+            return cv2.copyMakeBorder(img, pad_y, pad_y, 0, 0, cv2.BORDER_CONSTANT, value=(255,255,255))
+        else:
+            new_h = height
+            new_w = int(height * aspect)
+            img = cv2.resize(img, (new_w, new_h))
+            pad_x = (width - new_w) // 2
+            return cv2.copyMakeBorder(img, 0, 0, pad_x, pad_x, cv2.BORDER_CONSTANT, value=(255,255,255))
+    
+    # Parameters
+    display_frames = 60  # 2 seconds display
+    transition_frames = 30  # 1 second transition
+    
+    for i in range(len(images)):
+        current = resize_image(cv2.imread(images[i]))
+        next_img = resize_image(cv2.imread(images[(i + 1) % len(images)]))
+        
+        # Display current image
+        for _ in range(display_frames):
+            video.write(current)
+        
+        # Fade transition
+        for j in range(transition_frames):
+            alpha = j / transition_frames
+            blend = cv2.addWeighted(current, 1 - alpha, next_img, alpha, 0)
+            video.write(blend)
+    
+    video.release()
 
-    for zoom in np.linspace(0.5, 1.0, 180):
-        start_row = int((1 - zoom) * height / 2)
-        start_col = int((1 - zoom) * width / 2)
-        end_row = start_row + int(zoom * height)
-        end_col = start_col + int(zoom * width)
-
-        frame = img[start_row:end_row, start_col:end_col]
-        frame = cv2.resize(frame, (width, height), interpolation=cv2.INTER_LINEAR)
+# New function to create seamless zoom video when no irl folder exists
+def create_seamless_zoom_video(input_folder):
+    import cv2  # ensure cv2 is imported
+    output_folder = os.path.join(input_folder, "mocks")
+    img_path = os.path.join(output_folder, "seamless_1.jpg")
+    if not os.path.exists(img_path):
+        print("seamless_1.jpg not found, skipping zoom video creation")
+        return
+    img = cv2.imread(img_path)
+    height, width = img.shape[:2]
+    fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+    video_path = os.path.join(output_folder, "irl_showcase.mp4")
+    video = cv2.VideoWriter(video_path, fourcc, 30.0, (width, height))
+    
+    total_frames = 90
+    initial_zoom = 1.5  # start zoomed in (crop factor)
+    for i in range(total_frames):
+        t = i / (total_frames - 1)
+        zoom_factor = initial_zoom - (initial_zoom - 1) * t  # interpolate zoom factor to 1.0
+        new_w = int(width / zoom_factor)
+        new_h = int(height / zoom_factor)
+        x1 = (width - new_w) // 2
+        y1 = (height - new_h) // 2
+        crop = img[y1:y1+new_h, x1:x1+new_w]
+        frame = cv2.resize(crop, (width, height), interpolation=cv2.INTER_LINEAR)
         video.write(frame)
-
     video.release()
 
 if __name__ == "__main__":
@@ -319,7 +354,17 @@ if __name__ == "__main__":
         subfolder_path = os.path.join(input_folder, subfolder)
         if os.path.isdir(subfolder_path):
             title = subfolder
-
-            create_main_mockup(subfolder_path, title)
+            # First, create seamless patterns (needed for zoom video)
             create_pattern(subfolder_path)
+            
+            irl_path = os.path.join(subfolder_path, 'irl')
+            if os.path.isdir(irl_path):
+                print(f"Processing IRL folder in {title}...")
+                create_irl_video(irl_path)
+            else:
+                print(f"No IRL folder found in {title}, creating seamless zoom video...")
+                create_seamless_zoom_video(subfolder_path)
+            
+            # Continue processing other mockups
+            create_main_mockup(subfolder_path, title)
             create_large_grid(subfolder_path)
