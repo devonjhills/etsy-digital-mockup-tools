@@ -27,6 +27,7 @@ ENV/
 env/
 .env/
 .venv/
+.envrc
 
 # IDE
 .idea/
