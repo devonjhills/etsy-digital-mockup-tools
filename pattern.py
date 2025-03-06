@@ -1,8 +1,9 @@
 import os
 import cv2
 import numpy as np
+import math
 import glob
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageOps
 
 
 def create_main_mockup(input_folder, title):
@@ -72,25 +73,25 @@ def create_main_mockup(input_folder, title):
     draw = ImageDraw.Draw(final_image)
     initial_font_size = 160  # Start with larger size
     max_width = 1380  # Maximum allowed width
-    
+
     # Function to get font and text size
     def get_font_and_size(size):
         font = ImageFont.truetype("./fonts/Free Version Angelina.ttf", size)
         bbox = draw.textbbox((0, 0), title, font=font)
         return font, bbox[2] - bbox[0], bbox[3] - bbox[1]
-    
+
     # Find appropriate font size
     font_size = initial_font_size
     font, text_width, text_height = get_font_and_size(font_size)
     while text_width > max_width and font_size > 50:  # Don't go smaller than 50
         font_size -= 5
         font, text_width, text_height = get_font_and_size(font_size)
-    
+
     # Calculate center position with vertical offset
     text_x = (grid_width - text_width) // 2
     vertical_offset = 50  # Move up by 200 pixels
     text_y = (grid_height - text_height) // 2 - vertical_offset
-    
+
     # Draw the text
     draw.text((text_x, text_y), title, font=font, fill=(0, 0, 0), anchor="lt")
 
@@ -100,101 +101,162 @@ def create_main_mockup(input_folder, title):
 
 
 def create_large_grid(input_folder):
+    # Get list of input images (any size now)
     images = sorted(glob.glob(os.path.join(input_folder, "*.jpg")))
-    script_dir = os.path.dirname(os.path.abspath(__file__)) 
-    
-    GRID_ROWS = 2
-    GRID_COLS = 2
-    GRID_SIZE = 2025
+    script_dir = os.path.dirname(os.path.abspath(__file__))
 
-    print("   Creating large grids...")
+    # ------------------- Canvas Settings -------------------
+    CANVAS_WIDTH = 2800
+    CANVAS_HEIGHT = 2250
+
+    print("Creating layered composite outputs...")
 
     output_folder = os.path.join(input_folder, "mocks")
+    os.makedirs(output_folder, exist_ok=True)
 
     num_images = len(images)
-    if num_images < GRID_ROWS * GRID_COLS * 3:
-        raise ValueError(
-            f"At least {GRID_ROWS * GRID_COLS * 3} images required, but only {num_images} found."
+    if num_images < 3:
+        raise ValueError(f"At least 3 images required, but only {num_images} found.")
+
+    # ------------------- Image Settings -------------------
+    center_target_size = (2400, 2400)  # Example: 2/3 of the canvas
+    bottom_left_target_size = (1800, 1800)  # Example: 1/2 of the canvas
+
+    # Define rotation angles and offsets
+    center_rotation = -25  # Angle for the centered image
+    bottom_left_rotation = -15  # Angle for the bottom-left image
+
+    # Shadow settings
+    shadow_offset = 25
+    shadow_blur = 15
+    shadow_opacity = 120
+
+    # ------------------- Generate Composite Outputs -------------------
+    for set_index in range(min(4, num_images // 3)):  # Loop to create up to 4 mockups
+        # ------------------- Background Image (Full Backdrop) -------------------
+        backdrop_img_index = set_index * 3  # Index of the backdrop image for this set
+        if backdrop_img_index >= num_images:
+            break  # Stop if we run out of images
+
+        # Create a blank canvas of the desired size
+        canvas = Image.new("RGB", (CANVAS_WIDTH, CANVAS_HEIGHT), "white")
+
+        backdrop_img = Image.open(images[backdrop_img_index]).convert("RGB")
+        # Resize the backdrop to fit the canvas, preserving aspect ratio
+        backdrop_img = ImageOps.fit(
+            backdrop_img, (CANVAS_WIDTH, CANVAS_HEIGHT), method=Image.LANCZOS
         )
 
-    for grid_set in range(num_images // (GRID_ROWS * GRID_COLS)):
-        grid_width = GRID_SIZE
-        grid_height = GRID_SIZE
-        grid_canvas = Image.new("RGBA", (grid_width, grid_height), (255, 255, 255, 0))
-        draw = ImageDraw.Draw(grid_canvas)
+        # Calculate the offset to center the backdrop on the canvas
+        backdrop_offset_x = (CANVAS_WIDTH - backdrop_img.width) // 2
+        backdrop_offset_y = (CANVAS_HEIGHT - backdrop_img.height) // 2
 
-        for i in range(GRID_ROWS * GRID_COLS):
-            img_path = images.pop(0)
-            img = Image.open(img_path).convert("RGBA")
+        canvas.paste(backdrop_img, (backdrop_offset_x, backdrop_offset_y))
 
-            col_index = i % GRID_COLS
-            row_index = i // GRID_COLS
-
-            square_width = grid_width // GRID_COLS
-            square_height = grid_height // GRID_ROWS
-
-            x_pos = col_index * square_width
-            y_pos = row_index * square_height
-
-            img.thumbnail((square_width, square_height), Image.LANCZOS)
-            img_x = x_pos + (square_width - img.width) // 2
-            img_y = y_pos + (square_height - img.height) // 2
-
-            grid_canvas.paste(img, (img_x, img_y), img)
-
-        border_thickness = 15  # Increased from 10 to 15
-        for j in range(1, GRID_COLS):
-            border_x = j * square_width
-            draw.line(
-                [(border_x, 0), (border_x, grid_height)],
-                fill="white",  # Changed from black to white
-                width=border_thickness,
+        # --- Center Image ---
+        center_img_index = set_index * 3 + 1  # Index of the center image
+        if center_img_index < num_images:  # Only process if image exists
+            center_img = Image.open(images[center_img_index]).convert("RGBA")
+            center_img = ImageOps.fit(
+                center_img, center_target_size, method=Image.LANCZOS
+            )
+            center_img = center_img.rotate(
+                center_rotation, expand=True, resample=Image.BICUBIC
             )
 
-        for k in range(1, GRID_ROWS):
-            border_y = k * square_height
-            draw.line(
-                [(0, border_y), (grid_width, border_y)],
-                fill="white",  # Changed from black to white
-                width=border_thickness,
+            # Offsets are now *relative* to the canvas size.  More precise control.
+            center_offset_x = (
+                CANVAS_WIDTH - center_target_size[0]
+            ) // 2 - 800  # Center horizontally
+            center_offset_y = (
+                CANVAS_HEIGHT - center_target_size[1]
+            ) // 2 + 100  # Center vertically (shifted)
+
+            # Adjust center offset for rotation
+            center_offset_x -= (center_img.width - center_target_size[0]) // 2
+            center_offset_y -= (center_img.height - center_target_size[1]) // 2
+
+            # Create and paste center shadow (top and right)
+            center_shadow = Image.new("RGBA", center_img.size, (0, 0, 0, 0))
+            center_alpha = center_img.split()[3]
+            center_shadow.paste((0, 0, 0, shadow_opacity), mask=center_alpha)
+            center_shadow = center_shadow.filter(ImageFilter.GaussianBlur(shadow_blur))
+            canvas.paste(
+                center_shadow,
+                (center_offset_x + shadow_offset, center_offset_y + shadow_offset),
+                center_shadow,
+            )
+            # Create and paste center shadow (top and left)
+            canvas.paste(
+                center_shadow,
+                (center_offset_x - shadow_offset, center_offset_y - shadow_offset),
+                center_shadow,
+            )
+            canvas.paste(center_img, (center_offset_x, center_offset_y), center_img)
+
+        # --- Bottom-Left Image ---
+        bottom_left_img_index = set_index * 3 + 2  # Index of the bottom-left image
+        if bottom_left_img_index < num_images:  # Only process if image exists
+            bottom_left_img = Image.open(images[bottom_left_img_index]).convert("RGBA")
+            bottom_left_img = ImageOps.fit(
+                bottom_left_img, bottom_left_target_size, method=Image.LANCZOS
+            )
+            bottom_left_img = bottom_left_img.rotate(
+                bottom_left_rotation, expand=True, resample=Image.BICUBIC
             )
 
-        # Replace text watermark with semi-transparent logo
-        logo_path = os.path.join(script_dir, "logo.png")
-        logo = Image.open(logo_path).convert("RGBA")
-        
-        # Calculate logo size (e.g. 50% of grid width)
-        logo_width = int(grid_width * 0.50)
-        logo_height = int(logo_width * logo.size[1] / logo.size[0])
-        logo = logo.resize((logo_width, logo_height), Image.LANCZOS)
+            bottom_left_offset_x = -400  # Shifted slightly *outside* the left edge
+            bottom_left_offset_y = (
+                CANVAS_HEIGHT - bottom_left_target_size[1] + 300
+            )  # Shifted *up* from the bottom
 
-        # Make logo semi-transparent by adjusting alpha channel
-        logo_data = logo.getdata()
-        new_data = []
-        for item in logo_data:
-            # Preserve original RGB but reduce alpha to 70%
-            new_data.append((item[0], item[1], item[2], int(item[3] * 0.7)))
-        logo.putdata(new_data)
+            # Adjust bottom-left offset for rotation
+            bottom_left_offset_x -= (
+                bottom_left_img.width - bottom_left_target_size[0]
+            ) // 2
+            bottom_left_offset_y -= (
+                bottom_left_img.height - bottom_left_target_size[1]
+            ) // 2
 
-        # Calculate center position
-        logo_x = (grid_width - logo_width) // 2
-        logo_y = (grid_height - logo_height) // 2
+            # Create and paste bottom-left shadow (bottom and right)
+            bottom_left_shadow = Image.new("RGBA", bottom_left_img.size, (0, 0, 0, 0))
+            bottom_left_alpha = bottom_left_img.split()[3]
+            bottom_left_shadow.paste((0, 0, 0, shadow_opacity), mask=bottom_left_alpha)
+            bottom_left_shadow = bottom_left_shadow.filter(
+                ImageFilter.GaussianBlur(shadow_blur)
+            )
+            canvas.paste(
+                bottom_left_shadow,
+                (
+                    bottom_left_offset_x + shadow_offset,
+                    bottom_left_offset_y + shadow_offset,
+                ),
+                bottom_left_shadow,
+            )
 
-        # Create new transparent layer and paste logo
-        overlay = Image.new("RGBA", grid_canvas.size, (255, 255, 255, 0))
-        overlay.paste(logo, (logo_x, logo_y), logo)
+            # Create and paste bottom-left shadow (top and left)
 
-        combined = Image.alpha_composite(grid_canvas, overlay)
+            canvas.paste(
+                bottom_left_shadow,
+                (
+                    bottom_left_offset_x - shadow_offset,
+                    bottom_left_offset_y - shadow_offset,
+                ),
+                bottom_left_shadow,
+            )
+            canvas.paste(
+                bottom_left_img,
+                (bottom_left_offset_x, bottom_left_offset_y),
+                bottom_left_img,
+            )
 
-        # Save with optimized JPEG settings
-        os.makedirs(output_folder, exist_ok=True)
-        grid_filename = f"large_grid_set_{grid_set + 1}.jpg"
-        combined.convert("RGB").save(
-            os.path.join(output_folder, grid_filename),
+        # --- Save the Result ---
+        output_filename = f"layered_mockup_{set_index + 1}.jpg"  # Numbered output files
+        canvas.save(
+            os.path.join(output_folder, output_filename),
             "JPEG",
-            quality=85,
+            quality=95,
             optimize=True,
-            subsampling="4:2:0",
         )
 
 
@@ -202,7 +264,9 @@ def create_pattern(input_folder):
     IMAGE_SIZE = 2048
     GRID_SIZE = 2
 
-    images = sorted(glob.glob(os.path.join(input_folder, "*.jpg")))[:1]  # Only take first image
+    images = sorted(glob.glob(os.path.join(input_folder, "*.jpg")))[
+        :1
+    ]  # Only take first image
     output_folder = os.path.join(input_folder, "mocks")
 
     print("   Creating seamless mockup...")
@@ -229,15 +293,15 @@ def create_pattern(input_folder):
 
         txtLayer = ImageDraw.Draw(txt)
         # Draw white border by rendering text multiple times with offset
-        offsets = [(x,y) for x in (-3,3) for y in (-3,3)]
+        offsets = [(x, y) for x in (-3, 3) for y in (-3, 3)]
         for offset_x, offset_y in offsets:
             txtLayer.text(
-            (text_position[0] + offset_x, text_position[1] + offset_y),
-            text,
-            font=font,
-            fill=(255, 255, 255, 192),
-            anchor="mm",
-            align="center"
+                (text_position[0] + offset_x, text_position[1] + offset_y),
+                text,
+                font=font,
+                fill=(255, 255, 255, 192),
+                anchor="mm",
+                align="center",
             )
         # Draw main black text on top
         txtLayer.text(
@@ -262,26 +326,26 @@ def create_pattern(input_folder):
             subsampling="4:2:0",
         )
 
+
 def create_irl_video(irl_folder):
     """Create a video from IRL images with fade transitions"""
     # Updated output folder to be in the parent directory's mocks subfolder
     output_folder = os.path.join(os.path.dirname(irl_folder), "mocks")
     os.makedirs(output_folder, exist_ok=True)
-    
+
     images = sorted(glob.glob(os.path.join(irl_folder, "*.[jp][pn][g]")))
     if not images:
         return
-        
+
     # Read first image to get dimensions
     img = cv2.imread(images[0])
     height, width = 1500, 1500  # Fixed dimensions
-    
+
     fourcc = cv2.VideoWriter_fourcc(*"mp4v")
     video = cv2.VideoWriter(
-        os.path.join(output_folder, "irl_showcase.mp4"), 
-        fourcc, 30.0, (width, height)
+        os.path.join(output_folder, "irl_showcase.mp4"), fourcc, 30.0, (width, height)
     )
-    
+
     def resize_image(img):
         # Resize and pad to square
         aspect = img.shape[1] / img.shape[0]
@@ -290,37 +354,43 @@ def create_irl_video(irl_folder):
             new_h = int(width / aspect)
             img = cv2.resize(img, (new_w, new_h))
             pad_y = (height - new_h) // 2
-            return cv2.copyMakeBorder(img, pad_y, pad_y, 0, 0, cv2.BORDER_CONSTANT, value=(255,255,255))
+            return cv2.copyMakeBorder(
+                img, pad_y, pad_y, 0, 0, cv2.BORDER_CONSTANT, value=(255, 255, 255)
+            )
         else:
             new_h = height
             new_w = int(height * aspect)
             img = cv2.resize(img, (new_w, new_h))
             pad_x = (width - new_w) // 2
-            return cv2.copyMakeBorder(img, 0, 0, pad_x, pad_x, cv2.BORDER_CONSTANT, value=(255,255,255))
-    
+            return cv2.copyMakeBorder(
+                img, 0, 0, pad_x, pad_x, cv2.BORDER_CONSTANT, value=(255, 255, 255)
+            )
+
     # Parameters
     display_frames = 60  # 2 seconds display
     transition_frames = 30  # 1 second transition
-    
+
     for i in range(len(images)):
         current = resize_image(cv2.imread(images[i]))
         next_img = resize_image(cv2.imread(images[(i + 1) % len(images)]))
-        
+
         # Display current image
         for _ in range(display_frames):
             video.write(current)
-        
+
         # Fade transition
         for j in range(transition_frames):
             alpha = j / transition_frames
             blend = cv2.addWeighted(current, 1 - alpha, next_img, alpha, 0)
             video.write(blend)
-    
+
     video.release()
+
 
 # New function to create seamless zoom video when no irl folder exists
 def create_seamless_zoom_video(input_folder):
     import cv2  # ensure cv2 is imported
+
     output_folder = os.path.join(input_folder, "mocks")
     img_path = os.path.join(output_folder, "seamless_1.jpg")
     if not os.path.exists(img_path):
@@ -331,20 +401,23 @@ def create_seamless_zoom_video(input_folder):
     fourcc = cv2.VideoWriter_fourcc(*"mp4v")
     video_path = os.path.join(output_folder, "irl_showcase.mp4")
     video = cv2.VideoWriter(video_path, fourcc, 30.0, (width, height))
-    
+
     total_frames = 90
     initial_zoom = 1.5  # start zoomed in (crop factor)
     for i in range(total_frames):
         t = i / (total_frames - 1)
-        zoom_factor = initial_zoom - (initial_zoom - 1) * t  # interpolate zoom factor to 1.0
+        zoom_factor = (
+            initial_zoom - (initial_zoom - 1) * t
+        )  # interpolate zoom factor to 1.0
         new_w = int(width / zoom_factor)
         new_h = int(height / zoom_factor)
         x1 = (width - new_w) // 2
         y1 = (height - new_h) // 2
-        crop = img[y1:y1+new_h, x1:x1+new_w]
+        crop = img[y1 : y1 + new_h, x1 : x1 + new_w]
         frame = cv2.resize(crop, (width, height), interpolation=cv2.INTER_LINEAR)
         video.write(frame)
     video.release()
+
 
 if __name__ == "__main__":
     script_directory = os.path.dirname(os.path.abspath(__file__))
@@ -356,15 +429,17 @@ if __name__ == "__main__":
             title = subfolder
             # First, create seamless patterns (needed for zoom video)
             create_pattern(subfolder_path)
-            
-            irl_path = os.path.join(subfolder_path, 'irl')
+
+            irl_path = os.path.join(subfolder_path, "irl")
             if os.path.isdir(irl_path):
                 print(f"Processing IRL folder in {title}...")
                 create_irl_video(irl_path)
             else:
-                print(f"No IRL folder found in {title}, creating seamless zoom video...")
+                print(
+                    f"No IRL folder found in {title}, creating seamless zoom video..."
+                )
                 create_seamless_zoom_video(subfolder_path)
-            
+
             # Continue processing other mockups
             create_main_mockup(subfolder_path, title)
             create_large_grid(subfolder_path)
