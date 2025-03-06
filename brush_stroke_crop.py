@@ -34,8 +34,6 @@ def extract_distinct_elements(image_path, output_dir="output", padding=5, min_si
     # Label connected components
     labeled_array, num_features = ndimage.label(binary_mask)
 
-    print(f"Found {num_features} potential distinct elements in {image_path}")
-
     # Get base filename for output
     base_filename = os.path.splitext(os.path.basename(image_path))[0]
 
@@ -144,12 +142,6 @@ if __name__ == "__main__":
         description="Extract distinct visual elements from images"
     )
     parser.add_argument(
-        "--input", default="input", help="Input folder containing images"
-    )
-    parser.add_argument(
-        "--output", default="output", help="Output folder for extracted elements"
-    )
-    parser.add_argument(
         "--padding", type=int, default=5, help="Padding around extracted elements"
     )
     parser.add_argument(
@@ -161,11 +153,22 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
+    input_folder = "input"
+    output_folder = "output"
+
+    # Delete all .Identifier files in the entire tree under the input folder
     print("Deleting all .Identifier files...")
-    for root, _, files in os.walk(args.input):
+    for root, _, files in os.walk(input_folder):
         for file in files:
             if file.endswith(".Identifier"):
                 file_path = os.path.join(root, file)
                 os.remove(file_path)
 
-    process_folder(args.input, args.output, args.padding, args.min_size)
+    # Process each immediate subfolder within the input folder
+    top_level = next(os.walk(input_folder))
+    subfolders = top_level[1]
+    for subfolder in subfolders:
+        input_subfolder = os.path.join(input_folder, subfolder)
+        output_subfolder = os.path.join(output_folder, subfolder)
+        print(f"Processing folder: {input_subfolder} -> {output_subfolder}")
+        process_folder(input_subfolder, output_subfolder, args.padding, args.min_size)

@@ -38,5 +38,7 @@ env/
 
 # Project specific
 fonts/
+brush_input/
+brush_output/
 input/
 output/
