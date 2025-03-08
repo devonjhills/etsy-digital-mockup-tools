@@ -14,17 +14,14 @@ def trim(im):
 def meets_requirements(img_path, max_size):
     """Check if image meets all requirements: size, DPI, and naming"""
     try:
-        print(f"\nChecking requirements for: {img_path}")
         with Image.open(img_path) as img:
             # Check if PNG format
-            print(f"Format check: {img.format}")
-            if img.format != 'PNG':
+            if img.format != "PNG":
                 print("Failed: Not PNG format")
                 return False
 
             # Check dimensions
             width, height = img.size
-            print(f"Size check: {width}x{height} (max: {max_size})")
             if width > max_size or height > max_size:
                 print("Failed: Image too large")
                 return False
@@ -35,19 +32,14 @@ def meets_requirements(img_path, max_size):
             safe_name = basename.replace(" ", "_").lower()
             current_name = os.path.basename(img_path)
             expected_prefix = f"{safe_name}_"
-            
-            print(f"Filename check:")
-            print(f"  Expected prefix: {expected_prefix}")
-            print(f"  Current name: {current_name}")
-            
+
             if not current_name.startswith(expected_prefix):
                 print("Failed: Wrong filename prefix")
                 return False
 
             try:
-                index = int(current_name[len(expected_prefix):-4])  # Remove .png
+                index = int(current_name[len(expected_prefix) : -4])  # Remove .png
                 expected_name = f"{safe_name}_{index}.png"
-                print(f"  Expected full name: {expected_name}")
                 if not current_name == expected_name:
                     print("Failed: Wrong filename format")
                     return False
@@ -55,7 +47,6 @@ def meets_requirements(img_path, max_size):
                 print("Failed: Invalid index number in filename")
                 return False
 
-            print("All requirements met!")
             return True
 
     except Exception as e:
@@ -91,7 +82,6 @@ def process_images(input_folder, max_size):
 
                 # Skip if file meets all requirements
                 if meets_requirements(image_path, max_size):
-                    print(f"Skipping already processed file: {image_path}")
                     continue
 
                 try:
@@ -135,7 +125,11 @@ def process_images(input_folder, max_size):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Resize clipart images")
-    parser.add_argument("--input_folder", default="input", help="Path to the input folder")
-    parser.add_argument("--max_size", type=int, default=1500, help="Maximum size for the longest edge")
+    parser.add_argument(
+        "--input_folder", default="input", help="Path to the input folder"
+    )
+    parser.add_argument(
+        "--max_size", type=int, default=1500, help="Maximum size for the longest edge"
+    )
     args = parser.parse_args()
     process_images(args.input_folder, args.max_size)
