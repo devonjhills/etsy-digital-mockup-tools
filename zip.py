@@ -2,6 +2,33 @@ import os
 import zipfile
 import shutil
 from PIL import Image
+import io
+
+
+def compress_image(img_path, quality=85):
+    """Compress an image with reduced quality but maintaining dimensions"""
+    try:
+        with Image.open(img_path) as img:
+            # Get original format
+            img_format = img.format
+
+            # Convert to RGB if needed (for JPEG output)
+            if img_format == "JPEG" and img.mode != "RGB":
+                img = img.convert("RGB")
+
+            # Save to buffer
+            buffer = io.BytesIO()
+            if img_format == "JPEG":
+                img.save(buffer, format=img_format, quality=quality, optimize=True)
+            elif img_format == "PNG":
+                img.save(buffer, format=img_format, optimize=True)
+            else:
+                img.save(buffer, format=img_format)
+
+            return buffer.getvalue()
+    except Exception as e:
+        print(f"Error compressing image {img_path}: {e}")
+        return None
 
 
 def verify_image(img_path):
@@ -31,9 +58,16 @@ def verify_zip(zip_path):
 
 
 def create_zip_group(
-    files, subfolder_path, output_dir, sanitized_name, group_num=None, total_groups=None
+    files,
+    subfolder_path,
+    output_dir,
+    sanitized_name,
+    group_num=None,
+    total_groups=None,
+    compress_images=True,
+    image_quality=80,
 ):
-    """Helper function to create a single zip file with verification"""
+    """Helper function to create a single zip file with verification and compression"""
     # Verify all images before creating zip
     valid_files = []
     for img in files:
@@ -60,7 +94,17 @@ def create_zip_group(
     ) as zipf:
         for img in valid_files:
             img_path = os.path.join(subfolder_path, img)
-            zipf.write(img_path, os.path.basename(img_path))
+
+            if compress_images:
+                # Use in-memory compression instead of writing to disk
+                compressed_data = compress_image(img_path, image_quality)
+                if compressed_data:
+                    zipf.writestr(os.path.basename(img_path), compressed_data)
+                else:
+                    # Fall back to original file if compression fails
+                    zipf.write(img_path, os.path.basename(img_path))
+            else:
+                zipf.write(img_path, os.path.basename(img_path))
 
     # Verify zip after creation
     if not verify_zip(zip_path):
@@ -70,14 +114,15 @@ def create_zip_group(
     return zip_path, os.path.getsize(zip_path) / (1024 * 1024)
 
 
-def create_zip_files(input_folder, max_size_mb=20):
+def create_zip_files(input_folder, max_size_mb=20, image_quality=80):
     """
     Creates zip files for each subfolder. Makes a single zip if under max_size_mb,
-    otherwise splits into multiple parts.
+    otherwise splits into multiple parts. Compresses images before zipping.
 
     Args:
         input_folder (str): Path to the input folder containing subfolders with images
         max_size_mb (float): Maximum size in MB for a single zip file
+        image_quality (int): JPEG quality (1-100, lower means smaller file size)
 
     Returns:
         dict: Dictionary with subfolder names as keys and list of created zip paths as values
@@ -123,7 +168,12 @@ def create_zip_files(input_folder, max_size_mb=20):
             # First try creating a single zip file
             try:
                 zip_path, zip_size = create_zip_group(
-                    sorted_files, subfolder_path, temp_dir, sanitized_name
+                    sorted_files,
+                    subfolder_path,
+                    temp_dir,
+                    sanitized_name,
+                    compress_images=True,
+                    image_quality=image_quality,
                 )
 
                 if zip_size <= max_size_mb:
@@ -150,7 +200,14 @@ def create_zip_files(input_folder, max_size_mb=20):
 
                     for part, images in enumerate([first_half, second_half], 1):
                         zip_path, zip_size = create_zip_group(
-                            images, subfolder_path, temp_dir, sanitized_name, part, 2
+                            images,
+                            subfolder_path,
+                            temp_dir,
+                            sanitized_name,
+                            part,
+                            2,
+                            compress_images=True,
+                            image_quality=image_quality,
                         )
 
                         if zip_size > max_size_mb:
@@ -182,6 +239,8 @@ def create_zip_files(input_folder, max_size_mb=20):
                                 sanitized_name,
                                 part,
                                 4,
+                                compress_images=True,
+                                image_quality=image_quality,
                             )
                             zip_paths.append(zip_path)
                             print(
@@ -216,4 +275,5 @@ def create_zip_files(input_folder, max_size_mb=20):
 
 if __name__ == "__main__":
     input_folder = "input"
-    create_zip_files(input_folder)
+    # Adjust quality parameter to balance file size and image quality
+    create_zip_files(input_folder, max_size_mb=20, image_quality=80)

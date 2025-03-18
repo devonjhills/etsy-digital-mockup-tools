@@ -71,12 +71,12 @@ def create_main_mockup(input_folder, title):
 
     # Add centered title text with dynamic font sizing
     draw = ImageDraw.Draw(final_image)
-    initial_font_size = 160  # Start with larger size
+    initial_font_size = 150  # Start with larger size
     max_width = 1380  # Maximum allowed width
 
     # Function to get font and text size
     def get_font_and_size(size):
-        font = ImageFont.truetype("./fonts/Free Version Angelina.ttf", size)
+        font = ImageFont.truetype("./fonts/Clattering.ttf", size)
         bbox = draw.textbbox((0, 0), title, font=font)
         return font, bbox[2] - bbox[0], bbox[3] - bbox[1]
 
@@ -89,11 +89,11 @@ def create_main_mockup(input_folder, title):
 
     # Calculate center position with vertical offset
     text_x = (grid_width - text_width) // 2
-    vertical_offset = 50  # Move up by 200 pixels
+    vertical_offset = 0
     text_y = (grid_height - text_height) // 2 - vertical_offset
 
     # Draw the text
-    draw.text((text_x, text_y), title, font=font, fill=(0, 0, 0), anchor="lt")
+    draw.text((text_x, text_y), title, font=font, fill=(238, 186, 43), anchor="lt")
 
     os.makedirs(OUTPUT_FOLDER, exist_ok=True)
     grid_filename = "main.png"
@@ -327,67 +327,6 @@ def create_pattern(input_folder):
         )
 
 
-def create_irl_video(irl_folder):
-    """Create a video from IRL images with fade transitions"""
-    # Updated output folder to be in the parent directory's mocks subfolder
-    output_folder = os.path.join(os.path.dirname(irl_folder), "mocks")
-    os.makedirs(output_folder, exist_ok=True)
-
-    images = sorted(glob.glob(os.path.join(irl_folder, "*.[jp][pn][g]")))
-    if not images:
-        return
-
-    # Read first image to get dimensions
-    img = cv2.imread(images[0])
-    height, width = 1500, 1500  # Fixed dimensions
-
-    fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-    video = cv2.VideoWriter(
-        os.path.join(output_folder, "irl_showcase.mp4"), fourcc, 30.0, (width, height)
-    )
-
-    def resize_image(img):
-        # Resize and pad to square
-        aspect = img.shape[1] / img.shape[0]
-        if aspect > 1:
-            new_w = width
-            new_h = int(width / aspect)
-            img = cv2.resize(img, (new_w, new_h))
-            pad_y = (height - new_h) // 2
-            return cv2.copyMakeBorder(
-                img, pad_y, pad_y, 0, 0, cv2.BORDER_CONSTANT, value=(255, 255, 255)
-            )
-        else:
-            new_h = height
-            new_w = int(height * aspect)
-            img = cv2.resize(img, (new_w, new_h))
-            pad_x = (width - new_w) // 2
-            return cv2.copyMakeBorder(
-                img, 0, 0, pad_x, pad_x, cv2.BORDER_CONSTANT, value=(255, 255, 255)
-            )
-
-    # Parameters
-    display_frames = 60  # 2 seconds display
-    transition_frames = 30  # 1 second transition
-
-    for i in range(len(images)):
-        current = resize_image(cv2.imread(images[i]))
-        next_img = resize_image(cv2.imread(images[(i + 1) % len(images)]))
-
-        # Display current image
-        for _ in range(display_frames):
-            video.write(current)
-
-        # Fade transition
-        for j in range(transition_frames):
-            alpha = j / transition_frames
-            blend = cv2.addWeighted(current, 1 - alpha, next_img, alpha, 0)
-            video.write(blend)
-
-    video.release()
-
-
-# New function to create seamless zoom video when no irl folder exists
 def create_seamless_zoom_video(input_folder):
     import cv2  # ensure cv2 is imported
 
@@ -399,7 +338,7 @@ def create_seamless_zoom_video(input_folder):
     img = cv2.imread(img_path)
     height, width = img.shape[:2]
     fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-    video_path = os.path.join(output_folder, "irl_showcase.mp4")
+    video_path = os.path.join(output_folder, "video_seamless.mp4")
     video = cv2.VideoWriter(video_path, fourcc, 30.0, (width, height))
 
     total_frames = 90
@@ -419,6 +358,184 @@ def create_seamless_zoom_video(input_folder):
     video.release()
 
 
+def create_grid_mockup_with_borders(
+    input_folder, output_folder=None, border_width=15, watermark_text="© digital veil"
+):
+    """
+    Creates a grid mockup of all images in the input folder with white borders and a watermark.
+
+    Args:
+        input_folder: Folder containing the input images
+        output_folder: Folder to save the output (defaults to input_folder/mocks)
+        border_width: Width of the white borders between images
+        watermark_text: Text to use as watermark
+    """
+    import os
+    import glob
+    import math
+    from PIL import Image, ImageDraw, ImageFont
+
+    # Set up output folder
+    if output_folder is None:
+        output_folder = os.path.join(input_folder, "mocks")
+    os.makedirs(output_folder, exist_ok=True)
+
+    # Get all images
+    images = sorted(glob.glob(os.path.join(input_folder, "*.[jp][pn][g]")))
+    if len(images) == 0:
+        print(f"No images found in {input_folder}")
+        return
+
+    # Limit to 12 images
+    images = images[:12]
+
+    # Determine grid configuration (4x3 grid)
+    grid_rows, grid_cols = 3, 4
+
+    # Calculate sizes
+    img_samples = [Image.open(img) for img in images[:3]]
+    avg_aspect = sum(img.width / img.height for img in img_samples) / len(img_samples)
+
+    grid_width = 3000  # Base width
+    cell_width = (grid_width - (grid_cols + 1) * border_width) // grid_cols
+    cell_height = int(cell_width / avg_aspect)
+    grid_height = (cell_height * grid_rows) + ((grid_rows + 1) * border_width)
+
+    # Create white canvas
+    grid_canvas = Image.new("RGB", (grid_width, grid_height), (255, 255, 255))
+
+    # Place images
+    for i, img_path in enumerate(images):
+        if i >= grid_rows * grid_cols:
+            break
+
+        img = Image.open(img_path).convert("RGB")
+        img = img.resize((cell_width, cell_height), Image.LANCZOS)
+
+        row_index = i // grid_cols
+        col_index = i % grid_cols
+
+        x_pos = border_width + col_index * (cell_width + border_width)
+        y_pos = border_width + row_index * (cell_height + border_width)
+
+        grid_canvas.paste(img, (x_pos, y_pos))
+
+    # Add staggered watermarks
+    draw = ImageDraw.Draw(grid_canvas)
+
+    # Try to use a standard font that should be available
+    try:
+        font = ImageFont.truetype("Arial.ttf", 80)
+    except IOError:
+        try:
+            font = ImageFont.truetype("DejaVuSans.ttf", 80)
+        except IOError:
+            # Fallback to default font
+            font = ImageFont.load_default().font_variant(size=80)
+
+    # Create a transparent layer for watermarks
+    txt = Image.new("RGBA", grid_canvas.size, (255, 255, 255, 0))
+    d = ImageDraw.Draw(txt)
+
+    # Get watermark dimensions
+    watermark_width, watermark_height = draw.textbbox(
+        (0, 0), watermark_text, font=font
+    )[2:4]
+
+    # Calculate spacing for staggered pattern
+    num_watermarks_x = 5
+    num_watermarks_y = 7
+
+    # Create staggered pattern of watermarks
+    for i in range(num_watermarks_y):
+        for j in range(num_watermarks_x):
+            # Stagger every other row
+            offset = (watermark_width / 2) if i % 2 else 0
+
+            # Calculate positions
+            x = (
+                (j * grid_width // (num_watermarks_x - 1))
+                - watermark_width // 2
+                + offset
+            )
+            y = (i * grid_height // (num_watermarks_y - 1)) - watermark_height // 2
+
+            # Draw watermark with shadow for better visibility
+            d.text(
+                (x + 2, y + 2), watermark_text, fill=(0, 0, 0, 30), font=font
+            )  # Shadow
+            d.text(
+                (x, y), watermark_text, fill=(255, 255, 255, 60), font=font
+            )  # Main text
+
+    # Rotate the text layer for diagonal effect
+    angle = -30
+    txt = txt.rotate(angle, resample=Image.BICUBIC, expand=False)
+
+    # Composite the watermark with the grid
+    grid_canvas = Image.alpha_composite(grid_canvas.convert("RGBA"), txt).convert("RGB")
+
+    # Save the result
+    output_path = os.path.join(output_folder, "grid_mockup_with_borders.jpg")
+    grid_canvas.save(output_path, "JPEG", quality=95)
+    print(f"Grid mockup created: {output_path}")
+    return output_path
+
+
+def create_seamless_mockup(input_folder):
+    output_folder = os.path.join(input_folder, "mocks")
+    os.makedirs(output_folder, exist_ok=True)
+
+    # Get the first image in the input folder
+    input_files = [
+        f
+        for f in os.listdir(input_folder)
+        if f.lower().endswith(("png", "jpg", "jpeg"))
+    ]
+    if not input_files:
+        print("No image files found in input folder.")
+        return
+
+    input_image_path = os.path.join(input_folder, input_files[0])
+    input_img = Image.open(input_image_path)
+
+    # Define the maximum size for the tile so it fits within the canvas margins
+    cell_max_size = (550, 550)
+    scaled_img = input_img.copy()
+    # Use Lanczos filtering for a high-quality downscaling
+    scaled_img.thumbnail(cell_max_size, Image.LANCZOS)
+    cell_width, cell_height = scaled_img.size
+
+    # Load the canvas background from canvas.png in the script directory and resize it to 2000x2000
+    canvas_path = os.path.join(os.path.dirname(__file__), "canvas2.png")
+    canvas = Image.open(canvas_path)
+    canvas = canvas.resize((2000, 2000))
+    canvas_width, canvas_height = canvas.size
+
+    # Define margins and gap
+    margin = 100
+    arrow_gap = 100
+
+    # Position the single input image on the left (spaced from the edge)
+    left_x = margin
+    left_y = (canvas_height - cell_height) // 2
+    canvas.paste(scaled_img, (left_x, left_y))
+
+    # Position the 2x2 grid on the right (also spaced from the edges)
+    grid_x = left_x + cell_width + arrow_gap
+    grid_y = (canvas_height - (2 * cell_height)) // 2
+
+    for i in range(2):  # rows
+        for j in range(2):  # columns
+            pos = (grid_x + j * cell_width, grid_y + i * cell_height)
+            canvas.paste(scaled_img, pos)
+
+    # Save the output image
+    output_image_path = os.path.join(output_folder, "output_mockup.png")
+    canvas.save(output_image_path)
+    print(f"Mockup saved to {output_image_path}")
+
+
 if __name__ == "__main__":
     script_directory = os.path.dirname(os.path.abspath(__file__))
     input_folder = os.path.join(script_directory, "input")
@@ -430,16 +547,10 @@ if __name__ == "__main__":
             # First, create seamless patterns (needed for zoom video)
             create_pattern(subfolder_path)
 
-            irl_path = os.path.join(subfolder_path, "irl")
-            if os.path.isdir(irl_path):
-                print(f"Processing IRL folder in {title}...")
-                create_irl_video(irl_path)
-            else:
-                print(
-                    f"No IRL folder found in {title}, creating seamless zoom video..."
-                )
-                create_seamless_zoom_video(subfolder_path)
+            create_seamless_zoom_video(subfolder_path)
+            create_seamless_mockup(subfolder_path)
 
             # Continue processing other mockups
             create_main_mockup(subfolder_path, title)
+            create_grid_mockup_with_borders(subfolder_path)
             create_large_grid(subfolder_path)
