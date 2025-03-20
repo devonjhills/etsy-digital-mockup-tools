@@ -64,17 +64,17 @@ def main():
 
     # Define target aspect ratios and sizes with exact values
     portrait_targets = [
-        ("US_4-5", "4:5", 4 / 5, 7200, 9000),
-        ("US_2-3", "2:3", 2 / 3, 7200, 10800),
-        ("US_3-4", "3:4", 3 / 4, 7200, 9600),
-        ("A-series_portrait", "ISO", 1 / math.sqrt(2), 7016, 9937),
+        ("US_4-5", "4:5_ratio", 4 / 5, 7200, 9000),
+        ("US_2-3", "2:3_ratio", 2 / 3, 7200, 10800),
+        ("US_3-4", "3:4_ratio", 3 / 4, 7200, 9600),
+        ("A-series_portrait", "ISO_ratio", 1 / math.sqrt(2), 7016, 9937),
     ]
 
     landscape_targets = [
-        ("US_5-4", "5:4", 5 / 4, 9000, 7200),
-        ("US_3-2", "3:2", 3 / 2, 10800, 7200),
-        ("US_4-3", "4:3", 4 / 3, 9600, 7200),
-        ("A-series_landscape", "ISO", math.sqrt(2), 9937, 7016),
+        ("US_5-4", "5:4_ratio", 5 / 4, 9000, 7200),
+        ("US_3-2", "3:2_ratio", 3 / 2, 10800, 7200),
+        ("US_4-3", "4:3_ratio ", 4 / 3, 9600, 7200),
+        ("A-series_landscape", "ISO_ratio", math.sqrt(2), 9937, 7016),
     ]
 
     # Find all valid image files
