@@ -1,5 +1,5 @@
 import warnings
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 
 warnings.simplefilter("ignore", Image.DecompressionBombWarning)
 Image.MAX_IMAGE_PIXELS = None
@@ -134,14 +134,12 @@ def create_video_mockup(
     output_video_path,
     fps=30,
     video_duration=10,
-    horizontal_pan_factor=1.0,
-    vertical_pan_factor=1.0,
 ):
     """
     Creates a video mockup that shows a high-detail view of the input image.
 
     The video is square (1080x1080) and has two segments:
-      Segment 1 (Horizontal Pan): The crop window pans slowly from the image’s center toward the left.
+      Segment 1 (Horizontal Pan): The crop window pans slowly from the image's center toward the left.
       Segment 2 (Vertical Pan): Then the crop window pans slowly from the bottom (centered horizontally) up to the center.
 
     The input image is first cropped to a square (cover effect) and then further cropped with a fixed zoom factor.
@@ -155,12 +153,6 @@ def create_video_mockup(
     video_height = 1080
     fourcc = cv2.VideoWriter_fourcc(*"mp4v")
     total_frames = int(fps * video_duration)
-
-    # We'll divide the video into two segments:
-    seg1_frames = total_frames // 2  # first half: horizontal pan from center to left
-    seg2_frames = (
-        total_frames - seg1_frames
-    )  # second half: vertical pan from bottom to center
 
     # Load the input image and crop it to a square (cover effect)
     img = cv2.imread(input_img_path)
@@ -179,75 +171,202 @@ def create_video_mockup(
         square = img.copy()
     sq_h, sq_w = square.shape[:2]  # sq_h == sq_w
 
-    # Set a zoom factor to show high detail; this determines the crop size used in animation.
-    zoom_factor = 1
-    crop_w_target = video_width / zoom_factor
-    crop_h_target = video_height / zoom_factor
+    # Simplified animation: start zoomed in to center, then zoom out
+    # Initial zoom factor (more zoomed in)
+    start_zoom = 0.3  # Small value = more zoomed in
+    # Final zoom factor (zoomed out)
+    end_zoom = 0.8  # Larger value = more zoomed out
 
-    # --- Segment 1: Horizontal Pan (center to left) ---
-    # Original centers:
-    center_start_x = sq_w / 2
-    # Maximum travel would move the center to the far left, i.e. crop entirely flush:
-    full_pan_distance = (sq_w / 2) - (crop_w_target / 2)
-    # Apply horizontal_pan_factor to reduce travel distance:
-    center_end_x = center_start_x - horizontal_pan_factor * full_pan_distance
-    center_y_fixed = sq_h / 2
+    # Load custom font
+    try:
+        # Adjust font size as needed
+        font_size = 80
+        font = ImageFont.truetype("./fonts/Cravelo DEMO.otf", font_size)
+    except Exception as e:
+        print("Error loading font, using default font.", e)
+        font = ImageFont.load_default()
 
-    seg1_frames_list = []
-    for i in range(seg1_frames):
-        t = i / (seg1_frames - 1) if seg1_frames > 1 else 0
-        center_x = center_start_x + t * (center_end_x - center_start_x)
-        center_y = center_y_fixed
-        x1 = int(center_x - crop_w_target / 2)
-        y1 = int(center_y - crop_h_target / 2)
-        x2 = x1 + int(crop_w_target)
-        y2 = y1 + int(crop_h_target)
-        # Clamp crop within boundaries:
+    # Generate frames
+    frames_list = []
+    for i in range(total_frames):
+        t = i / (total_frames - 1) if total_frames > 1 else 0
+        # Interpolate zoom factor from start_zoom to end_zoom
+        current_zoom = start_zoom + t * (end_zoom - start_zoom)
+
+        # Calculate crop size based on current zoom
+        crop_size = int(sq_w * current_zoom)
+
+        # Center crop
+        center_x = sq_w // 2
+        center_y = sq_h // 2
+
+        x1 = center_x - crop_size // 2
+        y1 = center_y - crop_size // 2
+        x2 = x1 + crop_size
+        y2 = y1 + crop_size
+
+        # Ensure crop is within image boundaries
         x1 = max(0, x1)
         y1 = max(0, y1)
         x2 = min(sq_w, x2)
         y2 = min(sq_h, y2)
+
+        # Extract and resize crop
         crop_frame = square[y1:y2, x1:x2]
         frame = cv2.resize(
             crop_frame, (video_width, video_height), interpolation=cv2.INTER_AREA
         )
-        seg1_frames_list.append(frame)
 
-    # --- Segment 2: Vertical Pan (bottom to center) ---
-    # Original vertical centers:
-    center_start_y = sq_h - (crop_h_target / 2)
-    full_vertical_distance = center_start_y - (sq_h / 2)
-    center_end_y = center_start_y - vertical_pan_factor * full_vertical_distance
-    center_x_fixed = sq_w / 2
+        # Convert the frame to a PIL Image to add text overlay
+        pil_frame = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+        draw = ImageDraw.Draw(pil_frame)
 
-    seg2_frames_list = []
-    for i in range(seg2_frames):
-        t = i / (seg2_frames - 1) if seg2_frames > 1 else 0
-        center_y = center_start_y + t * (center_end_y - center_start_y)
-        center_x = center_x_fixed
-        x1 = int(center_x - crop_w_target / 2)
-        y1 = int(center_y - crop_h_target / 2)
-        x2 = x1 + int(crop_w_target)
-        y2 = y1 + int(crop_h_target)
-        x1 = max(0, x1)
-        y1 = max(0, y1)
-        x2 = min(sq_w, x2)
-        y2 = min(sq_h, y2)
-        crop_frame = square[y1:y2, x1:x2]
-        frame = cv2.resize(
-            crop_frame, (video_width, video_height), interpolation=cv2.INTER_AREA
-        )
-        seg2_frames_list.append(frame)
+        text = "Digitally enhanced vintage artwork"
+        text_bbox = draw.textbbox((0, 0), text, font=font)
+        text_width = text_bbox[2] - text_bbox[0]
+        text_height = text_bbox[3] - text_bbox[1]
+        # Position: centered horizontally, near the bottom with a 50px margin
+        text_x = (video_width - text_width) // 2
+        text_y = video_height - text_height - 50
 
-    all_frames = seg1_frames_list + seg2_frames_list
+        # Optionally, add a semi-transparent background rectangle for better legibility
+        rectangle_padding = 10
+        rect_x1 = text_x - rectangle_padding
+        rect_y1 = text_y - rectangle_padding
+        rect_x2 = text_x + text_width + rectangle_padding
+        rect_y2 = text_y + text_height + rectangle_padding
+        # Semi-transparent black rectangle
+        draw.rectangle([rect_x1, rect_y1, rect_x2, rect_y2], fill=(0, 0, 0, 128))
 
+        # Draw text over the rectangle
+        draw.text((text_x, text_y), text, font=font, fill=(255, 255, 255))
+
+        # Convert back to OpenCV image (BGR format)
+        frame = cv2.cvtColor(np.array(pil_frame), cv2.COLOR_RGB2BGR)
+        frames_list.append(frame)
+
+    # Write video
     video_writer = cv2.VideoWriter(
         output_video_path, fourcc, fps, (video_width, video_height)
     )
-    for frame in all_frames:
+    for frame in frames_list:
         video_writer.write(frame)
     video_writer.release()
     print(f"Created video mockup: {output_video_path}")
+
+
+def create_square_text_mockup(input_img_path, output_path):
+    """
+    Creates a 1:1 square mockup of the input image with text overlay.
+    Final canvas size is 2048x2048 pixels.
+    Adds "DIGITAL VEIL" (underlined) and "Vintage Art Collection" at the bottom.
+    Text has a black bevel/shadow effect for readability.
+    """
+    # Load the input image
+    img = Image.open(input_img_path)
+
+    # Crop to square (from center)
+    width, height = img.size
+    if width > height:
+        left = (width - height) // 2
+        right = left + height
+        img = img.crop((left, 0, right, height))
+    elif height > width:
+        top = (height - width) // 2
+        bottom = top + width
+        img = img.crop((0, top, width, bottom))
+
+    # Resize to 2048x2048
+    img = img.resize((2048, 2048), Image.LANCZOS)
+
+    # Create a drawing context
+    draw = ImageDraw.Draw(img)
+
+    # Load fonts
+    try:
+        main_font_size = 150
+        secondary_font_size = 80
+        font_main = ImageFont.truetype("./fonts/Cravelo DEMO.otf", main_font_size)
+        font_secondary = ImageFont.truetype(
+            "./fonts/Cravelo DEMO.otf", secondary_font_size
+        )
+    except Exception as e:
+        print("Error loading font, using default font.", e)
+        font_main = ImageFont.load_default()
+        font_secondary = ImageFont.load_default()
+
+    # Text to display
+    main_text = "DIGITAL VEIL"
+    secondary_text = "Vintage Art Collection"
+
+    # Calculate text dimensions
+    main_bbox = draw.textbbox((0, 0), main_text, font=font_main)
+    main_text_width = main_bbox[2] - main_bbox[0]
+    main_text_height = main_bbox[3] - main_bbox[1]
+
+    sec_bbox = draw.textbbox((0, 0), secondary_text, font=font_secondary)
+    sec_text_width = sec_bbox[2] - sec_bbox[0]
+    sec_text_height = sec_bbox[3] - sec_bbox[1]
+
+    # Calculate positions
+    img_width = 2048
+    img_height = 2048
+
+    main_x = (img_width - main_text_width) // 2
+    main_y = img_height - main_text_height - sec_text_height - 70  # 70px from bottom
+
+    # Underline offset - increase this value to move the underline down
+    underline_offset = 15  # Increased from 5
+
+    sec_x = (img_width - sec_text_width) // 2
+    sec_y = (
+        main_y + main_text_height + underline_offset + 10
+    )  # Adjusted to account for underline position
+
+    # Draw text shadow/bevel effect for main text (offset by 2px)
+    shadow_offset = 2
+    draw.text(
+        (main_x + shadow_offset, main_y + shadow_offset),
+        main_text,
+        font=font_main,
+        fill=(0, 0, 0),
+    )
+
+    # Draw main text
+    draw.text((main_x, main_y), main_text, font=font_main, fill=(255, 255, 255))
+
+    # Draw underline for main text with shadow effect
+    line_y = main_y + main_text_height + underline_offset
+    line_thickness = 3
+    draw.line(
+        [
+            (main_x + shadow_offset, line_y + shadow_offset),
+            (main_x + main_text_width + shadow_offset, line_y + shadow_offset),
+        ],
+        fill=(0, 0, 0),
+        width=line_thickness,
+    )
+    draw.line(
+        [(main_x, line_y), (main_x + main_text_width, line_y)],
+        fill=(255, 255, 255),
+        width=line_thickness,
+    )
+
+    # Draw text shadow/bevel effect for secondary text
+    draw.text(
+        (sec_x + shadow_offset, sec_y + shadow_offset),
+        secondary_text,
+        font=font_secondary,
+        fill=(0, 0, 0),
+    )
+
+    # Draw secondary text
+    draw.text((sec_x, sec_y), secondary_text, font=font_secondary, fill=(255, 255, 255))
+
+    # Save the result
+    img.save(output_path)
+    print(f"Created square text mockup: {output_path} (2048x2048)")
+    return True
 
 
 #############################
@@ -259,17 +378,21 @@ def process_all_mockups():
     """
     Processes images from /input:
       1. For each input image, creates a subfolder (named after the image's base name)
-         inside /mockups_output.
-      2. Creates image mockups using either 'mockups_portrait' or 'mockups_landscape'
+         inside /output.
+      2. Within that folder, creates another subfolder named {base_name}_mocks
+         to store all mockups.
+      3. Creates image mockups using either 'mockups_portrait' or 'mockups_landscape'
          and saves them to the subfolder.
-      3. Creates a video mockup for the input image and saves it to the same subfolder.
+      4. Creates a square text mockup with "DIGITAL VEIL" text overlay.
+      5. Creates a video mockup for the input image and saves it to the same subfolder.
     """
     input_dir = "input"
     mockups_portrait_dir = "mockups_portrait"
     mockups_landscape_dir = "mockups_landscape"
-    mockups_output_dir = "mockups_output"
+    output_dir = "output"
 
-    Path(mockups_output_dir).mkdir(parents=True, exist_ok=True)
+    # Ensure the main output directory exists
+    Path(output_dir).mkdir(parents=True, exist_ok=True)
 
     portrait_mockups = []
     landscape_mockups = []
@@ -292,8 +415,14 @@ def process_all_mockups():
 
         input_img_path = os.path.join(input_dir, file)
         base_name = os.path.splitext(file)[0]
-        output_subfolder = os.path.join(mockups_output_dir, base_name)
-        Path(output_subfolder).mkdir(parents=True, exist_ok=True)
+
+        # Create /output/{base_name} folder
+        output_base_folder = os.path.join(output_dir, base_name)
+        Path(output_base_folder).mkdir(parents=True, exist_ok=True)
+
+        # Create /output/{base_name}/{base_name}_mocks folder
+        output_mocks_folder = os.path.join(output_base_folder, f"{base_name}_mocks")
+        Path(output_mocks_folder).mkdir(parents=True, exist_ok=True)
 
         with Image.open(input_img_path) as img:
             width, height = img.size
@@ -317,22 +446,22 @@ def process_all_mockups():
                 mockup_path = os.path.join(mockups_dir, mockup_file)
                 mockup_name = os.path.splitext(mockup_file)[0]
                 output_filename = f"{base_name}_in_{mockup_name}.png"
-                output_path = os.path.join(output_subfolder, output_filename)
+                output_path = os.path.join(output_mocks_folder, output_filename)
                 place_image_in_mockup(input_img_path, mockup_path, output_path)
 
-        # Process video mockup for this image.
-        # Adjust the pan factors here to control speed:
-        # For slower horizontal movement, use a smaller horizontal_pan_factor (e.g., 0.3)
-        # For slower vertical movement, use a smaller vertical_pan_factor (e.g., 0.3)
+        # Create square text mockup
+        square_output_filename = f"{base_name}_digital_veil.png"
+        square_output_path = os.path.join(output_mocks_folder, square_output_filename)
+        create_square_text_mockup(input_img_path, square_output_path)
+
+        # Process video mockup for this image
         video_output_filename = f"{base_name}_video.mp4"
-        video_output_path = os.path.join(output_subfolder, video_output_filename)
+        video_output_path = os.path.join(output_mocks_folder, video_output_filename)
         create_video_mockup(
             input_img_path,
             video_output_path,
             fps=30,
             video_duration=10,
-            horizontal_pan_factor=0.3,
-            vertical_pan_factor=0.3,
         )
 
     print("All done processing both image and video mockups.")
