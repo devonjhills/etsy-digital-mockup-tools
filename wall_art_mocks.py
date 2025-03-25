@@ -8,7 +8,7 @@ import os
 import cv2
 import numpy as np
 from pathlib import Path
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 
 #############################
 # IMAGE MOCKUP FUNCTIONS
@@ -129,6 +129,15 @@ def place_image_in_mockup(input_img_path, mockup_img_path, output_path):
 #############################
 
 
+def alpha_composite(foreground, background):
+    alpha = foreground[:, :, 3] / 255.0
+    for c in range(3):
+        background[:, :, c] = (1.0 - alpha) * background[:, :, c] + alpha * foreground[
+            :, :, c
+        ]
+    return background
+
+
 def create_video_mockup(
     input_img_path,
     output_video_path,
@@ -137,32 +146,14 @@ def create_video_mockup(
     horizontal_pan_factor=1.0,
     vertical_pan_factor=1.0,
 ):
-    """
-    Creates a video mockup that shows a high-detail view of the input image.
-
-    The video is square (1080x1080) and has two segments:
-      Segment 1 (Horizontal Pan): The crop window pans slowly from the image’s center toward the left.
-      Segment 2 (Vertical Pan): Then the crop window pans slowly from the bottom (centered horizontally) up to the center.
-
-    The input image is first cropped to a square (cover effect) and then further cropped with a fixed zoom factor.
-
-    The horizontal_pan_factor and vertical_pan_factor parameters (values between 0 and 1)
-    control the fraction of the maximum available pan distance to travel.
-      - A factor of 1.0 pans the full distance from center to edge.
-      - A factor less than 1.0 pans a shorter distance, resulting in a slower perceived movement.
-    """
     video_width = 1080
     video_height = 1080
     fourcc = cv2.VideoWriter_fourcc(*"mp4v")
     total_frames = int(fps * video_duration)
 
-    # We'll divide the video into two segments:
-    seg1_frames = total_frames // 2  # first half: horizontal pan from center to left
-    seg2_frames = (
-        total_frames - seg1_frames
-    )  # second half: vertical pan from bottom to center
+    seg1_frames = total_frames // 2
+    seg2_frames = total_frames - seg1_frames
 
-    # Load the input image and crop it to a square (cover effect)
     img = cv2.imread(input_img_path)
     if img is None:
         print(f"Error loading input image for video: {input_img_path}")
@@ -177,70 +168,79 @@ def create_video_mockup(
         square = img[offset_y : offset_y + img_w, :]
     else:
         square = img.copy()
-    sq_h, sq_w = square.shape[:2]  # sq_h == sq_w
+    sq_h, sq_w = square.shape[:2]
 
-    # Set a zoom factor to show high detail; this determines the crop size used in animation.
     zoom_factor = 1
     crop_w_target = video_width / zoom_factor
     crop_h_target = video_height / zoom_factor
 
-    # --- Segment 1: Horizontal Pan (center to left) ---
-    # Original centers:
+    font_path = "/fonts/Cravelo DEMO.otf"
+    font_size = 80
+    text = "Digitally enhanced vintage artwork"
+    try:
+        font = ImageFont.truetype(font_path, font_size)
+    except OSError:
+        print(f"Font file not found: {font_path}. Cannot add text overlay.")
+        return
+
+    text_overlay = Image.new("RGBA", (video_width, video_height), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(text_overlay)
+    text_bbox = draw.textbbox((0, 0), text, font=font)
+    text_width = text_bbox[2] - text_bbox[0]
+    text_height = text_bbox[3] - text_bbox[1]
+    x = (video_width - text_width) // 2
+    y = video_height - text_height - 20
+
+    outline_color = "black"
+    for dx, dy in [(-2, -2), (-2, 2), (2, -2), (2, 2)]:
+        draw.text((x + dx, y + dy), text, font=font, fill=outline_color)
+    draw.text((x, y), text, font=font, fill="white")
+
+    text_overlay_bgra = np.array(text_overlay)[:, :, [2, 1, 0, 3]]
+
+    def add_text_overlay(frame):
+        frame_bgra = np.zeros((video_height, video_width, 4), dtype=np.uint8)
+        frame_bgra[:, :, :3] = frame
+        frame_bgra[:, :, 3] = 255
+        return alpha_composite(text_overlay_bgra, frame_bgra)[:, :, :3]
+
     center_start_x = sq_w / 2
-    # Maximum travel would move the center to the far left, i.e. crop entirely flush:
     full_pan_distance = (sq_w / 2) - (crop_w_target / 2)
-    # Apply horizontal_pan_factor to reduce travel distance:
     center_end_x = center_start_x - horizontal_pan_factor * full_pan_distance
     center_y_fixed = sq_h / 2
-
     seg1_frames_list = []
     for i in range(seg1_frames):
         t = i / (seg1_frames - 1) if seg1_frames > 1 else 0
         center_x = center_start_x + t * (center_end_x - center_start_x)
         center_y = center_y_fixed
-        x1 = int(center_x - crop_w_target / 2)
-        y1 = int(center_y - crop_h_target / 2)
-        x2 = x1 + int(crop_w_target)
-        y2 = y1 + int(crop_h_target)
-        # Clamp crop within boundaries:
-        x1 = max(0, x1)
-        y1 = max(0, y1)
-        x2 = min(sq_w, x2)
-        y2 = min(sq_h, y2)
+        x1, y1 = int(center_x - crop_w_target / 2), int(center_y - crop_h_target / 2)
+        x2, y2 = x1 + int(crop_w_target), y1 + int(crop_h_target)
+        x1, y1, x2, y2 = max(0, x1), max(0, y1), min(sq_w, x2), min(sq_h, y2)
         crop_frame = square[y1:y2, x1:x2]
         frame = cv2.resize(
             crop_frame, (video_width, video_height), interpolation=cv2.INTER_AREA
         )
-        seg1_frames_list.append(frame)
+        seg1_frames_list.append(add_text_overlay(frame))
 
-    # --- Segment 2: Vertical Pan (bottom to center) ---
-    # Original vertical centers:
     center_start_y = sq_h - (crop_h_target / 2)
     full_vertical_distance = center_start_y - (sq_h / 2)
     center_end_y = center_start_y - vertical_pan_factor * full_vertical_distance
     center_x_fixed = sq_w / 2
-
     seg2_frames_list = []
     for i in range(seg2_frames):
         t = i / (seg2_frames - 1) if seg2_frames > 1 else 0
         center_y = center_start_y + t * (center_end_y - center_start_y)
         center_x = center_x_fixed
-        x1 = int(center_x - crop_w_target / 2)
-        y1 = int(center_y - crop_h_target / 2)
-        x2 = x1 + int(crop_w_target)
-        y2 = y1 + int(crop_h_target)
-        x1 = max(0, x1)
-        y1 = max(0, y1)
-        x2 = min(sq_w, x2)
-        y2 = min(sq_h, y2)
+        x1, y1 = int(center_x - crop_w_target / 2), int(center_y - crop_h_target / 2)
+        x2, y2 = x1 + int(crop_w_target), y1 + int(crop_h_target)
+        x1, y1, x2, y2 = max(0, x1), max(0, y1), min(sq_w, x2), min(sq_h, y2)
         crop_frame = square[y1:y2, x1:x2]
         frame = cv2.resize(
             crop_frame, (video_width, video_height), interpolation=cv2.INTER_AREA
         )
-        seg2_frames_list.append(frame)
+        seg2_frames_list.append(add_text_overlay(frame))
 
     all_frames = seg1_frames_list + seg2_frames_list
-
     video_writer = cv2.VideoWriter(
         output_video_path, fourcc, fps, (video_width, video_height)
     )
