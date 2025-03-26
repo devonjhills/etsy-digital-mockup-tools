@@ -138,6 +138,20 @@ def alpha_composite(foreground, background):
     return background
 
 
+#############################
+# VIDEO MOCKUP FUNCTION
+#############################
+
+
+def alpha_composite(foreground, background):
+    alpha = foreground[:, :, 3] / 255.0
+    for c in range(3):
+        background[:, :, c] = (1.0 - alpha) * background[:, :, c] + alpha * foreground[
+            :, :, c
+        ]
+    return background
+
+
 def create_video_mockup(
     input_img_path,
     output_video_path,
@@ -148,9 +162,6 @@ def create_video_mockup(
     video_height = 1080
     fourcc = cv2.VideoWriter_fourcc(*"mp4v")
     total_frames = int(fps * video_duration)
-
-    seg1_frames = total_frames // 2
-    seg2_frames = total_frames - seg1_frames
 
     img = cv2.imread(input_img_path)
     if img is None:
@@ -172,19 +183,12 @@ def create_video_mockup(
     # Initial zoom factor (more zoomed in)
     start_zoom = 0.3  # Small value = more zoomed in
     # Final zoom factor (zoomed out)
-    end_zoom = 0.8  # Larger value = more zoomed out
+    end_zoom = 1.0  # Larger value = more zoomed out
 
-    # Load custom font
-    try:
-        # Adjust font size as needed
-        font_size = 80
-        font = ImageFont.truetype("./fonts/Clattering.ttf", font_size)
-    except Exception as e:
-        print("Error loading font, using default font.", e)
-        font = ImageFont.load_default()
+    video_writer = cv2.VideoWriter(
+        output_video_path, fourcc, fps, (video_width, video_height)
+    )
 
-    # Generate frames
-    frames_list = []
     for i in range(total_frames):
         t = i / (total_frames - 1) if total_frames > 1 else 0
         # Interpolate zoom factor from start_zoom to end_zoom
@@ -213,14 +217,8 @@ def create_video_mockup(
         frame = cv2.resize(
             crop_frame, (video_width, video_height), interpolation=cv2.INTER_AREA
         )
-        seg2_frames_list.append(add_text_overlay(frame))
-
-    all_frames = seg1_frames_list + seg2_frames_list
-    video_writer = cv2.VideoWriter(
-        output_video_path, fourcc, fps, (video_width, video_height)
-    )
-    for frame in frames_list:
         video_writer.write(frame)
+
     video_writer.release()
     print(f"Created video mockup: {output_video_path}")
 
