@@ -71,7 +71,7 @@ def create_main_mockup(input_folder, title):
 
     # Add centered title text with dynamic font sizing
     draw = ImageDraw.Draw(final_image)
-    initial_font_size = 150  # Start with larger size
+    initial_font_size = 200  # Start with larger size
     max_width = 1380  # Maximum allowed width
 
     # Function to get font and text size
