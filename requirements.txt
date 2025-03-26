@@ -6,3 +6,6 @@ flask
 pytest
 Pillow
 moviepy
+scikit-image
+matplotlib
+scikit-learn
