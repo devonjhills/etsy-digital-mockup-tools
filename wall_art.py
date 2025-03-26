@@ -1,5 +1,6 @@
 import os
 import math
+import zipfile
 from PIL import Image
 from concurrent.futures import ProcessPoolExecutor
 import warnings
@@ -44,7 +45,7 @@ def process_image(image_path, target_info, output_dir):
             )
 
             # Save the processed image as jpg
-            resized_img.convert("RGB").save(output_path, format="JPEG", quality=95)
+            resized_img.convert("RGB").save(output_path, format="JPEG", quality=85)
             return f"Saved {output_filename} in {output_subfolder}"
     except KeyboardInterrupt:
         raise
@@ -52,6 +53,33 @@ def process_image(image_path, target_info, output_dir):
         return (
             f"Error processing {os.path.basename(image_path)} for {ratio_str}: {str(e)}"
         )
+
+
+def zip_and_verify_subfolder(subfolder):
+    """
+    Zip up all image files in a given subfolder, verify integrity,
+    and save the zip file inside the same subfolder.
+    """
+    # Name the zip file after the subfolder
+    zip_filename = os.path.join(subfolder, os.path.basename(subfolder) + ".zip")
+    try:
+        # Create zip file, filtering for image files only.
+        with zipfile.ZipFile(zip_filename, "w", zipfile.ZIP_DEFLATED) as zipf:
+            for file in os.listdir(subfolder):
+                # Avoid including the zip file itself if it exists
+                if file.lower().endswith((".png", ".jpg", ".jpeg")):
+                    file_path = os.path.join(subfolder, file)
+                    zipf.write(file_path, arcname=file)
+
+        # Verify zip integrity by using testzip()
+        with zipfile.ZipFile(zip_filename, "r") as zipf:
+            result = zipf.testzip()
+            if result is None:
+                return f"Zip file {zip_filename} created and verified successfully."
+            else:
+                return f"Zip file {zip_filename} failed integrity test. First bad file: {result}"
+    except Exception as e:
+        return f"Error zipping folder {subfolder}: {str(e)}"
 
 
 def main():
@@ -110,7 +138,7 @@ def main():
                 executor.submit(process_image, image_path, target_info, output_dir)
             )
 
-    # Print results
+    # Print results from image processing
     for result in results:
         try:
             message = result.result()
@@ -119,7 +147,15 @@ def main():
         except Exception as e:
             print(f"Task failed: {str(e)}")
 
-    print("All images processed successfully.")
+    # After processing, zip each output subfolder and verify integrity.
+    print("\nZipping processed images per subfolder...")
+    for folder in os.listdir(output_dir):
+        subfolder = os.path.join(output_dir, folder)
+        if os.path.isdir(subfolder):
+            zip_message = zip_and_verify_subfolder(subfolder)
+            print(zip_message)
+
+    print("All images processed and zipped successfully.")
 
 
 if __name__ == "__main__":
