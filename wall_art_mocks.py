@@ -181,7 +181,7 @@ def create_video_mockup(
     try:
         # Adjust font size as needed
         font_size = 80
-        font = ImageFont.truetype("./fonts/Cravelo DEMO.otf", font_size)
+        font = ImageFont.truetype("./fonts/Clattering.ttf", font_size)
     except Exception as e:
         print("Error loading font, using default font.", e)
         font = ImageFont.load_default()
@@ -286,9 +286,9 @@ def create_square_text_mockup(input_img_path, output_path):
     try:
         main_font_size = 150
         secondary_font_size = 80
-        font_main = ImageFont.truetype("./fonts/Cravelo DEMO.otf", main_font_size)
+        font_main = ImageFont.truetype("./fonts/Clattering.ttf", main_font_size)
         font_secondary = ImageFont.truetype(
-            "./fonts/Cravelo DEMO.otf", secondary_font_size
+            "./fonts/Clattering.ttf", secondary_font_size
         )
     except Exception as e:
         print("Error loading font, using default font.", e)
@@ -296,7 +296,7 @@ def create_square_text_mockup(input_img_path, output_path):
         font_secondary = ImageFont.load_default()
 
     # Text to display
-    main_text = "DIGITAL VEIL"
+    main_text = "Digital Veil"
     secondary_text = "Vintage Art Collection"
 
     # Calculate text dimensions
