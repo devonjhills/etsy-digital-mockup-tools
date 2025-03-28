@@ -37,9 +37,9 @@ env/
 .DS_Store
 
 # Project specific
-fonts/
 brush_input/
 brush_output/
 input/
 output/
 mockups_output/
+clipart_output/

@@ -64,7 +64,7 @@ def grid_mockup(input_folder: str, title: str) -> List[str]:
         return []
     print(f"Found {num_images} PNG images in {input_folder}")
 
-    # --- 1. Main Mockup Generation Loop (Run 4 Times) --- ## MODIFIED SECTION ##
+    # --- 1. Main Mockup Generation --- ## UPDATED SECTION ##
     print(f"\n--- Generating Main Mockup ---")
 
     if not canvas_bg_main:
@@ -74,7 +74,7 @@ def grid_mockup(input_folder: str, title: str) -> List[str]:
     else:
         subtitle_bottom_text = f"{num_images} clip arts • 300 DPI • Transparent PNG"
 
-        # --- Determine Title Backdrop Bounds ONCE ---
+        # --- Determine Title Backdrop Bounds ONCE (Needed for avoidance) ---
         print("  Calculating title backdrop bounds...")
         dummy_layer = Image.new("RGBA", config.OUTPUT_SIZE, (0, 0, 0, 0))
         _, title_backdrop_bounds = image_processing.add_title_bar_and_text(
@@ -82,7 +82,6 @@ def grid_mockup(input_folder: str, title: str) -> List[str]:
             title=title,
             subtitle_top=config.SUBTITLE_TEXT_TOP,
             subtitle_bottom=subtitle_bottom_text,
-            num_images_for_subtitle=num_images,
             font_name=config.DEFAULT_TITLE_FONT,
             subtitle_font_name=config.DEFAULT_SUBTITLE_FONT,
             subtitle_font_size=config.SUBTITLE_FONT_SIZE,
@@ -91,7 +90,6 @@ def grid_mockup(input_folder: str, title: str) -> List[str]:
             bar_opacity=config.TITLE_BAR_OPACITY,
             text_color=config.TITLE_TEXT_COLOR,
             padding_x=config.TITLE_PADDING_X,
-            padding_y=config.TITLE_PADDING_Y,
             max_font_size=config.TITLE_MAX_FONT_SIZE,
             min_font_size=config.TITLE_MIN_FONT_SIZE,
             line_spacing=config.TITLE_LINE_SPACING,
@@ -106,7 +104,9 @@ def grid_mockup(input_folder: str, title: str) -> List[str]:
         if title_backdrop_bounds:
             print(f"  Title Backdrop Bounds (calculated): {title_backdrop_bounds}")
         else:
-            print("  Warning: Title backdrop bounds calculation failed.")
+            print(
+                "  Warning: Title backdrop bounds calculation failed. Collage avoidance might be affected."
+            )
 
         # --- Create Title Block Layer ONCE ---
         print("  Creating title block layer...")
@@ -116,7 +116,6 @@ def grid_mockup(input_folder: str, title: str) -> List[str]:
             title=title,
             subtitle_top=config.SUBTITLE_TEXT_TOP,
             subtitle_bottom=subtitle_bottom_text,
-            num_images_for_subtitle=num_images,
             font_name=config.DEFAULT_TITLE_FONT,
             subtitle_font_name=config.DEFAULT_SUBTITLE_FONT,
             subtitle_font_size=config.SUBTITLE_FONT_SIZE,
@@ -125,7 +124,6 @@ def grid_mockup(input_folder: str, title: str) -> List[str]:
             bar_opacity=config.TITLE_BAR_OPACITY,
             text_color=config.TITLE_TEXT_COLOR,
             padding_x=config.TITLE_PADDING_X,
-            padding_y=config.TITLE_PADDING_Y,
             max_font_size=config.TITLE_MAX_FONT_SIZE,
             min_font_size=config.TITLE_MIN_FONT_SIZE,
             line_spacing=config.TITLE_LINE_SPACING,
@@ -145,42 +143,39 @@ def grid_mockup(input_folder: str, title: str) -> List[str]:
                 "RGBA", config.OUTPUT_SIZE, (0, 0, 0, 0)
             )
 
-        # --- Define the Single Output Filename ---
+        # --- Define the Output Filename (Consistent Name) ---
         output_main_filename = os.path.join(
-            output_folder, "01_main_smart_layout.png"
-        )  # Reverted filename
+            output_folder, "01_main_collage_layout.png"  # Use this name consistently
+        )
 
-        # --- Create Smart Puzzle Image Layout ---
-        AVOID_CENTER_FOR_PUZZLE = False  # Or True
-
-        layout_with_images = image_processing.create_smart_puzzle_layout(
+        # --- Create Collage Image Layout --- ## CONSISTENT CALL ##
+        print("  Creating collage image layout...")
+        # Call the single layout function
+        layout_with_images = image_processing.create_collage_layout(
             image_paths=input_image_paths,
             canvas=canvas_bg_main.copy(),  # Start fresh
-            title_backdrop_bounds=title_backdrop_bounds,
-            avoid_center_box=AVOID_CENTER_FOR_PUZZLE,
-            # No debug arguments needed
-            # Uses defaults from config for other params
+            title_backdrop_bounds=title_backdrop_bounds,  # Pass the calculated bounds
+            # Uses parameters from config.py (COLLAGE_*)
         )
 
         # --- Composite Title onto Layout ---
         print("  Compositing title block onto layout...")
         final_main_mockup = Image.alpha_composite(
             layout_with_images.convert("RGBA"),
-            image_with_title_block_only.convert(
-                "RGBA"
-            ),  # Reuse the pre-rendered title layer
+            image_with_title_block_only.convert("RGBA"),
         )
 
         # --- Save The Main Mockup ---
         try:
             final_main_mockup.save(output_main_filename, "PNG")
             print(f"Saved: {output_main_filename}")
-            output_filenames.append(output_main_filename)  # Add to list
+            output_filenames.append(output_main_filename)
         except Exception as e:
             print(f"Error saving main mockup {output_main_filename}: {e}")
             traceback.print_exc()
 
     # --- 2. 2x2 Grids ---
+    # This section correctly applies the watermark ONLY to the 2x2 grids
     print(f"\n--- Generating 2x2 Grid Mockups ---")
     if canvas_bg_2x2:
         print(f"Canvas size: {config.GRID_2x2_SIZE[0]}x{config.GRID_2x2_SIZE[1]}")
@@ -198,17 +193,20 @@ def grid_mockup(input_folder: str, title: str) -> List[str]:
                 canvas_bg_image=canvas_bg_2x2.copy(),
                 grid_size=config.GRID_2x2_SIZE,
                 padding=config.CELL_PADDING,
-                add_shadows=True,
             )
+            # Watermark is applied HERE
             mockup_2x2_watermarked = image_processing.apply_watermark(mockup_2x2)
             output_filename = os.path.join(
                 output_folder, f"{grid_count+1:02d}_grid_mockup.png"
             )
             try:
+                # The watermarked version is saved
                 mockup_2x2_watermarked.save(output_filename, "PNG")
                 print(f"Saved: {output_filename}")
                 output_filenames.append(output_filename)
-                video_source_filenames.append(output_filename)
+                video_source_filenames.append(
+                    output_filename
+                )  # Video uses watermarked grids
             except Exception as e:
                 print(f"Error saving 2x2 mockup {output_filename}: {e}")
                 traceback.print_exc()
@@ -220,13 +218,11 @@ def grid_mockup(input_folder: str, title: str) -> List[str]:
     if input_image_paths:
         first_image_path = input_image_paths[0]
         print(f"Using image: {os.path.basename(first_image_path)}")
-        trans_demo = image_processing.create_transparency_demo(
-            image_path=first_image_path, output_size=config.OUTPUT_SIZE
-        )
+
+        trans_demo = image_processing.create_transparency_demo(first_image_path)
         if trans_demo:
-            next_seq = len(output_filenames) + 1
             output_trans_demo = os.path.join(
-                output_folder, f"{next_seq:02d}_transparency_demo.png"
+                output_folder, f"{len(output_filenames) + 1:02d}_transparency_demo.png"
             )
             try:
                 trans_demo.save(output_trans_demo, "PNG")

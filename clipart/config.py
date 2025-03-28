@@ -1,5 +1,4 @@
 # clipart/config.py
-
 import os
 from typing import Tuple, Optional, Dict
 
@@ -25,7 +24,7 @@ DEFAULT_SUBTITLE_FONT: str = "Poppins"
 # --- Mockup Dimensions ---
 OUTPUT_SIZE: Tuple[int, int] = (3000, 2250)
 GRID_2x2_SIZE: Tuple[int, int] = (2000, 2000)
-CELL_PADDING: int = 30
+CELL_PADDING: int = 30  # Used for 2x2 grid
 
 # --- Title Bar & Text Settings ---
 SUBTITLE_TEXT_TOP: str = "Commercial Use"
@@ -48,37 +47,48 @@ TITLE_MAX_LINES: int = 3
 TITLE_BACKDROP_PADDING_X: int = 60
 TITLE_BACKDROP_PADDING_Y: int = 30
 TITLE_BACKDROP_CORNER_RADIUS: int = 40
+TITLE_BACKDROP_SHADOW_ENABLE: bool = True  # Easily turn on/off
+TITLE_BACKDROP_SHADOW_OFFSET: Tuple[int, int] = (15, 15)  # (x, y) offset
+TITLE_BACKDROP_SHADOW_COLOR: Tuple[int, int, int, int] = (
+    0,
+    0,
+    0,
+    255,
+)  # RGBA, default black
+TITLE_BACKDROP_SHADOW_OPACITY: int = 255  # Opacity of the shadow itself (0-255)
 
 # --- Background Settings ---
 DEFAULT_BG_COLOR: Tuple[int, int, int] = (248, 248, 248)
 
-# --- Smart Puzzle Layout Settings ---
-OFFSET_GRID_MIN_PIXEL_DIM: int = 30
-OFFSET_GRID_AVOID_CENTER_BOX: bool = True
+# --- Collage Layout Settings --- (Centerpiece Focus)
+# Sizing for surrounding items (relative to canvas width)
+COLLAGE_SURROUND_MIN_WIDTH_FACTOR: float = 0.20  # Min size for surrounding items
+COLLAGE_SURROUND_MAX_WIDTH_FACTOR: float = (
+    0.30  # Max size for surrounding items (can be random between min/max)
+)
+# Centerpiece Sizing
+COLLAGE_CENTERPIECE_SCALE_FACTOR: float = (
+    0.65  # Size relative to canvas width/height (use min of w/h?)
+)
 
-# Sizing relative to canvas width
-PUZZLE_MIN_WIDTH_FACTOR: float = 0.20
-PUZZLE_MAX_SIZE_MULTIPLIER: float = 1.5
-PUZZLE_MAX_WIDTH_FACTOR: float = 0.35
+# Placement & Avoidance
+COLLAGE_PLACEMENT_STEP: int = (
+    5  # Step size for scanning placement positions (smaller is more precise)
+)
+COLLAGE_TITLE_AVOID_PADDING: int = 20  # Extra padding around title box
+COLLAGE_CENTERPIECE_AVOID_PADDING: int = 20  # Extra padding around centerpiece bounds
 
-# Placement Strategy
-PUZZLE_PLACEMENT_STEP: int = 5  # Smaller step for denser checking near edges
-PUZZLE_MAX_OVERLAP_AREA_RATIO: float = 0.10
-# Defines the size of corner/edge search regions
-PUZZLE_EDGE_REGION_FACTOR: float = 0.5  # Slightly larger region (50%)
-# Allow slightly more than normal, but not excessive, overlap when placing minimum size items
-PUZZLE_MIN_SIZE_ACCEPTABLE_OVERLAP_RATIO: float = 0.35
-
-
-# --- Rescaling Strategy ---
-PUZZLE_RESCALE_ATTEMPTS: int = 6
-PUZZLE_RESCALE_FACTOR: float = 0.80
-PUZZLE_MIN_ABSOLUTE_SCALE: float = 0.10
-
-# --- Simplified Grid ---
-SIMPLIFIED_GRID_JITTER_FACTOR: float = 0.10
-SIMPLIFIED_GRID_MIN_WIDTH_FACTOR: float = 0.25
-SIMPLIFIED_GRID_MAX_SIZE_MULTIPLIER: float = 1.6
+# Overlap & Rescaling for surrounding items
+COLLAGE_RESCALE_FACTOR: float = (
+    0.95  # Factor to shrink surrounding items if overlap is too high
+)
+COLLAGE_RESCALE_ATTEMPTS: int = 3  # Max times to try shrinking a surrounding item
+COLLAGE_MAX_ACCEPTABLE_OVERLAP_RATIO: float = (
+    0.10  # Overlap ratio (vs item area) above which shrinking is triggered
+)
+COLLAGE_MIN_SCALE_ABS: float = (
+    0.30  # Absolute minimum scale factor relative to original image size (for surrounding items)
+)
 
 # --- Transparency Demo Settings ---
 CHECKERBOARD_SIZE: int = 30
@@ -91,9 +101,19 @@ GRID_ITEM_SHADOW_COLOR: Tuple[int, int, int, int] = (100, 100, 100, 80)
 GRID_ITEM_SHADOW_OFFSET: Tuple[int, int] = (8, 8)
 
 # --- Watermark Settings ---
-WATERMARK_DEFAULT_OPACITY: int = 15
-WATERMARK_SPACING_MULTIPLIER: int = 4
-WATERMARK_SIZE_RATIO: float = 1 / 15
+WATERMARK_DEFAULT_OPACITY: int = 100  # General opacity
+WATERMARK_TEXT: str = "digital veil"
+WATERMARK_TEXT_FONT_NAME: str = "Clattering"  # Choose an available font
+WATERMARK_TEXT_FONT_SIZE: int = 50
+WATERMARK_TEXT_COLOR: Tuple[int, int, int] = (
+    150,
+    150,
+    150,
+)  # Base color (opacity applied later)
+WATERMARK_TEXT_ANGLE: float = 45.0  # Angle in degrees
+WATERMARK_TEXT_SPACING_FACTOR: float = (
+    1.5  # Multiplier for spacing based on text block size
+)
 
 # --- Video Settings ---
 VIDEO_TARGET_SIZE: Tuple[int, int] = (2000, 2000)

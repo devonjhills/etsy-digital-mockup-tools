@@ -10,8 +10,6 @@ import cv2  # Import OpenCV
 # Import configuration constants using relative import
 from . import config
 
-# --- Image Loading and Saving (Keep existing functions) ---
-
 
 def safe_load_image(path: str, mode: str = "RGBA") -> Optional[Image.Image]:
     """Safely loads an image, converts mode if needed, handles errors."""
@@ -83,9 +81,6 @@ def get_font(font_name: str, size: int) -> Optional[ImageFont.FreeTypeFont]:
         return None
 
 
-# --- Background Generation (Keep existing functions) ---
-
-
 def generate_background(
     size: Tuple[int, int], color: Tuple[int, int, int] = config.DEFAULT_BG_COLOR
 ) -> Image.Image:
@@ -131,113 +126,6 @@ def generate_checkerboard(
                 color1 if (x // square_size) % 2 == (y // square_size) % 2 else color2
             )
     return img.convert("RGBA")
-
-
-# --- Effects (Keep existing function) ---
-
-
-def add_simulated_shadow(
-    image: Image.Image,
-    offset: Tuple[int, int] = config.GRID_ITEM_SHADOW_OFFSET,
-    color: Tuple = config.GRID_ITEM_SHADOW_COLOR,
-) -> Image.Image:
-    """Adds a simple, blurred offset shadow based on the image's alpha."""
-    if image.mode != "RGBA":
-        image = image.convert("RGBA")
-    if image.width <= 0 or image.height <= 0:
-        return image
-    alpha = image.split()[-1]
-    shadow_layer = Image.new("RGBA", image.size, (0, 0, 0, 0))
-    try:
-        small_w = max(1, alpha.width // 4)
-        small_h = max(1, alpha.height // 4)
-        alpha_blurred = alpha.resize((small_w, small_h), Image.Resampling.NEAREST)
-        alpha_blurred = alpha_blurred.resize(alpha.size, Image.Resampling.BILINEAR)
-    except Exception as e:
-        print(f"Warn: Shadow blur resize failed: {e}. Using original alpha.")
-        alpha_blurred = alpha
-    shadow_solid = Image.new("RGBA", image.size, color)
-    shadow_layer.paste(shadow_solid, (0, 0), alpha_blurred)
-    final_image = Image.new("RGBA", image.size, (0, 0, 0, 0))
-    final_image.paste(shadow_layer, offset)
-    final_image.paste(image, (0, 0), image)
-    return final_image
-
-
-# --- Contour and Bounding Box Utilities --- ADDED SECTION ---
-
-
-def get_contour_info(
-    image: Image.Image, threshold: int = 10
-) -> Optional[Dict[str, Any]]:
-    """
-    Finds the largest contour, its rotated bounding box, and the axis-aligned
-    bounding box of that rotated box's vertices.
-    Args:
-        image: PIL Image (RGBA).
-        threshold: Alpha threshold (0-255).
-    Returns:
-        Dictionary containing:
-         'contour': The largest contour points.
-         'rotated_rect': ((center_x, center_y), (width, height), angle)
-         'box_points': 4 corner points [[x,y],...] of the rotated rect.
-         'bounding_rect': (x, y, w, h) axis-aligned bounding box of box_points.
-         'area': Area calculated from rotated_rect width/height.
-        Returns None if no alpha or no contour found.
-    """
-    if image.mode != "RGBA":
-        return None
-
-    try:
-        img_cv = cv2.cvtColor(np.array(image), cv2.COLOR_RGBA2BGRA)
-        alpha = img_cv[:, :, 3]
-        _, thresh = cv2.threshold(alpha, threshold, 255, cv2.THRESH_BINARY)
-        contours, _ = cv2.findContours(
-            thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
-        )
-
-        if not contours:
-            return None
-
-        largest_contour = max(contours, key=cv2.contourArea)
-
-        # Get the minimum area rotated rectangle
-        rotated_rect = cv2.minAreaRect(largest_contour)
-        # ((center_x, center_y), (width, height), angle)
-
-        # Get the 4 vertices of the rotated rectangle
-        box_points = cv2.boxPoints(
-            rotated_rect
-        )  # Returns [[x1,y1],[x2,y2],...] float32
-        box_points_int = np.intp(
-            box_points
-        )  # Convert to integer points for bounding rect
-
-        # Get the axis-aligned bounding box *of the rotated rectangle's vertices*
-        x, y, w, h = cv2.boundingRect(box_points_int)
-        bounding_rect = (
-            max(0, x),
-            max(0, y),
-            max(1, w),
-            max(1, h),
-        )  # Ensure positive, within bounds?
-
-        # Calculate area from rotated rect dimensions for sorting
-        rect_width, rect_height = rotated_rect[1]
-        area = rect_width * rect_height
-
-        return {
-            "contour": largest_contour,
-            "rotated_rect": rotated_rect,
-            "box_points": box_points_int,
-            "bounding_rect": bounding_rect,  # Use this for placement overlap checks
-            "area": area,  # Use this for sorting
-        }
-
-    except Exception as e:
-        print(f"Error during contour detection: {e}")
-        traceback.print_exc()
-        return None
 
 
 def check_overlap(
