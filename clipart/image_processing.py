@@ -3,21 +3,257 @@ import os
 import traceback
 import textwrap
 import random
-from typing import Tuple, Optional, List
-from PIL import Image, ImageDraw, ImageEnhance
+from typing import Tuple, Optional, List, Dict, Any
+from PIL import Image, ImageDraw, ImageEnhance, ImageFont
 import numpy as np
 import math
 
-# Import configuration and utilities using relative imports
+# Optional import for dynamic color selection using scikit-learn
+try:
+    from sklearn.cluster import KMeans
+    from sklearn.exceptions import ConvergenceWarning
+    import warnings
+
+    # Suppress ConvergenceWarning during K-Means clustering
+    warnings.filterwarnings("ignore", category=ConvergenceWarning)
+    SKLEARN_AVAILABLE = True
+except ImportError:
+    SKLEARN_AVAILABLE = False
+    print("Warning: scikit-learn not found. Dynamic color selection will be disabled.")
+    print("Install it using: pip install scikit-learn")
+
+# Relative imports for configuration and utilities
 from . import config
 from . import utils
 
 
+# --- Helper Functions ---
+
+
+def _calculate_fit_score(image: Image.Image, alpha_threshold: int) -> Tuple[float, int]:
+    """
+    Calculates a fit score for an image based on its content bounding box and alpha channel.
+    Returns a tuple (fit_score, content_bbox_area).
+    """
+    try:
+        bbox = image.getbbox()
+        if bbox:
+            bbox_width = bbox[2] - bbox[0]
+            bbox_height = bbox[3] - bbox[1]
+            if bbox_width > 0 and bbox_height > 0:
+                content_area = bbox_width * bbox_height
+                try:
+                    aspect_ratio = bbox_width / bbox_height
+                    squareness_score = (
+                        abs(math.log(aspect_ratio))
+                        if aspect_ratio > 0
+                        else float("inf")
+                    )
+                except Exception:
+                    squareness_score = float("inf")
+                try:
+                    cropped = image.crop(bbox)
+                    if "A" in cropped.getbands():
+                        alpha = np.array(cropped.split()[-1])
+                        content_pixels = np.sum(alpha > alpha_threshold)
+                        fill_ratio = (
+                            content_pixels / content_area if content_area > 0 else 0
+                        )
+                        fill_score = 1.0 - fill_ratio
+                    else:
+                        fill_score = 0.0  # Fully opaque image
+                except Exception:
+                    fill_score = 0.5  # Fallback value on error
+                fit_score = 0.6 * squareness_score + 0.4 * fill_score
+                return fit_score, content_area
+    except Exception:
+        pass
+    return float("inf"), 0
+
+
+# --- Color Contrast Utilities ---
+
+
+def compute_colorfulness(image: Image.Image) -> float:
+    """
+    Computes a colorfulness metric for an image.
+    Uses a method inspired by Hasler & Süsstrunk:
+      colorfulness = sqrt(std(rg)^2 + std(yb)^2) + 0.3 * sqrt(mean(rg)^2 + mean(yb)^2)
+    """
+    # Ensure image is in RGB mode
+    image_rgb = image.convert("RGB")
+    arr = np.array(image_rgb).astype("float")
+    R = arr[:, :, 0]
+    G = arr[:, :, 1]
+    B = arr[:, :, 2]
+    rg = R - G
+    yb = 0.5 * (R + G) - B
+    std_root = np.sqrt(np.std(rg) ** 2 + np.std(yb) ** 2)
+    mean_root = np.sqrt(np.mean(rg) ** 2 + np.mean(yb) ** 2)
+    return std_root + 0.3 * mean_root
+
+
+def select_centerpiece_image(
+    image_paths: List[str],
+    alpha_threshold: int = 10,
+) -> Optional[Image.Image]:
+    """
+    Loads images from paths and selects the most suitable clipart for dynamic color analysis.
+    The selection is based on both the content (fit score) and a measure of colorfulness.
+    The image with the highest combined score (colorfulness divided by fit score+1) is returned.
+    """
+    print("Selecting clipart image for color analysis (best colorful combination)...")
+    if not image_paths:
+        print("  Warn: No image paths provided for selection.")
+        return None
+
+    items = []
+    for path in image_paths:
+        original_img = utils.safe_load_image(path)
+        if not original_img or original_img.width <= 0 or original_img.height <= 0:
+            print(f"  Warn: Skipping invalid image: {os.path.basename(path)}")
+            continue
+
+        fit_score, content_area = _calculate_fit_score(original_img, alpha_threshold)
+        colorfulness = compute_colorfulness(original_img)
+        # Lower fit_score is better; higher colorfulness is better.
+        combined_score = colorfulness / (fit_score + 1)
+        items.append(
+            {
+                "path": path,
+                "original_img": original_img,
+                "fit_score": fit_score,
+                "content_bbox_area": content_area,
+                "colorfulness": colorfulness,
+                "combined_score": combined_score,
+            }
+        )
+
+    if not items:
+        print("  Error: No images successfully loaded for selection.")
+        return None
+
+    # Sort descending by the combined score.
+    items.sort(key=lambda item: item["combined_score"], reverse=True)
+
+    best_item = items[0]
+    print(
+        f"  Selected clipart (Combined Score: {best_item['combined_score']:.3f}, "
+        f"Colorfulness: {best_item['colorfulness']:.1f}, Fit Score: {best_item['fit_score']:.3f}): "
+        f"{os.path.basename(best_item['path'])}"
+    )
+    return best_item["original_img"]
+
+
+def get_relative_luminance(rgb: Tuple[int, int, int]) -> float:
+    """Calculates relative luminance for an sRGB color (WCAG formula)."""
+    r, g, b = [x / 255.0 for x in rgb]
+    r = r / 12.92 if r <= 0.03928 else ((r + 0.055) / 1.055) ** 2.4
+    g = g / 12.92 if g <= 0.03928 else ((g + 0.055) / 1.055) ** 2.4
+    b = b / 12.92 if b <= 0.03928 else ((b + 0.055) / 1.055) ** 2.4
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b
+
+
+def calculate_contrast_ratio(lum1: float, lum2: float) -> float:
+    """Calculates contrast ratio between two relative luminance values."""
+    l1, l2 = max(lum1, lum2), min(lum1, lum2)
+    return (l1 + 0.05) / (l2 + 0.05)
+
+
+# --- Dynamic Colors ---
+
+
+def find_dynamic_colors(
+    image: Image.Image,
+    n_colors: int = 5,
+    min_contrast: float = 4.5,
+    resize_dim: int = 100,
+    min_opaque_pixels: int = 50,
+    alpha_threshold: int = 50,
+) -> Optional[Tuple[Tuple[int, int, int], Tuple[int, int, int]]]:
+    """
+    Finds a dominant color pair (background, text) from the opaque pixels of the provided image.
+    Returns a tuple (background_rgb, text_rgb) if a pair meeting the contrast is found.
+    """
+    if not SKLEARN_AVAILABLE:
+        print("  Dynamic Colors: scikit-learn not available.")
+        return None
+    if not image:
+        print("  Dynamic Colors: No image provided for analysis.")
+        return None
+
+    try:
+        img_rgba = image.copy().convert("RGBA")
+        img_rgba.thumbnail((resize_dim, resize_dim))
+        pixels = np.array(img_rgba)
+        alpha_channel = pixels[:, :, 3]
+        opaque_mask = alpha_channel > alpha_threshold
+        opaque_pixels = pixels[opaque_mask][:, :3]
+        num_opaque = opaque_pixels.shape[0]
+        if num_opaque < min_opaque_pixels:
+            print(
+                f"  Dynamic Colors: Not enough opaque pixels ({num_opaque} < {min_opaque_pixels})."
+            )
+            return None
+        if num_opaque < n_colors:
+            n_colors = max(1, num_opaque)
+            print(
+                f"  Dynamic Colors: Reduced clusters to {n_colors} due to low opaque pixel count."
+            )
+
+        kmeans = KMeans(
+            n_clusters=n_colors, random_state=42, n_init="auto", max_iter=100
+        )
+        kmeans.fit(opaque_pixels)
+        dominant_colors = [
+            tuple(int(c) for c in color) for color in kmeans.cluster_centers_
+        ]
+        print(f"  Dynamic Colors: Dominant opaque colors found: {dominant_colors}")
+
+        white, black = (255, 255, 255), (0, 0, 0)
+        lum_white, lum_black = get_relative_luminance(white), get_relative_luminance(
+            black
+        )
+        best_pair, highest_contrast = None, 0.0
+
+        for bg_color in dominant_colors:
+            if (
+                bg_color in (black, white)
+                and len(dominant_colors) > 1
+                and highest_contrast >= min_contrast
+            ):
+                continue
+            lum_bg = get_relative_luminance(bg_color)
+            contrast_white = calculate_contrast_ratio(lum_bg, lum_white)
+            if contrast_white >= min_contrast and contrast_white > highest_contrast:
+                highest_contrast = contrast_white
+                best_pair = (bg_color, white)
+            contrast_black = calculate_contrast_ratio(lum_bg, lum_black)
+            if contrast_black >= min_contrast and contrast_black > highest_contrast:
+                highest_contrast = contrast_black
+                best_pair = (bg_color, black)
+
+        if best_pair:
+            print(
+                f"  Dynamic Colors: Selected pair {best_pair} with contrast {highest_contrast:.2f}:1"
+            )
+            return best_pair
+        else:
+            print(
+                f"  Dynamic Colors: No dominant color pair with >= {min_contrast}:1 contrast found."
+            )
+            return None
+    except Exception as e:
+        print(f"Error during dynamic color extraction: {e}")
+        return None
+
+
 # --- Watermarking ---
+
+
 def apply_watermark(
     image: Image.Image,
     opacity: int = config.WATERMARK_DEFAULT_OPACITY,
-    # Text specific parameters pulled from config by default
     text: str = config.WATERMARK_TEXT,
     text_font_name: str = config.WATERMARK_TEXT_FONT_NAME,
     text_font_size: int = config.WATERMARK_TEXT_FONT_SIZE,
@@ -30,65 +266,61 @@ def apply_watermark(
     if not isinstance(image, Image.Image):
         print("Error: Invalid input image for watermark.")
         return image
-    if opacity <= 0:
-        print("Info: Watermark opacity is zero, skipping.")
-        return image
-    if not text:
-        print("Info: Watermark text is empty, skipping.")
+    if opacity <= 0 or not text:
+        print("Info: Watermark skipped due to opacity/text settings.")
         return image
 
     base_image = image.copy().convert("RGBA")
-    watermark_layer = Image.new("RGBA", base_image.size, (0, 0, 0, 0))
-    draw = ImageDraw.Draw(watermark_layer)
-
-    final_alpha_value = int(max(0, min(255, opacity)))
-    print(f"  Watermark: Text='{text}', Opacity={opacity} -> Alpha={final_alpha_value}")
-    if final_alpha_value < 10:
-        print(f"  Warning: Watermark alpha value ({final_alpha_value}) is very low.")
+    canvas_w, canvas_h = base_image.size
+    final_alpha = max(0, min(255, opacity))
+    print(f"  Watermark: Text='{text}', Opacity={opacity} -> Alpha={final_alpha}")
+    if final_alpha < 10:
+        print(f"  Warning: Watermark alpha value ({final_alpha}) is very low.")
 
     font = utils.get_font(text_font_name, text_font_size)
     if not font:
         print("Error: Cannot load watermark font. Skipping watermark.")
         return base_image
 
-    # Measure text size
+    temp_draw = ImageDraw.Draw(Image.new("RGBA", (1, 1)))
     try:
-        bbox = draw.textbbox((0, 0), text, font=font)
-        text_width = bbox[2] - bbox[0]
-        text_height = bbox[3] - bbox[1]
+        bbox = temp_draw.textbbox((0, 0), text, font=font)
+        text_width, text_height = bbox[2] - bbox[0], bbox[3] - bbox[1]
     except AttributeError:
-        temp_draw = ImageDraw.Draw(Image.new("RGBA", (1, 1)))
         text_width, text_height = temp_draw.textsize(text, font=font)
 
     if text_width <= 0 or text_height <= 0:
-        print("Error: Watermark text has zero dimensions. Skipping.")
+        print(f"Error: Watermark text '{text}' has zero dimensions. Skipping.")
         return base_image
-    print(f"  Watermark text measured: {text_width}x{text_height}")
+    print(f"  Watermark text size: {text_width}x{text_height}")
 
     margin = int(math.sqrt(text_width**2 + text_height**2) / 2) + 5
-    tile_width = text_width + 2 * margin
-    tile_height = text_height + 2 * margin
-    text_tile = Image.new("RGBA", (tile_width, tile_height), (0, 0, 0, 0))
+    tile_w, tile_h = text_width + 2 * margin, text_height + 2 * margin
+    text_tile = Image.new("RGBA", (tile_w, tile_h), (0, 0, 0, 0))
     tile_draw = ImageDraw.Draw(text_tile)
+    text_rgba = text_color + (final_alpha,)
 
-    text_rgba_color = text_color + (final_alpha_value,)
     try:
         tile_draw.text(
-            (tile_width / 2, tile_height / 2),
+            (tile_w / 2, tile_h / 2), text, font=font, fill=text_rgba, anchor="mm"
+        )
+    except TypeError:
+        tile_draw.text(
+            ((tile_w - text_width) / 2, (tile_h - text_height) / 2),
             text,
             font=font,
-            fill=text_rgba_color,
-            anchor="mm",
+            fill=text_rgba,
         )
-    except Exception:
-        tile_draw.text((margin, margin), text, font=font, fill=text_rgba_color)
+    except Exception as e:
+        print(f"Error drawing text on tile: {e}. Using fallback.")
+        tile_draw.text((margin, margin), text, font=font, fill=text_rgba)
 
     try:
         rotated_tile = text_tile.rotate(
             text_angle, expand=True, resample=Image.Resampling.BICUBIC
         )
     except Exception as e:
-        print(f"Error rotating watermark text tile: {e}. Skipping watermark.")
+        print(f"Error rotating watermark tile: {e}. Skipping watermark.")
         return base_image
 
     rot_w, rot_h = rotated_tile.size
@@ -99,23 +331,19 @@ def apply_watermark(
         return base_image
     print(f"  Rotated tile size: {rot_w}x{rot_h}")
 
-    # NEW: Calculate spacing based on canvas size
-    canvas_w, canvas_h = base_image.size
-    tiles_x = max(2, int(canvas_w / (canvas_w * 0.2)))  # ~20% width per tile
-    tiles_y = max(2, int(canvas_h / (canvas_h * 0.2)))  # ~20% height per tile
-    spc_x = max(1, int(canvas_w / tiles_x))
-    spc_y = max(1, int(canvas_h / tiles_y))
+    target_tiles_across = 5
+    spc_x = max(rot_w // 2, canvas_w // target_tiles_across, 1)
+    spc_y = max(rot_h // 2, canvas_h // target_tiles_across, 1)
+    watermark_layer = Image.new("RGBA", base_image.size, (0, 0, 0, 0))
+    start_offset_x, start_offset_y = rot_w, rot_h
+    x_start, x_end = -start_offset_x, canvas_w + start_offset_x
+    y_start, y_end = -start_offset_y, canvas_h + start_offset_y
 
-    start_offset_x = int(rot_w * 1.5)
-    start_offset_y = int(rot_h * 1.5)
-    y_s, y_e = -start_offset_y, base_image.height + start_offset_y
-    x_s, x_e = -start_offset_x, base_image.width + start_offset_x
-
-    print(f"  Tiling rotated text ({rot_w}x{rot_h}) with spacing ({spc_x},{spc_y})...")
+    print(f"  Tiling watermark with spacing ({spc_x}, {spc_y})...")
     paste_count = 0
-    for y in range(y_s, y_e, spc_y):
-        off_x = (y // spc_y % 2) * (spc_x // 4)  # Slight stagger for diagonals
-        for x in range(x_s + off_x, x_e + off_x, spc_x):
+    for y in range(y_start, y_end, spc_y):
+        row_offset_x = (y // spc_y % 2) * (spc_x // 3)
+        for x in range(x_start + row_offset_x, x_end + row_offset_x, spc_x):
             try:
                 watermark_layer.paste(rotated_tile, (x, y), rotated_tile)
                 paste_count += 1
@@ -123,9 +351,7 @@ def apply_watermark(
                 pass
     print(f"  Pasted {paste_count} watermark instances.")
     if paste_count == 0:
-        print(
-            "  Warning: Zero watermark instances were pasted. Check spacing and bounds."
-        )
+        print("  Warning: No watermark instances pasted.")
 
     try:
         return Image.alpha_composite(base_image, watermark_layer)
@@ -135,103 +361,109 @@ def apply_watermark(
 
 
 # --- Grid Mockups ---
-# ... (keep create_2x2_grid function as is) ...
+
+
 def create_2x2_grid(
     input_image_paths: List[str],
     canvas_bg_image: Image.Image,
     grid_size: Tuple[int, int] = config.GRID_2x2_SIZE,
     padding: int = config.CELL_PADDING,
 ) -> Image.Image:
-    """Creates a 2x2 grid mockup from the first 4 images."""
-    grid_img = canvas_bg_image.copy()
+    """
+    Creates a 2x2 grid mockup from the first 4 images onto a canvas.
+    """
+    grid_img = canvas_bg_image.copy().convert("RGBA")
     if not input_image_paths:
-        print("Warn: No input images provided for 2x2 grid.")
+        print("Warn: No input images for 2x2 grid.")
         return grid_img
 
     cols, rows = 2, 2
-    pad_w = padding * (cols + 1)
-    pad_h = padding * (rows + 1)
-    cell_w = max(1, (grid_size[0] - pad_w) // cols)
-    cell_h = max(1, (grid_size[1] - pad_h) // rows)
-
+    total_pad_w, total_pad_h = padding * (cols + 1), padding * (rows + 1)
+    available_w, available_h = grid_size[0] - total_pad_w, grid_size[1] - total_pad_h
+    cell_w, cell_h = max(1, available_w // cols), max(1, available_h // rows)
     if cell_w <= 1 or cell_h <= 1:
-        print("Warn: Grid cell size is too small. Grid may look incorrect.")
+        print(f"Warn: Grid cell size ({cell_w}x{cell_h}) is too small.")
 
-    images_to_place = utils.load_images(input_image_paths[:4])
-
-    for idx, img in enumerate(images_to_place):
+    images = utils.load_images(input_image_paths[:4])
+    for idx, img in enumerate(images):
+        if not img:
+            img_path = (
+                input_image_paths[idx]
+                if idx < len(input_image_paths)
+                else f"image {idx+1}"
+            )
+            print(f"Warn: Skipping invalid image {img_path} in 2x2 grid.")
+            continue
         row, col = divmod(idx, cols)
-        x_start = padding + col * (cell_w + padding)
-        y_start = padding + row * (cell_h + padding)
-
+        cell_x = padding + col * (cell_w + padding)
+        cell_y = padding + row * (cell_h + padding)
         try:
             img_copy = img.copy()
             img_copy.thumbnail((cell_w, cell_h), Image.Resampling.LANCZOS)
-            t_w, t_h = img_copy.size
-            off_x = (cell_w - t_w) // 2
-            off_y = (cell_h - t_h) // 2
-            px, py = x_start + off_x, y_start + off_y
-            grid_img.paste(img_copy, (px, py), img_copy)
+            thumb_w, thumb_h = img_copy.size
+            offset_x, offset_y = (cell_w - thumb_w) // 2, (cell_h - thumb_h) // 2
+            grid_img.paste(img_copy, (cell_x + offset_x, cell_y + offset_y), img_copy)
         except Exception as e:
             img_path = (
                 input_image_paths[idx]
                 if idx < len(input_image_paths)
                 else f"image {idx+1}"
             )
-            print(f"Warn: Pasting in 2x2 grid failed for {img_path}: {e}")
-            traceback.print_exc()
-
+            print(f"Warn: Pasting failed for {img_path} in 2x2 grid: {e}")
     return grid_img
 
 
 # --- Transparency Demo ---
+
+
 def create_transparency_demo(
     image_path: str,
     canvas_path: str = "assets/transparency_mock.png",
     scale: float = config.TRANSPARENCY_DEMO_SCALE,
 ) -> Optional[Image.Image]:
-    """Creates a mockup by pasting an image onto the left side of a predefined canvas."""
-    # Load the predefined canvas
+    """
+    Creates a mockup by pasting an image onto a predefined canvas.
+    """
     canvas = utils.safe_load_image(canvas_path, "RGBA")
     if not canvas:
-        print(f"Error: Failed to load canvas image from {canvas_path}")
+        print(f"Error: Failed to load canvas from {canvas_path}")
         return None
-
     img = utils.safe_load_image(image_path, "RGBA")
     if not img:
         print(f"Warn: Could not load image {image_path} for transparency demo.")
         return canvas
 
     canvas_w, canvas_h = canvas.size
-    max_w = int(canvas_w * scale * 0.5)  # scale relative to half the canvas width
-    max_h = int(canvas_h * scale)
+    max_w, max_h = int(canvas_w * 0.5 * scale), int(canvas_h * scale)
     if max_w <= 0 or max_h <= 0:
-        print(f"Warn: Invalid scale/canvas size for transparency demo.")
+        print("Warn: Invalid scale/canvas size for transparency demo.")
         return canvas
 
     try:
         img_copy = img.copy()
         img_copy.thumbnail((max_w, max_h), Image.Resampling.LANCZOS)
         img_w, img_h = img_copy.size
-
-        # Paste image on the left side, centered vertically
-        px = (canvas_w // 4) - (img_w // 2)
-        py = (canvas_h - img_h) // 2
-        canvas.paste(img_copy, (px, py), img_copy)
+        paste_x = max(0, (canvas_w // 4) - (img_w // 2))
+        paste_y = max(0, (canvas_h - img_h) // 2)
+        canvas.paste(img_copy, (paste_x, paste_y), img_copy)
     except Exception as e:
         print(f"Error creating transparency demo for {image_path}: {e}")
-        traceback.print_exc()
         return canvas
-
     return canvas
 
 
-# --- Title Bar and Text --- (with Neobrutalist Shadow - Text Placement Fixed)
+# --- Title Bar and Text ---
+
+
 def add_title_bar_and_text(
     image: Image.Image,
     title: str,
     subtitle_top: str,
     subtitle_bottom: str,
+    image_for_color_analysis: Optional[Image.Image] = None,
+    use_dynamic_colors: bool = True,
+    dynamic_contrast_threshold: float = 4.5,
+    dynamic_color_clusters: int = 5,
     font_name: str = config.DEFAULT_TITLE_FONT,
     subtitle_font_name: str = config.DEFAULT_SUBTITLE_FONT,
     subtitle_font_size: int = config.SUBTITLE_FONT_SIZE,
@@ -255,253 +487,233 @@ def add_title_bar_and_text(
     shadow_color: Tuple[int, int, int, int] = config.TITLE_BACKDROP_SHADOW_COLOR,
     shadow_opacity: int = config.TITLE_BACKDROP_SHADOW_OPACITY,
 ) -> Tuple[Optional[Image.Image], Optional[Tuple[int, int, int, int]]]:
+    """
+    Adds a centered text block (title, subtitles) with a rounded backdrop and optional shadow.
+    If dynamic colors are enabled and an analysis image is provided, the backdrop and text colors are selected dynamically.
+    """
     if not isinstance(image, Image.Image):
         print("Error: Invalid image input to add_title_bar_and_text.")
         return None, None
 
     output_image = image.copy().convert("RGBA")
-    temp_img_for_measure = Image.new("RGBA", (1, 1))
-    temp_draw_for_measure = ImageDraw.Draw(temp_img_for_measure)
-
-    canvas_width, canvas_height = output_image.size
-    if canvas_width <= 0 or canvas_height <= 0:
+    canvas_w, canvas_h = output_image.size
+    if canvas_w <= 0 or canvas_h <= 0:
         print("Error: Input image has zero dimensions.")
         return output_image, None
 
-    # --- Helper to apply opacity ---
+    current_bar_color, current_text_color = bar_color, text_color
+    current_subtitle_color = subtitle_text_color
+    current_gradient = bar_gradient
+
+    if use_dynamic_colors and SKLEARN_AVAILABLE and image_for_color_analysis:
+        print("Attempting dynamic color selection...")
+        dynamic_pair = find_dynamic_colors(
+            image_for_color_analysis,
+            n_colors=dynamic_color_clusters,
+            min_contrast=dynamic_contrast_threshold,
+        )
+        if dynamic_pair:
+            dynamic_bg, dynamic_text = dynamic_pair
+            current_bar_color = dynamic_bg
+            current_text_color = dynamic_text
+            current_subtitle_color = dynamic_text
+            current_gradient = None
+            print(
+                f"  Using dynamic colors: BG={current_bar_color}, Text={current_text_color}"
+            )
+        else:
+            print("  Dynamic color selection failed. Using default colors.")
+    elif use_dynamic_colors and not SKLEARN_AVAILABLE:
+        print(
+            "  Dynamic colors requested but scikit-learn not available. Using default colors."
+        )
+    elif use_dynamic_colors:
+        print(
+            "  Dynamic colors requested but no analysis image provided. Using default colors."
+        )
+
     def apply_opacity(color_tuple: Tuple, opacity_level: int) -> Tuple:
-        if not (0 <= opacity_level <= 255):
-            opacity_level = 255
-        alpha_multiplier = opacity_level / 255.0
-        # Ensure input tuple has alpha, default to 255 if not
+        opacity_level = max(0, min(255, opacity_level))
         base_color = color_tuple[:3]
         base_alpha = color_tuple[3] if len(color_tuple) == 4 else 255
-        final_alpha = int(min(base_alpha, 255) * alpha_multiplier)
+        final_alpha = int(base_alpha * (opacity_level / 255.0))
         return base_color + (final_alpha,)
 
-    # --- Calculate Text Sizes and Overall Backdrop Dimensions ---
+    temp_img = Image.new("RGBA", (1, 1))
+    temp_draw = ImageDraw.Draw(temp_img)
     subtitle_font = utils.get_font(subtitle_font_name, subtitle_font_size)
     if not subtitle_font:
-        subtitle_top, subtitle_bottom = "", ""
+        print(f"Warn: Could not load subtitle font '{subtitle_font_name}'.")
+        subtitle_top = subtitle_bottom = ""
 
-    text_area_width_initial = max(1, canvas_width - 2 * padding_x)
-    best_main_font, best_main_lines, final_main_font_size = None, [], 0
+    text_area_width = max(1, canvas_w - 2 * padding_x)
+    best_main_font = None
+    best_main_lines = []
+    final_main_font_size = 0
     found_fitting_size = False
 
-    for current_font_size in range(max_font_size, min_font_size - 1, -font_step):
-        font = utils.get_font(font_name, current_font_size)
+    for size in range(max_font_size, min_font_size - 1, -font_step):
+        font = utils.get_font(font_name, size)
         if not font:
             continue
         try:
-            test_str = "abc...XYZ012..."
+            test_str = "abc"
             try:
                 test_len = font.getlength(test_str)
             except AttributeError:
-                # Fallback for older Pillow versions
-                test_bbox = temp_draw_for_measure.textbbox((0, 0), test_str, font=font)
-                test_len = test_bbox[2] - test_bbox[0]
-
-            avg_char_width = (test_len / len(test_str)) if test_len > 0 else 10
-            approx_chars_per_line = max(
-                1, int(text_area_width_initial / max(1, avg_char_width))
-            )
-
+                bbox = temp_draw.textbbox((0, 0), test_str, font=font)
+                test_len = bbox[2] - bbox[0]
+            avg_char_width = test_len / len(test_str) if test_len > 0 else 10
+            approx_chars = max(1, int(text_area_width / avg_char_width))
             wrapped_lines = textwrap.wrap(
-                title, width=approx_chars_per_line, max_lines=max_lines
+                title, width=approx_chars, max_lines=max_lines, placeholder="..."
             )
-
-            if not wrapped_lines or len(wrapped_lines) > max_lines:
+            if not wrapped_lines:
                 continue
-
-            max_line_w_check = 0
-            valid_lines = True
+            max_line_width = 0
+            lines_fit = True
             for line in wrapped_lines:
-                bbox = temp_draw_for_measure.textbbox((0, 0), line, font=font)
-                w = bbox[2] - bbox[0]
-                max_line_w_check = max(max_line_w_check, w)
-                if w > text_area_width_initial:
-                    valid_lines = False
+                bbox = temp_draw.textbbox((0, 0), line, font=font)
+                line_width = bbox[2] - bbox[0]
+                max_line_width = max(max_line_width, line_width)
+                if line_width > text_area_width:
+                    lines_fit = False
                     break
-            if valid_lines:
+            if lines_fit:
                 best_main_font, best_main_lines, final_main_font_size = (
                     font,
                     wrapped_lines,
-                    current_font_size,
+                    size,
                 )
                 found_fitting_size = True
                 break
         except Exception as e:
-            print(
-                f"Warn: Error during font size calculation (size {current_font_size}): {e}"
-            )
+            print(f"Warn: Error during font size calculation at size {size}: {e}")
 
     if not found_fitting_size:
-        print(f"Warn: Could not fit title '{title}' within constraints.")
+        print(f"Warn: Could not fit title. Using min size {min_font_size}pt.")
         font = utils.get_font(font_name, min_font_size)
         if font:
-            best_main_font = font
-            final_main_font_size = min_font_size
-            # Aggressive wrapping as fallback
-            avg_char_width = 10  # Default average width
+            best_main_font, final_main_font_size = font, min_font_size
             try:
-                if hasattr(font, "getlength"):
-                    avg_char_width = max(1, font.getlength("a"))
-                else:
-                    bbox = temp_draw_for_measure.textbbox((0, 0), "a", font=font)
-                    avg_char_width = max(1, bbox[2] - bbox[0])
+                avg_char_width = (
+                    font.getlength("a")
+                    if hasattr(font, "getlength")
+                    else (
+                        temp_draw.textbbox((0, 0), "a", font=font)[2]
+                        - temp_draw.textbbox((0, 0), "a", font=font)[0]
+                    )
+                )
             except Exception:
-                pass  # Use default if calculation fails
-
-            approx_chars_per_line = max(
-                1, int(text_area_width_initial / avg_char_width)
-            )
+                avg_char_width = 10
+            approx_chars = max(1, int(text_area_width / avg_char_width))
             best_main_lines = textwrap.wrap(
-                title, width=approx_chars_per_line, max_lines=max_lines
+                title, width=approx_chars, max_lines=max_lines, placeholder="..."
             )
-            if not best_main_lines:
-                best_main_lines = []  # Ensure it's an empty list if wrapping fails
+            if not best_main_lines and title:
+                best_main_lines = [
+                    title[:approx_chars] + "..." if approx_chars > 3 else ""
+                ]
         else:
-            best_main_lines = []  # Ensure it's an empty list if font fails
-
-    max_text_content_width, main_title_height = 0, 0
-    main_title_line_heights = []
-    if best_main_lines and best_main_font:
-        try:
-            for line in best_main_lines:
-                bbox = temp_draw_for_measure.textbbox((0, 0), line, font=best_main_font)
-                line_height = bbox[3] - bbox[1]
-                # Add a minimum height in case bbox calculation returns zero
-                main_title_line_heights.append(max(1, line_height))
-                max_text_content_width = max(max_text_content_width, bbox[2] - bbox[0])
-            main_title_height = (
-                sum(main_title_line_heights)
-                + max(0, len(best_main_lines) - 1) * line_spacing
+            print(
+                f"Error: Failed to load min title font '{font_name}' size {min_font_size}pt."
             )
-        except Exception as e:
-            print(f"Error calculating main title dims: {e}")
-            main_title_height, best_main_lines = 0, []
+            best_main_lines = []
+
+    max_text_width, main_title_height = 0, 0
+    main_line_heights = []
+    if best_main_lines and best_main_font:
+        for line in best_main_lines:
+            bbox = temp_draw.textbbox((0, 0), line, font=best_main_font)
+            line_width = bbox[2] - bbox[0]
+            line_height = max(1, bbox[3] - bbox[1])
+            main_line_heights.append(line_height)
+            max_text_width = max(max_text_width, line_width)
+        main_title_height = (
+            sum(main_line_heights) + (len(best_main_lines) - 1) * line_spacing
+        )
 
     subtitle_top_height, subtitle_top_width = 0, 0
     if subtitle_top and subtitle_font:
-        try:
-            bbox = temp_draw_for_measure.textbbox(
-                (0, 0), subtitle_top, font=subtitle_font
-            )
-            subtitle_top_height = max(1, bbox[3] - bbox[1])  # Ensure min height
-            subtitle_top_width = bbox[2] - bbox[0]
-            max_text_content_width = max(max_text_content_width, subtitle_top_width)
-        except Exception as e:
-            print(f"Error calculating subtitle top dims: {e}")
-            subtitle_top_height = 0
+        bbox = temp_draw.textbbox((0, 0), subtitle_top, font=subtitle_font)
+        subtitle_top_width, subtitle_top_height = bbox[2] - bbox[0], max(
+            1, bbox[3] - bbox[1]
+        )
+        max_text_width = max(max_text_width, subtitle_top_width)
 
     subtitle_bottom_height, subtitle_bottom_width = 0, 0
     if subtitle_bottom and subtitle_font:
-        try:
-            bbox = temp_draw_for_measure.textbbox(
-                (0, 0), subtitle_bottom, font=subtitle_font
-            )
-            subtitle_bottom_height = max(1, bbox[3] - bbox[1])  # Ensure min height
-            subtitle_bottom_width = bbox[2] - bbox[0]
-            max_text_content_width = max(max_text_content_width, subtitle_bottom_width)
-        except Exception as e:
-            print(f"Error calculating subtitle bottom dims: {e}")
-            subtitle_bottom_height = 0
+        bbox = temp_draw.textbbox((0, 0), subtitle_bottom, font=subtitle_font)
+        subtitle_bottom_width, subtitle_bottom_height = bbox[2] - bbox[0], max(
+            1, bbox[3] - bbox[1]
+        )
+        max_text_width = max(max_text_width, subtitle_bottom_width)
 
-    content_blocks = []
-    if subtitle_top_height > 0:
-        content_blocks.append(subtitle_top_height)
-    if main_title_height > 0:
-        content_blocks.append(main_title_height)
-    if subtitle_bottom_height > 0:
-        content_blocks.append(subtitle_bottom_height)
+    content_heights = [
+        h
+        for h in [subtitle_top_height, main_title_height, subtitle_bottom_height]
+        if h > 0
+    ]
     total_content_height = (
-        sum(content_blocks) + max(0, len(content_blocks) - 1) * subtitle_spacing
+        sum(content_heights) + (len(content_heights) - 1) * subtitle_spacing
     )
 
-    if max_text_content_width <= 0 or total_content_height <= 0:
-        print("Warn: No text content. Skipping backdrop and text.")
+    if max_text_width <= 0 or total_content_height <= 0:
+        print("Warn: No text content to render. Skipping backdrop and text.")
         return output_image, None
 
-    # Calculate main backdrop dimensions and position
-    backdrop_width = max(1, int(max_text_content_width + 2 * backdrop_padding_x))
+    backdrop_width = max(1, int(max_text_width + 2 * backdrop_padding_x))
     backdrop_height = max(1, int(total_content_height + 2 * backdrop_padding_y))
-    backdrop_x_start = (canvas_width - backdrop_width) // 2
-    backdrop_y_start = (canvas_height - backdrop_height) // 2
-    # These are the bounds of the TOP backdrop
-    final_backdrop_bounds = (
-        backdrop_x_start,
-        backdrop_y_start,
-        backdrop_x_start + backdrop_width,
-        backdrop_y_start + backdrop_height,
+    backdrop_x = (canvas_w - backdrop_width) // 2
+    backdrop_y = (canvas_h - backdrop_height) // 2
+    backdrop_bounds = (
+        backdrop_x,
+        backdrop_y,
+        backdrop_x + backdrop_width,
+        backdrop_y + backdrop_height,
     )
 
-    # --- Prepare Colors ---
-    transparent_bar_color = apply_opacity(bar_color, bar_opacity)
+    transparent_bar = apply_opacity(current_bar_color, bar_opacity)
     transparent_gradient = None
-    if bar_gradient:
+    if current_gradient and len(current_gradient) == 2:
         try:
-            if len(bar_gradient) == 2:
-                transparent_gradient = (
-                    apply_opacity(bar_gradient[0], bar_opacity),
-                    apply_opacity(bar_gradient[1], bar_opacity),
-                )
-            else:
-                print(f"Warn: Expected 2 colors for gradient, got {len(bar_gradient)}.")
+            transparent_gradient = (
+                apply_opacity(current_gradient[0], bar_opacity),
+                apply_opacity(current_gradient[1], bar_opacity),
+            )
         except Exception as e:
             print(f"Warn: Could not process gradient colors: {e}.")
+    transparent_shadow = apply_opacity(shadow_color, shadow_opacity)
+    final_text_color = current_text_color[:3]
+    final_subtitle_color = current_subtitle_color[:3]
 
-    # Prepare shadow color
-    transparent_shadow_color = apply_opacity(shadow_color, shadow_opacity)
-
-    # --- Draw Backdrops ---
-    # Create a layer for *both* backdrops
     backdrop_layer = Image.new("RGBA", output_image.size, (0, 0, 0, 0))
     backdrop_draw = ImageDraw.Draw(backdrop_layer)
-
     try:
-        # 1. Draw Shadow Backdrop (if enabled)
-        if (
-            shadow_enable
-            and shadow_offset != (0, 0)
-            and transparent_shadow_color[3] > 0
-        ):
-            shadow_x1 = final_backdrop_bounds[0] + shadow_offset[0]
-            shadow_y1 = final_backdrop_bounds[1] + shadow_offset[1]
-            shadow_x2 = final_backdrop_bounds[2] + shadow_offset[0]
-            shadow_y2 = final_backdrop_bounds[3] + shadow_offset[1]
-            shadow_bounds = (shadow_x1, shadow_y1, shadow_x2, shadow_y2)
-
-            # Ensure shadow stays within canvas bounds (optional, but good practice)
+        if shadow_enable and shadow_offset != (0, 0) and transparent_shadow[3] > 0:
             shadow_bounds = (
-                max(0, shadow_bounds[0]),
-                max(0, shadow_bounds[1]),
-                min(canvas_width, shadow_bounds[2]),
-                min(canvas_height, shadow_bounds[3]),
+                max(0, backdrop_bounds[0] + shadow_offset[0]),
+                max(0, backdrop_bounds[1] + shadow_offset[1]),
+                min(canvas_w, backdrop_bounds[2] + shadow_offset[0]),
+                min(canvas_h, backdrop_bounds[3] + shadow_offset[1]),
             )
-
             if (
                 shadow_bounds[0] < shadow_bounds[2]
                 and shadow_bounds[1] < shadow_bounds[3]
-            ):  # Check if valid rect
+            ):
                 backdrop_draw.rounded_rectangle(
                     shadow_bounds,
-                    fill=transparent_shadow_color,
-                    radius=backdrop_corner_radius,  # Use same radius
+                    fill=transparent_shadow,
+                    radius=backdrop_corner_radius,
                 )
             else:
-                print(
-                    "Warn: Shadow bounds resulted in invalid rectangle, skipping shadow."
-                )
-
-        # 2. Draw Main Backdrop (on top of shadow)
+                print("Warn: Shadow bounds invalid.")
         if transparent_gradient:
-            # Generate gradient for the main backdrop size
             gradient_fill = utils.generate_gradient_background(
                 (backdrop_width, backdrop_height),
                 transparent_gradient[0],
                 transparent_gradient[1],
             )
-            # Create mask for rounded corners
             mask = Image.new("L", (backdrop_width, backdrop_height), 0)
             mask_draw = ImageDraw.Draw(mask)
             mask_draw.rounded_rectangle(
@@ -509,111 +721,86 @@ def add_title_bar_and_text(
                 fill=255,
                 radius=backdrop_corner_radius,
             )
-            # Paste gradient using the mask at the main backdrop position
-            backdrop_layer.paste(
-                gradient_fill, (backdrop_x_start, backdrop_y_start), mask
-            )
-        elif transparent_bar_color[3] > 0:  # Only draw if not fully transparent
-            # Draw solid color main backdrop
+            backdrop_layer.paste(gradient_fill, (backdrop_x, backdrop_y), mask)
+        elif transparent_bar[3] > 0:
             backdrop_draw.rounded_rectangle(
-                final_backdrop_bounds,
-                fill=transparent_bar_color,
-                radius=backdrop_corner_radius,
+                backdrop_bounds, fill=transparent_bar, radius=backdrop_corner_radius
             )
-
-        # 3. Composite backdrop layer onto the output image
         output_image = Image.alpha_composite(output_image, backdrop_layer)
-
     except Exception as e:
-        print(f"Error drawing backdrop(s): {e}.")
+        print(f"Error drawing backdrop: {e}")
         traceback.print_exc()
 
-    # --- Draw Text (on top of combined backdrops) ---
-    draw = ImageDraw.Draw(output_image, "RGBA")
-    # Calculate starting Y position for the first text block inside the backdrop padding
-    current_y = backdrop_y_start + backdrop_padding_y
-    text_area_center_x = canvas_width // 2
+    draw = ImageDraw.Draw(output_image)
+    current_y = backdrop_y + backdrop_padding_y
+    text_center_x = backdrop_x + backdrop_width / 2
 
-    # Draw Subtitle Top
     if subtitle_top_height > 0 and subtitle_font:
         try:
-            # Simply use current_y and anchor="mt"
             draw.text(
-                (text_area_center_x, current_y),
+                (text_center_x, current_y),
                 subtitle_top,
                 font=subtitle_font,
-                fill=subtitle_text_color,
+                fill=final_subtitle_color,
                 anchor="mt",
                 align="center",
             )
-            # Advance current_y by the height of this block plus spacing
-            current_y += subtitle_top_height
-            if (
-                main_title_height > 0 or subtitle_bottom_height > 0
-            ):  # Add spacing only if more blocks follow
-                current_y += subtitle_spacing
+            current_y += (
+                subtitle_top_height
+                + (
+                    subtitle_top_height
+                    and (main_title_height > 0 or subtitle_bottom_height > 0)
+                )
+                * subtitle_spacing
+            )
         except Exception as e:
             print(f"Error drawing subtitle_top: {e}")
 
-    # Draw Main Title Lines
     if main_title_height > 0 and best_main_lines and best_main_font:
-        if final_main_font_size > 0:
-            print(
-                f"-> Title '{title}': Font '{font_name}' at {final_main_font_size}pt."
-            )
+        print(
+            f"-> Drawing Title '{title[:30]}...' using '{font_name}' at {final_main_font_size}pt."
+        )
         try:
-            # Keep track of the y position for the current line
-            line_y_start = current_y
             for i, line in enumerate(best_main_lines):
-                # Simply use line_y_start and anchor="mt" for each line
                 draw.text(
-                    (text_area_center_x, line_y_start),
+                    (text_center_x, current_y),
                     line,
                     font=best_main_font,
-                    fill=text_color,
+                    fill=final_text_color,
                     anchor="mt",
                     align="center",
                 )
-                # Advance the y position for the next line
-                line_y_start += main_title_line_heights[i]
-                if i < len(best_main_lines) - 1:
-                    line_y_start += line_spacing  # Add inter-line spacing
-
-            # Update current_y to be after the last drawn title line
-            current_y = line_y_start
-
-            # Add spacing before bottom subtitle only if title exists and bottom subtitle exists
+                current_y += (
+                    main_line_heights[i] + (i < len(best_main_lines) - 1) * line_spacing
+                )
             if subtitle_bottom_height > 0:
                 current_y += subtitle_spacing
         except Exception as e:
             print(f"Error drawing title lines: {e}")
 
-    # Draw Subtitle Bottom
     if subtitle_bottom_height > 0 and subtitle_font:
         try:
-            # Simply use current_y and anchor="mt"
             draw.text(
-                (text_area_center_x, current_y),
+                (text_center_x, current_y),
                 subtitle_bottom,
                 font=subtitle_font,
-                fill=subtitle_text_color,
+                fill=final_subtitle_color,
                 anchor="mt",
                 align="center",
             )
-            # No need to advance current_y further unless more elements were added below
         except Exception as e:
             print(f"Error drawing subtitle_bottom: {e}")
 
-    # Return the modified image and the bounds of the *main* (top) backdrop
-    return output_image, final_backdrop_bounds
+    return output_image, backdrop_bounds
 
 
-# --- Collage Layout --- CENTERPIECE VERSION ---
+# --- Collage Layout ---
+
+
 def create_collage_layout(
     image_paths: List[str],
     canvas: Image.Image,
-    title_backdrop_bounds: Optional[Tuple[int, int, int, int]],  # (x1, y1, x2, y2)
-    # Use config names
+    title_backdrop_bounds: Optional[Tuple[int, int, int, int]],
     surround_min_width_factor: float = config.COLLAGE_SURROUND_MIN_WIDTH_FACTOR,
     surround_max_width_factor: float = config.COLLAGE_SURROUND_MAX_WIDTH_FACTOR,
     centerpiece_scale_factor: float = config.COLLAGE_CENTERPIECE_SCALE_FACTOR,
@@ -624,496 +811,308 @@ def create_collage_layout(
     rescale_attempts: int = config.COLLAGE_RESCALE_ATTEMPTS,
     max_overlap_ratio_trigger: float = config.COLLAGE_MAX_ACCEPTABLE_OVERLAP_RATIO,
     min_absolute_scale: float = config.COLLAGE_MIN_SCALE_ABS,
-    alpha_threshold: int = 10,  # Threshold to consider a pixel as 'content'
+    alpha_threshold: int = 10,
 ) -> Image.Image:
+    """
+    Creates a collage by placing a central image and surrounding others, avoiding a title area.
+    """
     print(f"Creating centerpiece collage layout for {len(image_paths)} images...")
     if not image_paths:
         print("  No images provided.")
-        return canvas
+        return canvas.copy().convert("RGBA")
 
-    placement_canvas = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
-    canvas_width, canvas_height = canvas.size
+    base_canvas = canvas.copy().convert("RGBA")
+    placement_canvas = Image.new("RGBA", base_canvas.size, (0, 0, 0, 0))
+    canvas_w, canvas_h = base_canvas.size
     min_pixel_dim = 20
 
-    if canvas_width <= 0 or canvas_height <= 0:
+    if canvas_w <= 0 or canvas_h <= 0:
         print("  Error: Invalid canvas dimensions.")
-        return canvas
+        return base_canvas
 
-    # --- Load ALL Images and Calculate 'Fit' Score ---
-    all_items_loaded = []
+    items = []
     print("  Loading images and calculating centerpiece suitability...")
     for i, path in enumerate(image_paths):
-        original_img = utils.safe_load_image(path, mode="RGBA")
+        original_img = utils.safe_load_image(path)
         if not original_img or original_img.width <= 0 or original_img.height <= 0:
-            print(f"  Warn: Failed to load or invalid image '{path}', skipping.")
             continue
-
-        fit_score = float("inf")  # Default to worst score
-        bbox_area = 0
-        try:
-            # Get bounding box of actual content
-            bbox = original_img.getbbox()
-            if bbox:
-                bbox_width = bbox[2] - bbox[0]
-                bbox_height = bbox[3] - bbox[1]
-
-                if bbox_width > 0 and bbox_height > 0:
-                    bbox_area = bbox_width * bbox_height
-
-                    # 1. Squareness Score (lower is better)
-                    aspect_ratio = bbox_width / bbox_height
-                    squareness_score = abs(aspect_ratio - 1.0)
-
-                    # 2. Fill Ratio Score (lower is better, based on 1.0 - fill_ratio)
-                    # Ensure cropping is within image bounds if bbox is tight
-                    crop_box = (
-                        max(0, bbox[0]),
-                        max(0, bbox[1]),
-                        min(original_img.width, bbox[2]),
-                        min(original_img.height, bbox[3]),
-                    )
-                    if crop_box[0] < crop_box[2] and crop_box[1] < crop_box[3]:
-                        alpha_channel = np.array(
-                            original_img.split()[-1].crop(crop_box)
-                        )
-                        content_pixels = np.sum(alpha_channel > alpha_threshold)
-                        fill_ratio = content_pixels / bbox_area if bbox_area > 0 else 0
-                        fill_score = (
-                            1.0 - fill_ratio
-                        )  # Lower score for higher fill ratio
-                    else:
-                        fill_score = 1.0  # Penalize if crop box is invalid
-
-                    # 3. Combined Score (lower is better) - Equal weight for now
-                    fit_score = squareness_score + fill_score
-                else:
-                    print(f"    Warn: Zero dimension bbox for {os.path.basename(path)}")
-            else:
-                print(f"    Warn: Could not get bbox for {os.path.basename(path)}")
-
-        except Exception as e:
-            print(f"    Error calculating fit score for {os.path.basename(path)}: {e}")
-
-        all_items_loaded.append(
+        fit_score, content_area = _calculate_fit_score(original_img, alpha_threshold)
+        items.append(
             {
                 "id": i,
                 "path": path,
                 "original_img": original_img,
-                "fit_score": fit_score,  # Lower score is better
-                "estimated_area": bbox_area,  # Use bbox area for sorting secondary if needed
+                "fit_score": fit_score,
+                "content_bbox_area": content_area,
             }
         )
 
-    if not all_items_loaded:
-        print("  No images successfully loaded.")
-        return canvas  # Return original canvas
+    if not items:
+        print("  Error: No images successfully loaded.")
+        return base_canvas
 
-    # --- Select Centerpiece (Lowest fit_score) ---
-    # Sort primarily by fit_score (ascending), secondarily by area (descending) as tie-breaker
-    all_items_loaded.sort(key=lambda item: (item["fit_score"], -item["estimated_area"]))
+    items.sort(key=lambda item: (item["fit_score"], -item["content_bbox_area"]))
+    if items[0]["fit_score"] == float("inf"):
+        print("  Warn: No valid fit score. Falling back to largest area.")
+        items.sort(key=lambda item: -item.get("content_bbox_area", 0))
+        if items[0]["content_bbox_area"] == 0:
+            print("  Error: No items with positive content area.")
+            return base_canvas
 
-    if not all_items_loaded or all_items_loaded[0]["fit_score"] == float("inf"):
-        print(
-            "  Warn: No images had a valid fit score. Falling back to largest area for centerpiece."
-        )
-        # Resort by area if no valid scores or list became empty somehow
-        all_items_loaded.sort(key=lambda item: -item.get("estimated_area", 0))
-        if not all_items_loaded:
-            print("  Error: No items left after attempting centerpiece selection.")
-            return canvas
-
-    centerpiece_data = all_items_loaded.pop(
-        0
-    )  # Take the first (best fit score or largest area)
-    surrounding_items_data = all_items_loaded  # The rest are surrounding
+    centerpiece_data = items.pop(0)
+    surrounding_items = items
     print(
         f"  Centerpiece (Score: {centerpiece_data.get('fit_score', 'N/A'):.3f}): {os.path.basename(centerpiece_data['path'])}"
     )
-    print(f"  Surrounding items: {len(surrounding_items_data)}")
+    print(f"  Surrounding items: {len(surrounding_items)}")
 
-    placed_item_bounds_xywh = []  # Store (x, y, w, h) of placed content
-
-    # --- Define Title Avoidance Zone ---
-    avoid_rect_title_x1y1x2y2 = None  # (x1, y1, x2, y2) for point-in-rect check
+    placed_bounds: List[Tuple[int, int, int, int]] = []
+    avoid_rect_title = None
     if title_backdrop_bounds:
         tx1, ty1, tx2, ty2 = title_backdrop_bounds
-        avoid_x1 = max(0, tx1 - title_avoid_padding)
-        avoid_y1 = max(0, ty1 - title_avoid_padding)
-        avoid_x2 = min(canvas_width, tx2 + title_avoid_padding)
-        avoid_y2 = min(canvas_height, ty2 + title_avoid_padding)
-        if avoid_x1 < avoid_x2 and avoid_y1 < avoid_y2:
-            avoid_rect_title_x1y1x2y2 = (avoid_x1, avoid_y1, avoid_x2, avoid_y2)
-            print(f"  Avoidance Rect (Title): {avoid_rect_title_x1y1x2y2}")
+        avoid_rect_title = (
+            max(0, tx1 - title_avoid_padding),
+            max(0, ty1 - title_avoid_padding),
+            min(canvas_w, tx2 + title_avoid_padding),
+            min(canvas_h, ty2 + title_avoid_padding),
+        )
+        print(f"  Avoidance Rect (Title): {avoid_rect_title}")
 
-    # --- Place Centerpiece ---
     print("  Placing centerpiece...")
-    centerpiece_img_orig = centerpiece_data["original_img"]
-    avoid_rect_centerpiece_xywh = None  # Initialize
+    centerpiece_img = centerpiece_data["original_img"]
+    avoid_rect_centerpiece = None
     try:
-        # Scale based on the smaller canvas dimension to fit better
-        target_dim = min(canvas_width, canvas_height) * centerpiece_scale_factor
-        scale_c = target_dim / max(
-            1, centerpiece_img_orig.width, centerpiece_img_orig.height
-        )  # Avoid div by zero
-
-        cp_w = max(min_pixel_dim, int(centerpiece_img_orig.width * scale_c))
-        cp_h = max(min_pixel_dim, int(centerpiece_img_orig.height * scale_c))
-        centerpiece_scaled = centerpiece_img_orig.resize(
+        target_dim = min(canvas_w, canvas_h) * centerpiece_scale_factor
+        scale_factor = target_dim / max(centerpiece_img.width, centerpiece_img.height)
+        cp_w = max(min_pixel_dim, int(centerpiece_img.width * scale_factor))
+        cp_h = max(min_pixel_dim, int(centerpiece_img.height * scale_factor))
+        centerpiece_scaled = centerpiece_img.resize(
             (cp_w, cp_h), Image.Resampling.LANCZOS
         )
-
-        # Center placement
-        px_c = (canvas_width - cp_w) // 2
-        py_c = (canvas_height - cp_h) // 2
-
-        placement_canvas.paste(centerpiece_scaled, (px_c, py_c), centerpiece_scaled)
-
-        # Record bounds and define centerpiece avoidance zone
-        cp_content_box = centerpiece_scaled.getbbox()
-        if not cp_content_box:
-            cp_content_box = (0, 0, cp_w, cp_h)
-        cp_cb_x = cp_content_box[0]
-        cp_cb_y = cp_content_box[1]
-        cp_cb_w = max(1, cp_content_box[2] - cp_cb_x)
-        cp_cb_h = max(1, cp_content_box[3] - cp_cb_y)
-        centerpiece_bounds_xywh = (px_c + cp_cb_x, py_c + cp_cb_y, cp_cb_w, cp_cb_h)
-        placed_item_bounds_xywh.append(centerpiece_bounds_xywh)
-
-        # Avoidance rect around centerpiece content box (x, y, w, h)
-        avoid_cp_x = max(0, centerpiece_bounds_xywh[0] - centerpiece_avoid_padding)
-        avoid_cp_y = max(0, centerpiece_bounds_xywh[1] - centerpiece_avoid_padding)
-        avoid_cp_x2 = min(
-            canvas_width,
-            centerpiece_bounds_xywh[0]
-            + centerpiece_bounds_xywh[2]
-            + centerpiece_avoid_padding,
-        )
-        avoid_cp_y2 = min(
-            canvas_height,
-            centerpiece_bounds_xywh[1]
-            + centerpiece_bounds_xywh[3]
-            + centerpiece_avoid_padding,
-        )
-        # Ensure width/height are positive
-        avoid_cp_w = max(0, avoid_cp_x2 - avoid_cp_x)
-        avoid_cp_h = max(0, avoid_cp_y2 - avoid_cp_y)
-        if avoid_cp_w > 0 and avoid_cp_h > 0:
-            avoid_rect_centerpiece_xywh = (
-                avoid_cp_x,
-                avoid_cp_y,
-                avoid_cp_w,
-                avoid_cp_h,
+        cp_x, cp_y = (canvas_w - cp_w) // 2, (canvas_h - cp_h) // 2
+        placement_canvas.paste(centerpiece_scaled, (cp_x, cp_y), centerpiece_scaled)
+        cp_bbox = centerpiece_scaled.getbbox()
+        if cp_bbox:
+            cp_x_local, cp_y_local, cp_x2_local, cp_y2_local = cp_bbox
+            cp_w_local = max(1, cp_x2_local - cp_x_local)
+            cp_h_local = max(1, cp_y2_local - cp_y_local)
+            cp_content_bounds = (
+                cp_x + cp_x_local,
+                cp_y + cp_y_local,
+                cp_w_local,
+                cp_h_local,
             )
-            print(f"  Avoidance Rect (Centerpiece): {avoid_rect_centerpiece_xywh}")
+            placed_bounds.append(cp_content_bounds)
+            avoid_cp = (
+                max(0, cp_content_bounds[0] - centerpiece_avoid_padding),
+                max(0, cp_content_bounds[1] - centerpiece_avoid_padding),
+                min(
+                    canvas_w,
+                    cp_content_bounds[0]
+                    + cp_content_bounds[2]
+                    + centerpiece_avoid_padding,
+                ),
+                min(
+                    canvas_h,
+                    cp_content_bounds[1]
+                    + cp_content_bounds[3]
+                    + centerpiece_avoid_padding,
+                ),
+            )
+            if avoid_cp[2] - avoid_cp[0] > 0 and avoid_cp[3] - avoid_cp[1] > 0:
+                avoid_rect_centerpiece = avoid_cp
+                print(
+                    f"  Avoidance Rect (Centerpiece Content): {avoid_rect_centerpiece}"
+                )
+            else:
+                print("  Warn: Centerpiece avoidance rect has zero dimension.")
         else:
-            print(f"  Warn: Centerpiece avoidance rect has zero dimension.")
-            avoid_rect_centerpiece_xywh = None
-
+            print("  Warn: Centerpiece has no content bbox.")
     except Exception as e:
         print(f"  Error placing centerpiece: {e}")
         traceback.print_exc()
-        avoid_rect_centerpiece_xywh = (
-            None  # No centerpiece avoidance if placement failed
-        )
 
-    # --- Prepare Surrounding Images (Initial Sizes) ---
-    surrounding_items_prepared = []
-    print("  Calculating initial sizes for surrounding items...")
-    for item_data in surrounding_items_data:
-        original_img = item_data["original_img"]
+    surrounding_prepared = []
+    print("  Preparing surrounding items...")
+    for item in surrounding_items:
         try:
-            # Random scale based on width factors
-            min_target_w = canvas_width * surround_min_width_factor
-            max_target_w = canvas_width * surround_max_width_factor
+            min_target_w = canvas_w * surround_min_width_factor
+            max_target_w = canvas_w * surround_max_width_factor
             target_w = random.uniform(min_target_w, max_target_w)
-
-            initial_scale = target_w / max(1, original_img.width)  # Avoid div by zero
-            initial_scale = max(
-                initial_scale, min_absolute_scale
-            )  # Ensure not below absolute min
-
-            # Resize
-            new_w = max(min_pixel_dim, int(original_img.width * initial_scale))
-            new_h = max(min_pixel_dim, int(original_img.height * initial_scale))
-            # Maintain aspect ratio roughly
-            if original_img.width > 0 and original_img.height > 0:
-                if original_img.width > original_img.height:
-                    new_h = max(
-                        min_pixel_dim,
-                        int(new_w * original_img.height / original_img.width),
-                    )
-                else:
-                    new_w = max(
-                        min_pixel_dim,
-                        int(new_h * original_img.width / original_img.height),
-                    )
-
-            initial_scaled_img = original_img.resize(
+            scale = max(
+                target_w / max(item["original_img"].width, 1), min_absolute_scale
+            )
+            new_w = max(min_pixel_dim, int(item["original_img"].width * scale))
+            new_h = max(min_pixel_dim, int(item["original_img"].height * scale))
+            scaled_img = item["original_img"].resize(
                 (new_w, new_h), Image.Resampling.LANCZOS
             )
-
-            item_data["initial_scaled_img"] = initial_scaled_img
-            item_data["initial_scale"] = initial_scale
-            item_data["initial_area"] = new_w * new_h
-            surrounding_items_prepared.append(item_data)
-
+            item["initial_scaled_img"] = scaled_img
+            item["initial_scale"] = scale
+            bbox = scaled_img.getbbox()
+            item["initial_content_area"] = max(
+                1, (bbox[2] - bbox[0]) * (bbox[3] - bbox[1]) if bbox else new_w * new_h
+            )
+            surrounding_prepared.append(item)
         except Exception as e:
             print(
-                f"  Warn: Failed to prepare surrounding image '{item_data['path']}': {e}"
+                f"  Warn: Failed to prepare surrounding image '{os.path.basename(item['path'])}': {e}"
             )
 
-    # Sort surrounding items by initial area (largest first)
-    surrounding_items_prepared.sort(key=lambda item: item["initial_area"], reverse=True)
+    surrounding_prepared.sort(
+        key=lambda item: item["initial_content_area"], reverse=True
+    )
 
-    # --- Helper function to find best spot for SURROUNDING items ---
-    def find_best_spot_surrounding(
+    def find_best_spot(
         image_to_place: Image.Image,
     ) -> Tuple[Optional[Tuple[int, int]], float]:
         img_w, img_h = image_to_place.size
         min_overlap = float("inf")
-        best_p = None
-
-        content_box_x1y1x2y2 = image_to_place.getbbox()
-        if not content_box_x1y1x2y2:
-            content_box_x1y1x2y2 = (0, 0, img_w, img_h)
-        cb_x_local = content_box_x1y1x2y2[0]
-        cb_y_local = content_box_x1y1x2y2[1]
-        cb_w_local = max(1, content_box_x1y1x2y2[2] - cb_x_local)
-        cb_h_local = max(1, content_box_x1y1x2y2[3] - cb_y_local)
-
-        for py in range(0, canvas_height - img_h + 1, placement_step):
-            for px in range(0, canvas_width - img_w + 1, placement_step):
-                current_bounds_xywh = (
-                    px + cb_x_local,
-                    py + cb_y_local,
-                    cb_w_local,
-                    cb_h_local,
+        best_pos = None
+        cb = image_to_place.getbbox() or (0, 0, img_w, img_h)
+        cb_x, cb_y = cb[0], cb[1]
+        cb_w, cb_h = max(1, cb[2] - cb[0]), max(1, cb[3] - cb[1])
+        for py in range(0, canvas_h - img_h + 1, placement_step):
+            for px in range(0, canvas_w - img_w + 1, placement_step):
+                current_bounds = (px + cb_x, py + cb_y, cb_w, cb_h)
+                center_x, center_y = (
+                    current_bounds[0] + cb_w / 2,
+                    current_bounds[1] + cb_h / 2,
                 )
-                content_center_x = current_bounds_xywh[0] + current_bounds_xywh[2] / 2
-                content_center_y = current_bounds_xywh[1] + current_bounds_xywh[3] / 2
-
-                # Check Avoidance Zones (Title AND Centerpiece)
-                # Check Title (using x1y1x2y2 format)
-                title_avoided = False
-                if (
-                    avoid_rect_title_x1y1x2y2
-                    and (
-                        avoid_rect_title_x1y1x2y2[0]
-                        <= content_center_x
-                        < avoid_rect_title_x1y1x2y2[2]
-                    )
-                    and (
-                        avoid_rect_title_x1y1x2y2[1]
-                        <= content_center_y
-                        < avoid_rect_title_x1y1x2y2[3]
-                    )
+                if avoid_rect_title and (
+                    avoid_rect_title[0] <= center_x < avoid_rect_title[2]
+                    and avoid_rect_title[1] <= center_y < avoid_rect_title[3]
                 ):
-                    title_avoided = True
-
-                # Check Centerpiece (using x,y,w,h format)
-                centerpiece_avoided = False
-                if not title_avoided and avoid_rect_centerpiece_xywh:
-                    cp_ax, cp_ay, cp_aw, cp_ah = avoid_rect_centerpiece_xywh
-                    if (cp_ax <= content_center_x < cp_ax + cp_aw) and (
-                        cp_ay <= content_center_y < cp_ay + cp_ah
-                    ):
-                        centerpiece_avoided = True
-
-                if title_avoided or centerpiece_avoided:
-                    continue  # Skip this position if center is in either avoidance zone
-
-                # Calculate Overlap
-                current_total_overlap = 0.0
-                # Check against ALL previously placed items (including centerpiece)
-                for placed_bounds_xywh in placed_item_bounds_xywh:
-                    overlaps, intersection = utils.check_overlap(
-                        current_bounds_xywh, placed_bounds_xywh
-                    )
+                    continue
+                if avoid_rect_centerpiece and (
+                    avoid_rect_centerpiece[0] <= center_x < avoid_rect_centerpiece[2]
+                    and avoid_rect_centerpiece[1]
+                    <= center_y
+                    < avoid_rect_centerpiece[3]
+                ):
+                    continue
+                overlap_total = 0.0
+                for pb in placed_bounds:
+                    overlaps, area = utils.check_overlap(current_bounds, pb)
                     if overlaps:
-                        current_total_overlap += intersection
-
-                # Update Best Spot
-                if current_total_overlap < min_overlap:
-                    min_overlap = current_total_overlap
-                    best_p = (px, py)
+                        overlap_total += area
+                if overlap_total < min_overlap:
+                    min_overlap = overlap_total
+                    best_pos = (px, py)
                     if min_overlap == 0:
-                        break  # Optimization: stop if perfect spot found
-            if min_overlap == 0 and best_p is not None:
-                break  # Optimization
-        return best_p, min_overlap
+                        return best_pos, min_overlap
+        return best_pos, min_overlap
 
-    # --- Place Surrounding Items ---
     print("  Placing surrounding items...")
-    for item_data in surrounding_items_prepared:
-        item_id = item_data["id"]
-        item_path = item_data["path"]
-        original_img = item_data["original_img"]
-        current_scaled_img = item_data["initial_scaled_img"]
-        current_scale = item_data["initial_scale"]
-        log_prefix = f"Item {item_id}"
-
-        # Find best spot for initial size
-        best_pos, min_overlap_area = find_best_spot_surrounding(current_scaled_img)
-
-        # Check if rescaling is needed based on overlap ratio
+    for item in surrounding_prepared:
+        log_prefix = f"Item {item['id']} ({os.path.basename(item['path'])})"
+        current_img = item["initial_scaled_img"]
+        best_pos, overlap_area = find_best_spot(current_img)
         needs_rescale = False
+        cb = current_img.getbbox()
+        if cb:
+            w, h = cb[2] - cb[0], cb[3] - cb[1]
+            current_area = max(1.0, float(w * h))
+        else:
+            current_area = float(current_img.size[0] * current_img.size[1])
         if (
-            best_pos is not None and min_overlap_area > 0
-        ):  # Only check if there's overlap
-            content_box = current_scaled_img.getbbox()
-            content_area = 1.0
-            if content_box:
-                content_w = content_box[2] - content_box[0]
-                content_h = content_box[3] - content_box[1]
-                content_area = max(1.0, float(content_w * content_h))
-            else:
-                img_w_curr, img_h_curr = current_scaled_img.size
-                content_area = max(1.0, float(img_w_curr * img_h_curr))
-
-            overlap_ratio = min_overlap_area / content_area
-            if overlap_ratio > max_overlap_ratio_trigger:
-                needs_rescale = True
-                print(
-                    f"    {log_prefix}: Initial overlap ratio {overlap_ratio:.2f} > {max_overlap_ratio_trigger:.2f}. Attempting rescale."
-                )
-
-        # Rescaling Logic
+            best_pos is not None
+            and (overlap_area / current_area) > max_overlap_ratio_trigger
+        ):
+            needs_rescale = True
+            print(
+                f"    {log_prefix}: Overlap ratio {(overlap_area / current_area):.2f} exceeds threshold. Rescaling."
+            )
         if needs_rescale:
-            best_pos_after_rescale = best_pos  # Start with the initial best pos
-            min_overlap_after_rescale = min_overlap_area  # Start with initial overlap
-            final_image_to_place = current_scaled_img  # Start with initial image
-
+            best_pos_rescaled, best_overlap_rescaled = best_pos, overlap_area
+            final_img = current_img
             for attempt in range(rescale_attempts):
-                new_scale = current_scale * (rescale_factor ** (attempt + 1))
+                new_scale = item["initial_scale"] * (rescale_factor ** (attempt + 1))
                 if new_scale < min_absolute_scale:
                     print(
-                        f"      Rescale attempt {attempt+1}: Scale {new_scale:.3f} below minimum {min_absolute_scale:.3f}. Stopping."
+                        f"      Rescale {attempt+1}: Scale {new_scale:.3f} below minimum. Stopping."
                     )
                     break
                 try:
-                    # Resize from ORIGINAL image
-                    new_w = max(min_pixel_dim, int(original_img.width * new_scale))
-                    new_h = max(min_pixel_dim, int(original_img.height * new_scale))
-                    if original_img.width > 0 and original_img.height > 0:
-                        if original_img.width > original_img.height:
-                            new_h = max(
-                                min_pixel_dim,
-                                int(new_w * original_img.height / original_img.width),
-                            )
-                        else:
-                            new_w = max(
-                                min_pixel_dim,
-                                int(new_h * original_img.width / original_img.height),
-                            )
-                    rescaled_img = original_img.resize(
+                    new_w = max(
+                        min_pixel_dim, int(item["original_img"].width * new_scale)
+                    )
+                    new_h = max(
+                        min_pixel_dim, int(item["original_img"].height * new_scale)
+                    )
+                    rescaled_img = item["original_img"].resize(
                         (new_w, new_h), Image.Resampling.LANCZOS
                     )
                 except Exception as e:
-                    print(
-                        f"      Rescale attempt {attempt+1}: Resize failed: {e}. Stopping."
-                    )
+                    print(f"      Rescale {attempt+1}: Resize failed: {e}. Stopping.")
                     break
-
-                # Find best spot for the RESCALED image
-                pos_rescaled, overlap_rescaled = find_best_spot_surrounding(
-                    rescaled_img
-                )
-
-                if pos_rescaled is not None:
-                    # Update the overall best position found if this attempt yielded lower overlap
-                    if overlap_rescaled < min_overlap_after_rescale:
-                        min_overlap_after_rescale = overlap_rescaled
-                        best_pos_after_rescale = pos_rescaled
-                        final_image_to_place = (
-                            rescaled_img  # Store this image as potentially the best
-                        )
+                pos, overlap_rescaled = find_best_spot(rescaled_img)
+                if pos is not None and overlap_rescaled < best_overlap_rescaled:
+                    best_overlap_rescaled = overlap_rescaled
+                    best_pos_rescaled = pos
+                    final_img = rescaled_img
+                    cb_rescaled = rescaled_img.getbbox() or (0, 0, new_w, new_h)
+                    area_r = max(
+                        1.0,
+                        float(
+                            (cb_rescaled[2] - cb_rescaled[0])
+                            * (cb_rescaled[3] - cb_rescaled[1])
+                        ),
+                    )
+                    if (overlap_rescaled / area_r) <= max_overlap_ratio_trigger:
                         print(
-                            f"      Rescale attempt {attempt+1}: New best overlap {overlap_rescaled:.1f} at {pos_rescaled} size {rescaled_img.size}"
+                            f"      Rescale {attempt+1}: Acceptable overlap ratio achieved."
                         )
-
-                    # Check if overlap ratio is now acceptable for THIS rescaled size
-                    content_box_r = rescaled_img.getbbox()
-                    area_r = 1.0
-                    if content_box_r:
-                        w_r = content_box_r[2] - content_box_r[0]
-                        h_r = content_box_r[3] - content_box_r[1]
-                        area_r = max(1.0, float(w_r * h_r))
-                    else:
-                        w_r, h_r = rescaled_img.size
-                        area_r = max(1.0, float(w_r * h_r))
-
-                    current_overlap_ratio = overlap_rescaled / area_r
-
-                    if current_overlap_ratio <= max_overlap_ratio_trigger:
-                        print(
-                            f"      Rescale attempt {attempt+1}: Overlap ratio {current_overlap_ratio:.2f} acceptable."
+                        best_pos, current_img, overlap_area = (
+                            best_pos_rescaled,
+                            final_img,
+                            best_overlap_rescaled,
                         )
-                        best_pos = best_pos_after_rescale  # Use the position found for this acceptable size
-                        current_scaled_img = (
-                            final_image_to_place  # Use the image that achieved this
-                        )
-                        min_overlap_area = min_overlap_after_rescale
-                        break  # Exit rescale loop, we found an acceptable size/pos
-                    else:
-                        print(
-                            f"      Rescale attempt {attempt+1}: Overlap ratio {current_overlap_ratio:.2f} still too high."
-                        )
+                        break
                 else:
                     print(
-                        f"      Rescale attempt {attempt+1}: Could not find position for smaller size {rescaled_img.size}."
+                        f"      Rescale {attempt+1}: No better position found. Stopping."
                     )
-
-            else:  # Loop finished without break (acceptable overlap not found)
+                    break
+            else:
                 print(
-                    f"    {log_prefix}: Rescaling finished. Using best position found during attempts (overlap {min_overlap_after_rescale:.1f})."
+                    f"    {log_prefix}: Rescaling finished. Using best found overlap {best_overlap_rescaled:.1f}."
                 )
-                best_pos = best_pos_after_rescale  # Use the best position found overall
-                current_scaled_img = final_image_to_place  # Use the image corresponding to that best position
-                min_overlap_area = min_overlap_after_rescale  # Use the overlap corresponding to that best position
+                best_pos, current_img, overlap_area = (
+                    best_pos_rescaled,
+                    final_img,
+                    best_overlap_rescaled,
+                )
 
-        # Final Placement for surrounding item
         if best_pos is not None:
             px, py = best_pos
             try:
-                placement_canvas.paste(current_scaled_img, (px, py), current_scaled_img)
-                # Store the bounds of the placed content in (x, y, w, h) format
-                final_cb_x1y1x2y2 = current_scaled_img.getbbox()
-                if not final_cb_x1y1x2y2:
-                    final_cb_x1y1x2y2 = (
-                        0,
-                        0,
-                        current_scaled_img.width,
-                        current_scaled_img.height,
-                    )
-                final_cb_x = final_cb_x1y1x2y2[0]
-                final_cb_y = final_cb_x1y1x2y2[1]
-                final_cb_w = max(1, final_cb_x1y1x2y2[2] - final_cb_x)
-                final_cb_h = max(1, final_cb_x1y1x2y2[3] - final_cb_y)
-                final_content_bounds_xywh = (
-                    px + final_cb_x,
-                    py + final_cb_y,
-                    final_cb_w,
-                    final_cb_h,
+                placement_canvas.paste(current_img, (px, py), current_img)
+                final_bbox = current_img.getbbox() or (
+                    0,
+                    0,
+                    current_img.size[0],
+                    current_img.size[1],
                 )
-                placed_item_bounds_xywh.append(final_content_bounds_xywh)
-                size_info = f"(Initial Size {item_data.get('initial_scaled_img', Image.new('RGBA',(0,0))).size})"
-                if (
-                    "initial_scaled_img" in item_data
-                    and current_scaled_img.size != item_data["initial_scaled_img"].size
-                ):
-                    size_info = f"(Rescaled to {current_scaled_img.size})"
+                placed_bounds.append(
+                    (
+                        px + final_bbox[0],
+                        py + final_bbox[1],
+                        max(1, final_bbox[2] - final_bbox[0]),
+                        max(1, final_bbox[3] - final_bbox[1]),
+                    )
+                )
+                size_info = f"(Size {current_img.size})"
+                if current_img.size != item["initial_scaled_img"].size:
+                    size_info = f"(Rescaled to {current_img.size})"
                 print(
-                    f"    Placed {log_prefix} ({os.path.basename(item_path)}) at ({px},{py}) {size_info} overlap {min_overlap_area:.1f}"
+                    f"    Placed {log_prefix} at ({px},{py}) {size_info} with overlap {overlap_area:.1f}"
                 )
             except Exception as e:
                 print(f"    Error pasting {log_prefix} at ({px},{py}): {e}")
         else:
-            print(
-                f"  Warn: Could not find any position for {log_prefix} ({os.path.basename(item_path)}). Skipping."
-            )
+            print(f"  Warn: Could not find position for {log_prefix}. Skipping.")
 
-    # --- Composite placement canvas onto original background ---
-    final_image = Image.alpha_composite(canvas.copy().convert("RGBA"), placement_canvas)
-
+    final_image = Image.alpha_composite(base_canvas, placement_canvas)
     print("Finished centerpiece collage layout.")
     return final_image
