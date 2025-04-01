@@ -28,6 +28,9 @@ env/
 .env/
 .venv/
 .envrc
+bin/
+share/
+pyvenv.cfg
 
 # IDE
 .idea/
