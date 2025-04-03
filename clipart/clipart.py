@@ -1,17 +1,16 @@
 # clipart.py
 import os
 import glob
-import traceback
-from typing import List
+from typing import List, Optional  # Added Optional
 from PIL import Image
-import argparse  # <-- Import argparse
-import logging  # <-- Use logging
+import argparse
+import logging
 
 # Configure logging
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
-log = logging.getLogger(__name__)  # Use a specific logger for this module
+log = logging.getLogger(__name__)
 
 # Import modules using relative imports
 try:
@@ -44,7 +43,7 @@ def grid_mockup(input_dir_base: str, title_override: str = None) -> List[str]:
     Saves results into a 'mocks' subfolder WITHIN each processed input subfolder.
     Returns a list of paths to all generated mockup files across all folders.
     """
-    generated_files_all_folders = []  # Keep track across all folders processed
+    generated_files_all_folders = []
 
     # --- Verify Input Base Directory ---
     if not os.path.isdir(input_dir_base):
@@ -59,9 +58,7 @@ def grid_mockup(input_dir_base: str, title_override: str = None) -> List[str]:
             [
                 f.path
                 for f in os.scandir(input_dir_base)
-                if f.is_dir()
-                and not f.name.startswith(".")
-                and f.name != "mocks"  # Avoid processing existing 'mocks' folders
+                if f.is_dir() and not f.name.startswith(".") and f.name != "mocks"
             ]
         )
     except OSError as e:
@@ -98,9 +95,7 @@ def grid_mockup(input_dir_base: str, title_override: str = None) -> List[str]:
             f"\n{'=' * 15} Processing Folder {index}/{len(subfolders)}: {subfolder_name} {'=' * 15}"
         )
         log.info(f"  Input Path: {input_folder_path}")
-        log.info(
-            f"  Outputting Mocks To: {mocks_output_folder_path}"
-        )  # Changed log message
+        log.info(f"  Outputting Mocks To: {mocks_output_folder_path}")
         log.info(f"  Title: '{title}'")
 
         # Create the 'mocks' output directory for the current subfolder
@@ -110,15 +105,17 @@ def grid_mockup(input_dir_base: str, title_override: str = None) -> List[str]:
             log.error(
                 f"Error creating mocks output directory {mocks_output_folder_path}: {e}. Skipping folder."
             )
-            continue  # Skip this folder
+            continue
 
         # Initialize lists for this specific folder
         output_filenames_current_folder = []
         video_source_filenames = []
 
-        # --- Load Backgrounds ---
+        # --- Load Backgrounds (Crucial for the new title function) ---
+        canvas_bg_main: Optional[Image.Image] = None
+        canvas_bg_2x2: Optional[Image.Image] = None
         try:
-            # (Load canvases as before, using config paths)
+            # Load main background for collage AND title backdrop
             canvas_bg_main = utils.safe_load_image(config.CANVAS_PATH, "RGBA")
             if canvas_bg_main:
                 canvas_bg_main = canvas_bg_main.resize(
@@ -126,12 +123,13 @@ def grid_mockup(input_dir_base: str, title_override: str = None) -> List[str]:
                 )
             else:
                 log.warning(
-                    f"Failed to load main canvas '{config.CANVAS_PATH}'. Generating fallback."
+                    f"Failed to load main canvas '{config.CANVAS_PATH}' required for collage and title. Generating fallback."
                 )
                 canvas_bg_main = utils.generate_background(config.OUTPUT_SIZE).convert(
                     "RGBA"
                 )
 
+            # Load background for 2x2 grid (can be the same source, different size)
             canvas_bg_2x2 = utils.safe_load_image(config.CANVAS_PATH, "RGBA")
             if canvas_bg_2x2:
                 canvas_bg_2x2 = canvas_bg_2x2.resize(
@@ -149,25 +147,29 @@ def grid_mockup(input_dir_base: str, title_override: str = None) -> List[str]:
                 f"Error accessing canvas configuration (config.CANVAS_PATH?): {e}. Using fallbacks.",
                 exc_info=True,
             )
-            canvas_bg_main = utils.generate_background(config.OUTPUT_SIZE).convert(
-                "RGBA"
-            )
-            canvas_bg_2x2 = utils.generate_background(config.GRID_2x2_SIZE).convert(
-                "RGBA"
-            )
+            if not canvas_bg_main:
+                canvas_bg_main = utils.generate_background(config.OUTPUT_SIZE).convert(
+                    "RGBA"
+                )
+            if not canvas_bg_2x2:
+                canvas_bg_2x2 = utils.generate_background(config.GRID_2x2_SIZE).convert(
+                    "RGBA"
+                )
         except Exception as e:
             log.error(
                 f"Unexpected error loading/resizing canvases: {e}. Using fallbacks.",
                 exc_info=True,
             )
-            canvas_bg_main = utils.generate_background(config.OUTPUT_SIZE).convert(
-                "RGBA"
-            )
-            canvas_bg_2x2 = utils.generate_background(config.GRID_2x2_SIZE).convert(
-                "RGBA"
-            )
+            if not canvas_bg_main:
+                canvas_bg_main = utils.generate_background(config.OUTPUT_SIZE).convert(
+                    "RGBA"
+                )
+            if not canvas_bg_2x2:
+                canvas_bg_2x2 = utils.generate_background(config.GRID_2x2_SIZE).convert(
+                    "RGBA"
+                )
 
-        # --- Find Input Images (PNGs directly within input_folder_path) ---
+        # --- Find Input Images ---
         try:
             input_image_paths = sorted(
                 glob.glob(os.path.join(input_folder_path, "*.png"))
@@ -182,7 +184,7 @@ def grid_mockup(input_dir_base: str, title_override: str = None) -> List[str]:
         num_images = len(input_image_paths)
         if not input_image_paths:
             log.warning(
-                f"No PNG images found in {input_folder_path} (excluding 'mocks' folder). Skipping mockup generation for this folder."
+                f"No PNG images found in {input_folder_path}. Skipping mockup generation."
             )
             continue
         log.info(f"Found {num_images} PNG images for mockup generation.")
@@ -192,81 +194,73 @@ def grid_mockup(input_dir_base: str, title_override: str = None) -> List[str]:
             log.info("--- Generating Main Mockup ---")
             subtitle_bottom_text = f"{num_images} clip arts • 300 DPI • Transparent PNG"
 
-            centerpiece_for_analysis = None
-            use_dynamic_colors = getattr(config, "USE_DYNAMIC_TITLE_COLORS", False)
-            if use_dynamic_colors and getattr(
-                image_processing, "SKLEARN_AVAILABLE", False
-            ):
-                log.info("Attempting dynamic color analysis...")
-                centerpiece_for_analysis = image_processing.select_centerpiece_image(
-                    input_image_paths
-                )
-                if not centerpiece_for_analysis:
-                    log.warning("Could not select centerpiece.")
-            elif use_dynamic_colors:
-                log.info("scikit-learn unavailable for dynamic colors.")
+            # Get title style arguments (font, padding, etc.) - color args will be ignored by the new function
+            title_style_args = getattr(config, "TITLE_STYLE_ARGS", {})
 
+            # --- Calculate title bounds using the NEW function signature ---
             log.info("Calculating title bounds...")
             dummy_layer = Image.new("RGBA", config.OUTPUT_SIZE, (0, 0, 0, 0))
-            title_style_args = getattr(config, "TITLE_STYLE_ARGS", {})
             _, title_backdrop_bounds = image_processing.add_title_bar_and_text(
                 image=dummy_layer,
+                background_image=canvas_bg_main,  # *** NEW: Pass background image ***
                 title=title,
                 subtitle_top=getattr(config, "SUBTITLE_TEXT_TOP", ""),
                 subtitle_bottom=subtitle_bottom_text,
-                image_for_color_analysis=centerpiece_for_analysis,
-                use_dynamic_colors=use_dynamic_colors,
-                **title_style_args,
+                # image_for_color_analysis=centerpiece_for_analysis, # Removed
+                # use_dynamic_colors=False, # Removed
+                **title_style_args,  # Pass remaining style args (font, padding etc)
             )
             if not title_backdrop_bounds:
-                log.warning("Title bounds calculation failed.")
+                log.warning(
+                    "Title bounds calculation failed. Collage placement might be affected."
+                )
 
+            # --- Create the title layer using the NEW function signature ---
             log.info("Creating title layer...")
             title_layer_canvas = Image.new("RGBA", config.OUTPUT_SIZE, (0, 0, 0, 0))
             image_with_title_block_only, _ = image_processing.add_title_bar_and_text(
                 image=title_layer_canvas,
+                background_image=canvas_bg_main,  # *** NEW: Pass background image ***
                 title=title,
                 subtitle_top=getattr(config, "SUBTITLE_TEXT_TOP", ""),
                 subtitle_bottom=subtitle_bottom_text,
-                image_for_color_analysis=centerpiece_for_analysis,
-                use_dynamic_colors=use_dynamic_colors,
+                # image_for_color_analysis=centerpiece_for_analysis, # Removed
+                # use_dynamic_colors=False, # Removed
                 **title_style_args,
             )
             if not image_with_title_block_only:
-                log.warning("Failed to generate title block layer.")
+                log.warning("Failed to generate title block layer. Using blank layer.")
                 image_with_title_block_only = Image.new(
                     "RGBA", config.OUTPUT_SIZE, (0, 0, 0, 0)
                 )
 
-            # --- SAVE PATH MODIFIED ---
+            # --- Create Collage Layout (Needs title bounds for avoidance) ---
             output_main_filename = os.path.join(
                 mocks_output_folder_path, "01_main_collage_layout.png"
             )
-
             log.info("Creating collage layout...")
             collage_style_args = getattr(config, "COLLAGE_STYLE_ARGS", {})
             layout_with_images = image_processing.create_collage_layout(
                 image_paths=input_image_paths,
-                canvas=(
-                    canvas_bg_main.copy()
-                    if canvas_bg_main
-                    else Image.new("RGBA", config.OUTPUT_SIZE)
-                ),
-                title_backdrop_bounds=title_backdrop_bounds,
+                canvas=canvas_bg_main.copy(),  # Use the loaded main background
+                title_backdrop_bounds=title_backdrop_bounds,  # Pass calculated bounds
                 **collage_style_args,
             )
 
+            # --- Composite Title onto Collage ---
             log.info("Compositing title block...")
+            # Ensure both layers are RGBA for alpha_composite
             final_main_mockup = Image.alpha_composite(
                 layout_with_images.convert("RGBA"),
                 image_with_title_block_only.convert("RGBA"),
             )
 
+            # --- Save Main Mockup ---
             try:
                 final_main_mockup.save(output_main_filename, "PNG")
                 log.info(
                     f"Saved: {os.path.relpath(output_main_filename, input_dir_base)}"
-                )  # Show relative path
+                )
                 output_filenames_current_folder.append(output_main_filename)
             except Exception as e:
                 log.error(
@@ -281,6 +275,7 @@ def grid_mockup(input_dir_base: str, title_override: str = None) -> List[str]:
             )
 
         # --- 2. 2x2 Grid Mockups ---
+        # (No changes needed here as it doesn't use the modified title function)
         try:
             log.info("--- Generating 2x2 Grid Mockups ---")
             if canvas_bg_2x2:
@@ -303,7 +298,6 @@ def grid_mockup(input_dir_base: str, title_override: str = None) -> List[str]:
                         mockup_2x2
                     )
 
-                    # --- SAVE PATH MODIFIED ---
                     output_filename = os.path.join(
                         mocks_output_folder_path,
                         f"{grid_count + 1:02d}_grid_mockup.png",
@@ -321,7 +315,9 @@ def grid_mockup(input_dir_base: str, title_override: str = None) -> List[str]:
                             exc_info=True,
                         )
             else:
-                log.warning("Skipping 2x2 grids: Background canvas unavailable.")
+                log.warning(
+                    "Skipping 2x2 grids: Background canvas for grids unavailable."
+                )
         except Exception as e:
             log.error(
                 f"Error during 2x2 grid generation for {subfolder_name}: {e}",
@@ -329,6 +325,7 @@ def grid_mockup(input_dir_base: str, title_override: str = None) -> List[str]:
             )
 
         # --- 3. Transparency Demo ---
+        # (No changes needed here)
         try:
             log.info("--- Generating Transparency Demo ---")
             if input_image_paths:
@@ -336,7 +333,6 @@ def grid_mockup(input_dir_base: str, title_override: str = None) -> List[str]:
                 log.info(f"Using image: {os.path.basename(first_image_path)}")
                 trans_demo = image_processing.create_transparency_demo(first_image_path)
                 if trans_demo:
-                    # --- SAVE PATH MODIFIED ---
                     output_trans_demo = os.path.join(
                         mocks_output_folder_path,
                         f"{len(output_filenames_current_folder) + 1:02d}_transparency_demo.png",
@@ -357,9 +353,7 @@ def grid_mockup(input_dir_base: str, title_override: str = None) -> List[str]:
                         f"Failed to create transparency demo for {first_image_path}."
                     )
             else:
-                log.warning(
-                    "Skipping transparency demo: No input images found in this folder."
-                )
+                log.warning("Skipping transparency demo: No input images found.")
         except Exception as e:
             log.error(
                 f"Error during transparency demo generation for {subfolder_name}: {e}",
@@ -367,6 +361,7 @@ def grid_mockup(input_dir_base: str, title_override: str = None) -> List[str]:
             )
 
         # --- 4. Video Generation ---
+        # (No changes needed here)
         try:
             log.info("--- Generating Video Mockup ---")
             create_video_flag = getattr(config, "CREATE_VIDEO", False)
@@ -374,7 +369,6 @@ def grid_mockup(input_dir_base: str, title_override: str = None) -> List[str]:
                 log.info(
                     f"Using {len(video_source_filenames)} source frames for video."
                 )
-                # --- SAVE PATH MODIFIED ---
                 video_path = os.path.join(
                     mocks_output_folder_path,
                     f"{len(output_filenames_current_folder) + 1:02d}_mockup_video.mp4",
@@ -419,12 +413,12 @@ def grid_mockup(input_dir_base: str, title_override: str = None) -> List[str]:
     log.info(f"\n--- Mockup Generation Complete for all folders ---")
     log.info(f"Processed {len(subfolders)} subfolder(s) from '{input_dir_base}'.")
     log.info(f"Outputs saved into 'mocks' subdirectories within each processed folder.")
-    return generated_files_all_folders  # Return all generated files
+    return generated_files_all_folders
 
 
 def clean_identifier_files(input_dir: str) -> None:
     """Removes common identifier and system files from the specified directory and subdirectories."""
-    # (Keep this function as is - it operates on the input directory)
+    # (No changes needed here)
     files_removed = 0
     files_to_remove = {".DS_Store", "Thumbs.db", "desktop.ini"}
     extensions_to_remove = (".Identifier", ".identifier")
@@ -432,11 +426,9 @@ def clean_identifier_files(input_dir: str) -> None:
     log.debug(f"Scanning for system files in {input_dir}...")
     try:
         for root, dirs, files in os.walk(input_dir):
-            # Prevent descending into 'mocks' or 'zipped' folders during cleanup
             dirs[:] = [
                 d for d in dirs if d not in {"mocks", "zipped", "temp_zip_creation"}
             ]
-
             for file in files:
                 remove_file = False
                 if file in files_to_remove:
@@ -446,7 +438,6 @@ def clean_identifier_files(input_dir: str) -> None:
                         if file.endswith(ext):
                             remove_file = True
                             break
-
                 if remove_file:
                     file_path = os.path.join(root, file)
                     try:
@@ -466,9 +457,9 @@ def clean_identifier_files(input_dir: str) -> None:
         log.info(f"No identifier/system files found to remove in {input_dir}.")
 
 
-# --- Main execution block (for running via -m or directly) ---
+# --- Main execution block ---
 if __name__ == "__main__":
-    # --- Setup Argument Parser (Removed --output_dir) ---
+    # (No changes needed here)
     parser = argparse.ArgumentParser(
         description="Generate mockups into 'mocks' subfolder within each input subfolder."
     )
@@ -477,18 +468,14 @@ if __name__ == "__main__":
         required=True,
         help="Path to the base directory containing subfolders of images (e.g., 'input'). Mockups will be saved inside these subfolders.",
     )
-    # Removed --output_dir argument
     parser.add_argument(
         "--title",
         default=None,
         help="Optional override title for all generated mockups.",
     )
-
     cli_args = parser.parse_args()
 
-    log.info(
-        f"Starting mockup generation process (clipart.py invoked with -m or directly)..."
-    )
+    log.info(f"Starting mockup generation process (clipart.py invoked)...")
     log.info(f"Input base directory: {cli_args.input_dir}")
     log.info(
         "Mockups will be saved into a 'mocks' subfolder within each processed input subfolder."
@@ -496,11 +483,9 @@ if __name__ == "__main__":
     if cli_args.title:
         log.info(f"Using override title: {cli_args.title}")
 
-    # Check if input directory exists before cleaning/processing
     if not os.path.isdir(cli_args.input_dir):
         log.critical(f"Input directory '{cli_args.input_dir}' not found. Exiting.")
     else:
-        # Cleanup identifier/system files if configured
         delete_identifiers = getattr(config, "DELETE_IDENTIFIERS_ON_START", False)
         if delete_identifiers:
             log.info(f"Cleaning identifier/system files in '{cli_args.input_dir}'...")
@@ -508,11 +493,9 @@ if __name__ == "__main__":
         else:
             log.info("Skipping system file cleanup as configured.")
 
-        # Run the main generation function (only needs input_dir now)
         try:
             grid_mockup(
                 input_dir_base=cli_args.input_dir,
-                # output_dir_base argument removed
                 title_override=cli_args.title,
             )
         except Exception as e:

@@ -31,11 +31,7 @@ SUBTITLE_FONT_SIZE = 70
 SUBTITLE_TEXT_COLOR: Tuple[int, int, int, int] = (80, 80, 80, 255)
 SUBTITLE_SPACING: int = 25
 
-TITLE_BAR_COLOR: Tuple[int, int, int, int] = (255, 255, 255, 255)
-TITLE_BAR_GRADIENT: Optional[
-    Tuple[Tuple[int, int, int, int], Tuple[int, int, int, int]]
-] = ((245, 245, 245, 255), (255, 255, 255, 255))
-TITLE_BAR_OPACITY: int = 235
+
 TITLE_TEXT_COLOR: Tuple[int, int, int, int] = (50, 50, 50, 255)
 TITLE_PADDING_X: int = 80
 TITLE_PADDING_Y: int = 40
@@ -49,10 +45,9 @@ TITLE_MAX_LINES: int = 3
 TITLE_BACKDROP_PADDING_X: int = 60
 TITLE_BACKDROP_PADDING_Y: int = 30
 TITLE_BACKDROP_CORNER_RADIUS: int = 40
-TITLE_BACKDROP_SHADOW_ENABLE: bool = True
-TITLE_BACKDROP_SHADOW_OFFSET: Tuple[int, int] = (15, 15)
-TITLE_BACKDROP_SHADOW_COLOR: Tuple[int, int, int, int] = (0, 0, 0, 255)
-TITLE_BACKDROP_SHADOW_OPACITY: int = 255
+TITLE_BACKDROP_OPACITY: int = 255
+TITLE_BACKDROP_BORDER_WIDTH: int = 5
+TITLE_BACKDROP_BORDER_COLOR: Tuple[int, int, int, int] = (218, 165, 32, 255)
 
 # Background Color
 DEFAULT_BG_COLOR: Tuple[int, int, int] = (248, 248, 248)

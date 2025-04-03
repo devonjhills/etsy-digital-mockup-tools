@@ -1,4 +1,4 @@
-# clipart_resize.py (Corrected Numerical Sorting)
+# clipart_resize.py (Corrected Numerical Sorting & Flexible Naming)
 import os
 import sys
 import re  # Import regex for number extraction
@@ -56,7 +56,8 @@ def process_images(input_folder_path, max_size):
     """
     Processes images within subfolders of input_folder_path.
     Converts to PNG, trims, resizes if needed, sets DPI, and renames files
-    to 'safesubfoldername_sequentialindex.png' based on NUMERICAL order.
+    to 'safesubfoldername_sequentialindex.png' based on NUMERICAL order
+    extracted from original filenames (accepts 'name_N.ext' or 'name (N).ext').
 
     Skipping: If ALL image files in a subfolder ALREADY have the correct
     target name format AND the sequence is complete (1 to N), that
@@ -107,25 +108,42 @@ def process_images(input_folder_path, max_size):
 
         # --- Parse filenames and sort NUMERICALLY ---
         parsed_files = []  # List of tuples: (numeric_index, original_filename)
-        # Regex to find the number before the extension, anchored by underscore
-        # Handles names like name_1.png, name_01.png, name_long_12.png
-        name_pattern = re.compile(r"(.+)_(\d+)\.(png|jpg|jpeg)$", re.IGNORECASE)
+
+        # Regex to find the number before the extension. Handles:
+        # 1. name_1.png, name_01.png, name_long_12.png (number in group 2)
+        # 2. name (1).png, name (01).png, name long (12).png (number in group 4)
+        # Uses non-capturing groups (?:...) and OR |
+        name_pattern = re.compile(
+            r"^(?:(.+)_(\d+)|(.+)\s\((\d+)\))\.(png|jpg|jpeg)$", re.IGNORECASE
+        )
 
         for filename in image_files_found:
             match = name_pattern.match(filename)
+            number = None
             if match:
                 try:
-                    # Extract base name (unused here but could be useful) and number
-                    # base_name = match.group(1)
-                    number = int(match.group(2))
-                    parsed_files.append((number, filename))
+                    # Check which capturing group matched the number
+                    if match.group(2):  # Matched name_N.ext
+                        number = int(match.group(2))
+                    elif match.group(4):  # Matched name (N).ext
+                        number = int(match.group(4))
+
+                    if number is not None:
+                        parsed_files.append((number, filename))
+                        log.debug(f"Parsed '{filename}', extracted number: {number}")
+                    else:
+                        # This case should technically not happen if match succeeded
+                        log.warning(
+                            f"Could not extract number from matched filename '{filename}'. Skipping file."
+                        )
+
                 except (ValueError, IndexError):
                     log.warning(
-                        f"Could not parse number from filename '{filename}'. Skipping file."
+                        f"Error converting extracted number to int for '{filename}'. Skipping file."
                     )
             else:
                 log.warning(
-                    f"Filename '{filename}' does not match expected 'name_number.ext' format. Skipping file."
+                    f"Filename '{filename}' does not match expected 'name_N.ext' or 'name (N).ext' format. Skipping file."
                 )
 
         if not parsed_files:
@@ -141,28 +159,34 @@ def process_images(input_folder_path, max_size):
         # --- Simplified Skip Logic: Check if ALL files match the target sequential name ---
         all_files_correctly_named_and_sequential = True
         expected_count = len(parsed_files)
-        for i, (original_number, original_filename) in enumerate(parsed_files, start=1):
-            expected_target_name = f"{safe_subfolder_name}_{i}.png"
-            # Check 1: Does the filename already match the expected sequential name?
-            # Check 2: Does the original number match the expected sequence number? (Optional but good sanity check)
-            if original_filename != expected_target_name:  # or original_number != i:
-                log.info(
-                    f"File '{original_filename}' (parsed number {original_number}) needs processing. Expected name based on sequence: '{expected_target_name}'."
-                )
-                all_files_correctly_named_and_sequential = False
-                break  # No need to check further
+        # Check existing PNG files for correct naming and sequence
+        current_png_files = {f for f in all_files if f.lower().endswith(".png")}
+        expected_target_files = {
+            f"{safe_subfolder_name}_{i}.png" for i in range(1, expected_count + 1)
+        }
 
-        # --- Skip entire folder OR proceed to process files ---
-        if all_files_correctly_named_and_sequential:
+        if current_png_files == expected_target_files:
             log.info(
-                f"Skipping subfolder '{subfolder_name}': All {expected_count} files already correctly named and sequential."
+                f"Skipping subfolder '{subfolder_name}': All {expected_count} files already correctly named ({safe_subfolder_name}_1.png to {safe_subfolder_name}_{expected_count}.png)."
             )
             total_skipped_folders += 1
             continue
         else:
+            # Log mismatch details only if not skipping
             log.info(
-                f"Processing files within subfolder: {subfolder_name} (Renaming based on numerical order)"
+                f"Processing required for subfolder: {subfolder_name} (Renaming based on numerical order of parsed files)"
             )
+            # Detailed check for logging/debugging (optional)
+            for i, (original_number, original_filename) in enumerate(
+                parsed_files, start=1
+            ):
+                expected_target_name = f"{safe_subfolder_name}_{i}.png"
+                if original_filename != expected_target_name:
+                    log.debug(
+                        f"  File '{original_filename}' (parsed num {original_number}) needs processing/renaming to '{expected_target_name}'."
+                    )
+                    break  # Only need one mismatch example
+
             files_processed_this_folder = 0
             files_deleted_this_folder = 0
             errors_this_folder = 0
@@ -185,10 +209,25 @@ def process_images(input_folder_path, max_size):
                         errors_this_folder += 1
                         continue
 
+                    # Avoid processing the same file twice if original = target
+                    # This can happen if e.g. woodland_animals_1.png exists but
+                    # woodland_animals_2.png doesn't, and we parsed number 1 from it.
+                    if os.path.abspath(original_path) == os.path.abspath(target_path):
+                        log.debug(
+                            f"  Skipping '{original_filename}': Original path matches target path."
+                        )
+                        # Check if it needs resize/trim/dpi anyway (optional, add logic here if needed)
+                        # For now, just assume if name matches, it's okay.
+                        # If you wanted to force reprocessing even if name matches, remove this check.
+                        files_processed_this_folder += (
+                            1  # Count it as 'processed' conceptually
+                        )
+                        continue
+
                     with Image.open(original_path) as img:
                         img = img.convert("RGBA")
                         img_trimmed = trim(img)
-                        img = img_trimmed
+                        img = img_trimmed  # Keep the trimmed version
 
                         if img is None or img.size == (0, 0):
                             log.warning(
@@ -221,10 +260,18 @@ def process_images(input_folder_path, max_size):
                         # Save BEFORE removing original, especially if overwriting target==original
                         img.save(target_path, format="PNG", dpi=(300, 300))
 
-                        # Remove the original file ONLY if the path has changed
-                        if target_path != original_path:
+                        # Remove the original file ONLY if the path has changed (name or extension)
+                        if os.path.abspath(target_path) != os.path.abspath(
+                            original_path
+                        ):
                             if try_remove(original_path):
                                 files_deleted_this_folder += 1
+                            else:
+                                log.warning(
+                                    f"  Failed to remove original file: {original_path}"
+                                )
+                                # Decide if this constitutes an "error" for the summary count
+                                # errors_this_folder += 1
 
                         files_processed_this_folder += 1
 
@@ -237,7 +284,7 @@ def process_images(input_folder_path, max_size):
             # --- End loop through sorted files ---
 
             log.info(
-                f"  Finished processing {subfolder_name}: Processed={files_processed_this_folder}, Deleted originals={files_deleted_this_folder}, Errors={errors_this_folder}"
+                f"  Finished processing {subfolder_name}: Processed/Saved={files_processed_this_folder}, Deleted originals={files_deleted_this_folder}, Errors={errors_this_folder}"
             )
             total_processed_count += files_processed_this_folder
             total_deleted_original_count += files_deleted_this_folder
@@ -249,7 +296,7 @@ def process_images(input_folder_path, max_size):
     log.info(f"  Subfolders skipped (already correct): {total_skipped_folders}")
     log.info(f"  Total files processed (opened/saved): {total_processed_count}")
     log.info(
-        f"  Total original files deleted (due to rename): {total_deleted_original_count}"
+        f"  Total original files deleted (due to rename/conversion): {total_deleted_original_count}"
     )
     log.info(f"  Total errors encountered: {total_error_count}")
 
@@ -257,7 +304,7 @@ def process_images(input_folder_path, max_size):
 # --- Main execution block ---
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Resize, trim, convert images to PNG format with standard sequential naming based on numerical sort."
+        description="Resize, trim, convert images to PNG format with standard sequential naming based on numerical sort from original filenames (accepts 'name_N.ext' or 'name (N).ext')."
     )
     parser.add_argument(
         "--input_folder",
@@ -272,4 +319,6 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    process_images(args.input_folder, args.max_size)
+    # Get absolute path for input folder for clarity in logs
+    absolute_input_folder = os.path.abspath(args.input_folder)
+    process_images(absolute_input_folder, args.max_size)
