@@ -18,7 +18,7 @@ AVAILABLE_FONTS: Dict[str, str] = {
     "Poppins": os.path.join(FONTS_DIR, "Poppins-SemiBold.ttf"),
 }
 DEFAULT_TITLE_FONT = "Angelina"
-DEFAULT_SUBTITLE_FONT = "Poppins"
+DEFAULT_SUBTITLE_FONT = "MarkerFelt"
 
 # === Dimensions & Appearance ===
 OUTPUT_SIZE: Tuple[int, int] = (3000, 2250)
@@ -35,7 +35,7 @@ SUBTITLE_SPACING: int = 25
 TITLE_TEXT_COLOR: Tuple[int, int, int, int] = (50, 50, 50, 255)
 TITLE_PADDING_X: int = 80
 TITLE_PADDING_Y: int = 40
-TITLE_MAX_FONT_SIZE: int = 200
+TITLE_MAX_FONT_SIZE: int = 170
 TITLE_MIN_FONT_SIZE: int = 40
 TITLE_LINE_SPACING: int = 15
 TITLE_FONT_STEP: int = 5
@@ -82,7 +82,7 @@ WATERMARK_TEXT_FONT_NAME: str = "Clattering"
 WATERMARK_TEXT_FONT_SIZE: int = 50
 WATERMARK_TEXT_COLOR: Tuple[int, int, int] = (150, 150, 150)
 WATERMARK_TEXT_ANGLE: float = 45.0
-WATERMARK_TEXT_SPACING_FACTOR: float = 1.5
+WATERMARK_TEXT_SPACING_FACTOR: float = 2.5
 
 # === Video Settings ===
 CREATE_VIDEO: bool = True
@@ -98,3 +98,42 @@ DYNAMIC_TITLE_COLOR_CLUSTERS = 5
 
 # === Main Execution Settings ===
 DELETE_IDENTIFIERS_ON_START: bool = True
+
+# === Title Style Arguments ===
+# These arguments are passed to the add_title_bar_and_text function
+# Include both parameter names to support both implementations
+TITLE_STYLE_ARGS = {
+    # Font names
+    "font_name": "Angelina",  # For image_processing.py
+    "title_font_name": "Angelina",  # For processing/title.py
+    "subtitle_font_name": "MarkerFelt",
+    # Font sizes
+    "max_font_size": TITLE_MAX_FONT_SIZE,  # For image_processing.py
+    "title_max_font_size": TITLE_MAX_FONT_SIZE,  # For processing/title.py
+    "min_font_size": TITLE_MIN_FONT_SIZE,  # For image_processing.py
+    "title_min_font_size": TITLE_MIN_FONT_SIZE,  # For processing/title.py
+    # Line spacing and steps
+    "line_spacing": TITLE_LINE_SPACING,  # For image_processing.py
+    "title_line_spacing": TITLE_LINE_SPACING,  # For processing/title.py
+    "font_step": TITLE_FONT_STEP,  # For image_processing.py
+    "title_font_step": TITLE_FONT_STEP,  # For processing/title.py
+    "max_lines": TITLE_MAX_LINES,  # For image_processing.py
+    "title_max_lines": TITLE_MAX_LINES,  # For processing/title.py
+    # Padding
+    "padding_x": TITLE_PADDING_X,  # For image_processing.py
+    "title_padding_x": TITLE_PADDING_X,  # For processing/title.py
+    "title_padding_y": TITLE_PADDING_Y,  # For processing/title.py
+    # Subtitle settings
+    "subtitle_spacing": SUBTITLE_SPACING,
+    "subtitle_font_size": SUBTITLE_FONT_SIZE,
+    # Colors
+    "text_color": TITLE_TEXT_COLOR,
+    "subtitle_text_color": SUBTITLE_TEXT_COLOR,
+    # Backdrop settings
+    "backdrop_padding_x": TITLE_BACKDROP_PADDING_X,
+    "backdrop_padding_y": TITLE_BACKDROP_PADDING_Y,
+    "backdrop_corner_radius": TITLE_BACKDROP_CORNER_RADIUS,
+    "backdrop_opacity": TITLE_BACKDROP_OPACITY,
+    "border_width": TITLE_BACKDROP_BORDER_WIDTH,
+    "border_color": TITLE_BACKDROP_BORDER_COLOR,
+}

@@ -1,0 +1,3 @@
+product_type,name,folder_path,title,description,price,quantity,tags,materials,shipping_profile_id,taxonomy_id,who_made,is_supply,when_made,is_digital,is_personalizable,personalization_instructions
+pattern,Sample Pattern,input/sample_pattern,,,4.99,999,seamless pattern,digital paper,background,scrapbooking,commercial use,digital file,digital download,digital pattern,digital paper,,2427,i_did,true,made_to_order,true,false,
+clipart,Sample Clipart,input/sample_clipart,,,4.99,999,digital clipart,clip art,transparent png,commercial use,digital download,digital file,digital download,digital clipart,transparent png,,2428,i_did,true,made_to_order,true,false,

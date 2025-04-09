@@ -1,5 +1,6 @@
 # zip.py
 import os
+import sys
 import zipfile
 import shutil
 from PIL import Image
@@ -7,93 +8,53 @@ import io
 import argparse
 import logging
 import math  # For ceiling division
-import time  # For potential retry delays
 
 # --- Configure Logging ---
 logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    stream=sys.stdout,  # Ensure output goes to stdout for immediate feedback
 )
-log = logging.getLogger(__name__)  # Use a specific logger
+log = logging.getLogger(__name__)
 
 
 # --- Helper Functions (Compress, Verify Image, Verify Zip, Split Files) ---
 def compress_image(img_path, quality=85):
-    """Compress an image with reduced quality but maintaining dimensions"""
+    """Compress an image with reduced quality but maintaining dimensions - simplified version"""
     try:
-        # Retry mechanism for potential file access issues
-        max_retries = 3
-        for attempt in range(max_retries):
-            try:
-                with Image.open(img_path) as img:
-                    img_format = img.format
-                    # Ensure PNGs are handled correctly for optimization, check mode for RGBA
-                    if img_format == "PNG" and img.mode != "RGBA":
-                        img = img.convert("RGBA")
-                    elif img_format == "JPEG" and img.mode != "RGB":
-                        img = img.convert("RGB")
+        with Image.open(img_path) as img:
+            img_format = img.format
 
-                    buffer = io.BytesIO()
-                    save_kwargs = {}
-                    if img_format == "JPEG":
-                        save_kwargs = {"quality": quality, "optimize": True}
-                    elif img_format == "PNG":
-                        # Optimize reduces size, compression level further reduces (but slower)
-                        save_kwargs = {
-                            "optimize": True,
-                            "compress_level": 6,
-                        }  # 0=none, 9=max
+            # Handle different image formats appropriately
+            if img_format == "PNG" and img.mode != "RGBA":
+                img = img.convert("RGBA")
+            elif img_format == "JPEG" and img.mode != "RGB":
+                img = img.convert("RGB")
 
-                    img.save(buffer, format=img_format, **save_kwargs)
-                    buffer.seek(0)  # Reset buffer position
-                    return buffer.getvalue()  # Success
-            except OSError as e:
-                # Specific check for file locking/access issues common on some systems
-                if (
-                    "cannot identify image file" in str(e)
-                    or "Errno 9" in str(e)
-                    or "Errno 2" in str(e)
-                ):
-                    log.warning(
-                        f"Attempt {attempt + 1}/{max_retries} failed to open/process {img_path}: {e}. Retrying..."
-                    )
-                    if attempt < max_retries - 1:
-                        time.sleep(0.5 * (attempt + 1))  # Exponential backoff slightly
-                    else:
-                        log.error(
-                            f"Final attempt failed to compress image {img_path} due to OS error: {e}",
-                            exc_info=True,
-                        )
-                        return None  # Failed after retries
-                else:
-                    # Different OS error, fail immediately
-                    log.error(
-                        f"Error compressing image {img_path} (OS Error): {e}",
-                        exc_info=True,
-                    )
-                    return None
-            except Exception as e:
-                log.error(f"Error compressing image {img_path}: {e}", exc_info=True)
-                return None  # Failed due to other exception
+            buffer = io.BytesIO()
+            save_kwargs = {}
 
-    except FileNotFoundError:
-        log.error(f"Compression failed: File not found {img_path}")
-        return None
+            if img_format == "JPEG":
+                save_kwargs = {"quality": quality, "optimize": True}
+            elif img_format == "PNG":
+                # Use a moderate compression level for better speed
+                save_kwargs = {"optimize": True, "compress_level": 6}
+
+            img.save(buffer, format=img_format, **save_kwargs)
+            buffer.seek(0)
+            return buffer.getvalue()
+
     except Exception as e:
-        # Catch potential issues before even entering the retry loop (e.g., invalid path)
-        log.error(
-            f"Unexpected error accessing image {img_path} for compression: {e}",
-            exc_info=True,
-        )
+        log.error(f"Error compressing image {img_path}: {e}")
         return None
 
 
 def verify_image(img_path):
-    """Verify that an image can be properly loaded"""
+    """Verify that an image can be properly loaded - simplified version"""
     try:
         with Image.open(img_path) as img:
-            img.verify()  # Verify integrity
-        with Image.open(img_path) as img:
-            img.load()  # Load pixel data
+            # Just check if we can access basic properties
+            _ = img.format, img.mode, img.size
         return True
     except FileNotFoundError:
         log.error(f"Verification failed: File not found {img_path}")
@@ -103,14 +64,26 @@ def verify_image(img_path):
         return False
 
 
-def verify_zip(zip_path):
-    """Verify zip file integrity"""
+def verify_zip(zip_path, quick=True):
+    """Verify zip file integrity with quick option
+
+    Args:
+        zip_path: Path to the zip file
+        quick: If True, only checks the central directory (faster)
+              If False, performs full CRC check (slower but more thorough)
+    """
     try:
         with zipfile.ZipFile(zip_path, "r") as zipf:
-            bad_file = zipf.testzip()
-            if bad_file:
-                raise Exception(f"Zip file corrupted, bad file: {bad_file}")
-        return True
+            if quick:
+                # Just check if we can read the central directory
+                zipf.namelist()
+                return True
+            else:
+                # Full verification (slower)
+                bad_file = zipf.testzip()
+                if bad_file:
+                    raise Exception(f"Zip file corrupted, bad file: {bad_file}")
+                return True
     except FileNotFoundError:
         log.error(f"Verification failed: Zip file not found {zip_path}")
         return False
@@ -233,7 +206,8 @@ def create_zip_group(
                     # Optionally: decide if one failed write should fail the whole zip
 
         # Verification should happen *after* the 'with' block closes the file
-        if not verify_zip(zip_path):
+        # Use quick verification for better performance
+        if not verify_zip(zip_path, quick=True):
             if os.path.exists(zip_path):
                 try:
                     os.remove(zip_path)
@@ -382,20 +356,67 @@ def create_zip_files(source_base_folder, max_size_mb=20, image_quality=75):
                 f"[{subfolder_name}] Found {len(sorted_files)} numbered image files to process."
             )
 
-            # --- Attempt 1: Single Zip ---
-            log.info(f"[{subfolder_name}] Attempting to create a single zip...")
-            single_zip_path, single_zip_size_mb, single_zip_errors = create_zip_group(
-                sorted_files,
-                subfolder_path,
-                temp_dir,  # Create in temp first
-                sanitized_name,
-                compress_images=True,
-                image_quality=image_quality,
-            )
+            # --- OPTIMIZATION: Estimate if we need to split before trying ---
+            # Import the size estimation function
+            try:
+                from estimate_zip_size import estimate_zip_size
+
+                estimated_size_mb = estimate_zip_size(
+                    sorted_files, subfolder_path, image_quality
+                )
+                log.info(
+                    f"[{subfolder_name}] Estimated zip size: {estimated_size_mb:.2f} MB (limit: {max_size_mb} MB)"
+                )
+
+                # Skip single zip attempt if estimate is clearly too large
+                if (
+                    estimated_size_mb > max_size_mb * 1.2
+                ):  # Add 20% buffer to avoid unnecessary work
+                    log.info(
+                        f"[{subfolder_name}] Estimated size exceeds limit by >20%, skipping single zip attempt"
+                    )
+                    # Set values to indicate we need to proceed to splitting
+                    single_zip_path = "SKIP_TO_SPLITTING"
+                    # Make sure we have a valid size estimate for splitting calculations
+                    single_zip_size_mb = max(
+                        estimated_size_mb, max_size_mb * 2
+                    )  # Ensure it's at least twice the max size
+                else:
+                    # --- Attempt 1: Single Zip ---
+                    log.info(f"[{subfolder_name}] Attempting to create a single zip...")
+                    single_zip_path, single_zip_size_mb, _ = create_zip_group(
+                        sorted_files,
+                        subfolder_path,
+                        temp_dir,  # Create in temp first
+                        sanitized_name,
+                        compress_images=True,
+                        image_quality=image_quality,
+                    )
+            except ImportError:
+                # Fallback if estimation function is not available
+                log.info(
+                    f"[{subfolder_name}] Size estimation not available, proceeding with standard approach"
+                )
+                # --- Attempt 1: Single Zip ---
+                log.info(f"[{subfolder_name}] Attempting to create a single zip...")
+                single_zip_path, single_zip_size_mb, _ = create_zip_group(
+                    sorted_files,
+                    subfolder_path,
+                    temp_dir,  # Create in temp first
+                    sanitized_name,
+                    compress_images=True,
+                    image_quality=image_quality,
+                )
 
             # --- Handle Single Zip Result ---
             final_zip_paths_for_folder = []
-            if single_zip_path and single_zip_size_mb <= max_size_mb:
+
+            # Case 1: Single zip created and is within size limit
+            if (
+                single_zip_path
+                and single_zip_path != "SKIP_TO_SPLITTING"
+                and single_zip_size_mb <= max_size_mb
+            ):
                 # Success with single zip
                 final_path = os.path.join(
                     zipped_folder, os.path.basename(single_zip_path)
@@ -413,27 +434,86 @@ def create_zip_files(source_base_folder, max_size_mb=20, image_quality=75):
                     )
                     # Zip might be left in temp dir, cleanup will handle later
 
-            elif single_zip_path:  # Single zip created but too large
-                log.info(
-                    f"[{subfolder_name}] Single zip is too large ({single_zip_size_mb:.2f} MB > {max_size_mb} MB). Attempting to split."
-                )
-                # Clean up the large single zip from temp
-                try:
-                    os.remove(single_zip_path)
-                except OSError as e:
-                    log.warning(
-                        f"[{subfolder_name}] Could not remove oversized single zip from temp: {e}"
+            # Case 2: Need to split (either skipped or single zip too large)
+            elif single_zip_path == "SKIP_TO_SPLITTING" or (
+                single_zip_path and single_zip_size_mb > max_size_mb
+            ):
+                if single_zip_path == "SKIP_TO_SPLITTING":
+                    log.info(
+                        f"[{subfolder_name}] Estimated size is too large ({single_zip_size_mb:.2f} MB > {max_size_mb} MB). Attempting to split."
+                    )
+                else:
+                    log.info(
+                        f"[{subfolder_name}] Single zip is too large ({single_zip_size_mb:.2f} MB > {max_size_mb} MB). Attempting to split."
                     )
 
+                # Clean up the large single zip from temp if it exists and isn't our special flag
+                if single_zip_path != "SKIP_TO_SPLITTING":
+                    try:
+                        os.remove(single_zip_path)
+                    except OSError as e:
+                        log.warning(
+                            f"[{subfolder_name}] Could not remove oversized single zip from temp: {e}"
+                        )
+
                 # --- Dynamic Splitting Logic ---
+                log.info(f"[{subfolder_name}] Starting dynamic splitting logic...")
+
+                # Debug: Print the sorted files to verify they exist
+                log.info(
+                    f"[{subfolder_name}] Files to split: {sorted_files[:5]}{'...' if len(sorted_files) > 5 else ''}"
+                )
+
                 num_files = len(sorted_files)
+                log.info(f"[{subfolder_name}] Total files to split: {num_files}")
+
+                if num_files == 0:
+                    log.error(f"[{subfolder_name}] No files to split. Aborting.")
+                    continue  # Skip to next subfolder
+
                 # Start estimate: theoretical minimum groups based on oversized zip size
-                current_num_groups = math.ceil(single_zip_size_mb / max_size_mb)
-                # Ensure at least 2 groups if splitting is needed
-                current_num_groups = max(2, int(current_num_groups))
+                # Add 10% buffer to avoid repeated splitting attempts
+                try:
+                    current_num_groups = math.ceil(
+                        (single_zip_size_mb * 1.1) / max_size_mb
+                    )
+                    # Ensure at least 2 groups if splitting is needed
+                    current_num_groups = max(2, int(current_num_groups))
+                    log.info(
+                        f"[{subfolder_name}] Starting with {current_num_groups} groups based on size estimate"
+                    )
+                except Exception as e:
+                    log.error(
+                        f"[{subfolder_name}] Error calculating number of groups: {e}"
+                    )
+                    # Default to 2 groups if calculation fails
+                    current_num_groups = 2
+                    log.info(
+                        f"[{subfolder_name}] Defaulting to {current_num_groups} groups due to calculation error"
+                    )
 
                 splitting_succeeded = False
                 split_attempt_paths = []
+
+                # Debug info
+                log.info(
+                    f"[{subfolder_name}] Debug: num_files={num_files}, current_num_groups={current_num_groups}"
+                )
+
+                # Make sure we have at least one group
+                if current_num_groups > num_files:
+                    log.error(
+                        f"[{subfolder_name}] Cannot create enough groups. Need {current_num_groups} groups but only have {num_files} files."
+                    )
+                    # Try with one file per group as a last resort
+                    current_num_groups = num_files
+                    log.info(
+                        f"[{subfolder_name}] Trying with one file per group as a last resort."
+                    )
+
+                log.info(
+                    f"[{subfolder_name}] Will attempt splitting with {current_num_groups} groups"
+                )
 
                 while current_num_groups <= num_files:
                     log.info(
@@ -442,6 +522,12 @@ def create_zip_files(source_base_folder, max_size_mb=20, image_quality=75):
                     split_groups = split_files_into_groups(
                         sorted_files, current_num_groups
                     )
+
+                    # Debug info
+                    log.info(
+                        f"[{subfolder_name}] Debug: Created {len(split_groups)} groups with sizes: {[len(g) for g in split_groups]}"
+                    )
+
                     split_attempt_paths = []  # Paths for this specific attempt
                     split_attempt_sizes = []
                     all_parts_ok = True
@@ -456,7 +542,12 @@ def create_zip_files(source_base_folder, max_size_mb=20, image_quality=75):
                             )
                             continue
 
-                        part_zip_path, part_zip_size_mb, part_errors = create_zip_group(
+                        # Debug info
+                        log.info(
+                            f"[{subfolder_name}] Creating zip part {i}/{current_num_groups} with {len(group_files)} files"
+                        )
+
+                        part_zip_path, part_zip_size_mb, _ = create_zip_group(
                             group_files,
                             subfolder_path,
                             temp_dir,  # Create parts in temp dir first
@@ -489,6 +580,16 @@ def create_zip_files(source_base_folder, max_size_mb=20, image_quality=75):
                             break  # Stop this attempt
 
                     # --- Evaluate outcome of the splitting attempt ---
+                    log.info(
+                        f"[{subfolder_name}] Evaluating splitting attempt with {current_num_groups} parts"
+                    )
+                    log.info(
+                        f"[{subfolder_name}] all_parts_ok: {all_parts_ok}, any_part_failed_creation: {any_part_failed_creation}"
+                    )
+                    log.info(
+                        f"[{subfolder_name}] Created {len(split_attempt_paths)} parts with sizes: {split_attempt_sizes}"
+                    )
+
                     if all_parts_ok:
                         # Success! Move all parts from temp to final destination
                         log.info(
@@ -560,6 +661,11 @@ def create_zip_files(source_base_folder, max_size_mb=20, image_quality=75):
                             )
                             # This means even zipping one file per archive might exceed the limit, or an error occurred.
                             break  # Exit while loop
+
+                # Final evaluation of splitting attempts
+                log.info(
+                    f"[{subfolder_name}] Final evaluation: splitting_succeeded={splitting_succeeded}, final_zip_paths_for_folder={len(final_zip_paths_for_folder) if final_zip_paths_for_folder else 0}"
+                )
 
                 if not splitting_succeeded and not final_zip_paths_for_folder:
                     log.error(

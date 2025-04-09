@@ -1,0 +1,3 @@
+"""
+Pattern mockup generation subpackage.
+"""

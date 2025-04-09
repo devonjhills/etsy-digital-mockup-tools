@@ -1,0 +1,46 @@
+{
+  "product_type": "pattern",
+  "title_template": "{pattern_name} | Seamless Pattern | Digital Paper | Commercial Use | {colors} | {style}",
+  "description_template": "# {pattern_name} Seamless Pattern\n\n## INSTANT DOWNLOAD\n\nThis listing is for a digital download of a seamless pattern that you can use for various projects.\n\n## FEATURES\n\n- High-resolution seamless pattern (300 DPI)\n- {dimensions} dimensions\n- {file_formats} file format(s)\n- Commercial use allowed\n\n## WHAT YOU'LL RECEIVE\n\n- {num_files} seamless pattern file(s)\n- License for commercial use\n\n## HOW TO USE\n\nAfter purchase, you'll receive an instant download link. The files can be used with various design software like Photoshop, Illustrator, Canva, etc.\n\n## TERMS OF USE\n\n- Commercial use allowed\n- No redistribution of the original files\n- No reselling of the original files\n\nThank you for visiting my shop! If you have any questions, feel free to contact me.",
+  "tags": [
+    "seamless pattern",
+    "digital paper",
+    "background",
+    "scrapbooking",
+    "commercial use",
+    "printable",
+    "digital download",
+    "surface pattern",
+    "fabric design",
+    "wallpaper",
+    "wrapping paper",
+    "craft supply",
+    "digital scrapbook"
+  ],
+  "materials": [
+    "digital file",
+    "digital download",
+    "digital pattern",
+    "digital paper"
+  ],
+  "taxonomy_id": 2427,
+  "shop_section_id": 42625767,
+  "category": "patterns",
+  "who_made": "i_did",
+  "is_supply": true,
+  "when_made": "2020_2025",
+  "is_digital": true,
+  "is_personalizable": false,
+  "personalization_instructions": "",
+  "price": 4.99,
+  "quantity": 999,
+  "seo_keywords": [
+    "seamless pattern",
+    "digital paper",
+    "commercial use",
+    "background",
+    "scrapbooking",
+    "printable",
+    "digital download"
+  ]
+}
