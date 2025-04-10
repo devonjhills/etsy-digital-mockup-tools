@@ -3,254 +3,212 @@ Module for generating listing content with SEO optimization.
 """
 
 import os
-import json
-import requests
-from typing import Dict, List, Optional, Any, Tuple
+import base64
+from typing import Dict
 import re
+import sys
+from PIL import Image
+import io
 
 from utils.common import setup_logging
 
 # Set up logging
 logger = setup_logging(__name__)
 
+# Try to import the Gemini API client
+try:
+    import google.generativeai as genai
+    from google.generativeai.types import HarmCategory, HarmBlockThreshold
+
+    GEMINI_AVAILABLE = True
+except ImportError:
+    logger.warning(
+        "Google Generative AI package not found. Install with: pip install google-generativeai"
+    )
+    GEMINI_AVAILABLE = False
+
 
 class ContentGenerator:
     """Generate listing content with SEO optimization."""
 
-    def __init__(self, api_key: str, api_url: Optional[str] = None):
+    def __init__(self, api_key: str, model_name: str = "gemini-2.5-pro-exp-03-25"):
         """
         Initialize the content generator.
 
         Args:
-            api_key: API key for the LLM
-            api_url: API URL for the LLM (optional)
+            api_key: API key for the Gemini API
+            model_name: Name of the Gemini model to use
         """
         self.api_key = api_key
-        self.api_url = api_url or "https://api.openai.com/v1/chat/completions"
+        self.model_name = model_name
 
-    def generate_title(
-        self, product_info: Dict, template: Dict, max_length: int = 140
-    ) -> str:
-        """
-        Generate an SEO-optimized title for an Etsy listing.
+        # Set up Gemini API client
+        if GEMINI_AVAILABLE:
+            # Configure the API with the provided key
+            genai.configure(api_key=api_key)
 
-        Args:
-            product_info: Product information
-            template: Template data
-            max_length: Maximum title length
-
-        Returns:
-            Generated title
-        """
-        try:
-            # Get the title template
-            title_template = template.get("title_template", "")
-
-            # Create a prompt for the LLM
-            prompt = f"""
-            Generate an SEO-optimized title for an Etsy listing with the following information:
-            
-            Product Type: {template.get('product_type', '')}
-            Product Name: {product_info.get('name', '')}
-            
-            The title should:
-            1. Be catchy and appealing to potential buyers
-            2. Include important keywords for SEO
-            3. Be no longer than {max_length} characters
-            4. Follow this template: {title_template}
-            
-            
-            Additional product details:
-            {json.dumps(product_info, indent=2)}
-            
-            Return ONLY the title, without any explanation or additional text.
-            """
-
-            # Call the LLM API
-            title = self._call_llm_api(prompt)
-
-            # Ensure the title is not too long
-            if len(title) > max_length:
-                title = title[: max_length - 3] + "..."
-
-            return title
-        except Exception as e:
-            logger.error(f"Error generating title: {e}")
-
-            # Fallback: Use the template with basic substitution
-            try:
-                title_template = template.get("title_template", "{name}")
-                title = title_template.format(
-                    name=product_info.get("name", "Product"), **product_info
-                )
-
-                # Ensure the title is not too long
-                if len(title) > max_length:
-                    title = title[: max_length - 3] + "..."
-
-                return title
-            except Exception as fallback_error:
-                logger.error(f"Error with fallback title generation: {fallback_error}")
-                return product_info.get("name", "Product")
-
-    def generate_description(self, product_info: Dict, template: Dict) -> str:
-        """
-        Generate an SEO-optimized description for an Etsy listing.
-
-        Args:
-            product_info: Product information
-            template: Template data
-
-        Returns:
-            Generated description
-        """
-        try:
-            # Get the description template
-            description_template = template.get("description_template", "")
-
-            # Create a prompt for the LLM
-            prompt = f"""
-            Generate an SEO-optimized description for an Etsy listing with the following information:
-            
-            Product Type: {template.get('product_type', '')}
-            Product Name: {product_info.get('name', '')}
-            
-            The description should:
-            1. Be detailed and informative
-            2. Include important keywords for SEO
-            3. Be formatted with Markdown for readability
-            4. Follow this template: {description_template}
-            
-            
-            Additional product details:
-            {json.dumps(product_info, indent=2)}
-            
-            Return ONLY the description, formatted with Markdown, without any explanation or additional text.
-            """
-
-            # Call the LLM API
-            description = self._call_llm_api(prompt)
-
-            return description
-        except Exception as e:
-            logger.error(f"Error generating description: {e}")
-
-            # Fallback: Use the template with basic substitution
-            try:
-                description_template = template.get(
-                    "description_template", "# {name}\n\nDigital product for download."
-                )
-                description = description_template.format(
-                    name=product_info.get("name", "Product"), **product_info
-                )
-
-                return description
-            except Exception as fallback_error:
-                logger.error(
-                    f"Error with fallback description generation: {fallback_error}"
-                )
-                return f"# {product_info.get('name', 'Product')}\n\nDigital product for download."
-
-    def generate_tags(
-        self, product_info: Dict, template: Dict, max_tags: int = 13
-    ) -> List[str]:
-        """
-        Generate SEO-optimized tags for an Etsy listing.
-
-        Args:
-            product_info: Product information
-            template: Template data
-            max_tags: Maximum number of tags
-
-        Returns:
-            List of generated tags
-        """
-        try:
-            # Get template tags
-            template_tags = template.get("tags", [])
-
-            # If we have enough tags in the template, use those
-            if len(template_tags) >= max_tags:
-                return template_tags[:max_tags]
-
-            # Create a prompt for the LLM
-            prompt = f"""
-            Generate SEO-optimized tags for an Etsy listing with the following information:
-            
-            Product Type: {template.get('product_type', '')}
-            Product Name: {product_info.get('name', '')}
-            
-            The tags should:
-            1. Be relevant to the product
-            2. Include important keywords for SEO
-            3. Be no more than 20 characters each
-            4. Be no more than {max_tags} tags total
-
-            
-            Additional product details:
-            {json.dumps(product_info, indent=2)}
-            
-            Return ONLY a comma-separated list of tags, without any explanation or additional text.
-            """
-
-            # Call the LLM API
-            tags_text = self._call_llm_api(prompt)
-
-            # Parse the tags
-            tags = [tag.strip() for tag in tags_text.split(",")]
-
-            # Ensure tags are not too long
-            tags = [tag[:20] for tag in tags if tag]
-
-            # Limit to max_tags
-            tags = tags[:max_tags]
-
-            return tags
-        except Exception as e:
-            logger.error(f"Error generating tags: {e}")
-
-            # Fallback: Use the template tags
-            return template_tags[:max_tags]
-
-    def _call_llm_api(self, prompt: str) -> str:
-        """
-        Call the LLM API with the given prompt.
-
-        Args:
-            prompt: Prompt for the LLM
-
-        Returns:
-            LLM response
-        """
-        try:
-            headers = {
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {self.api_key}",
+            # Set up safety settings according to documentation
+            safety_settings = {
+                HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
+                HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
+                HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
+                HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
             }
 
-            data = {
-                "model": "gpt-4",
-                "messages": [
+            # Initialize the model with the specified name and safety settings
+            self.gemini_model = genai.GenerativeModel(
+                model_name=model_name,
+                safety_settings=safety_settings,
+                generation_config={
+                    "temperature": 0.7,
+                    "top_p": 0.95,
+                    "top_k": 40,
+                },
+            )
+            logger.info(f"Using Gemini API model {model_name} for content generation")
+        else:
+            logger.error(
+                "Google Generative AI package not found. Install with: pip install google-generativeai"
+            )
+            print(
+                "Google Generative AI package not found. Install with: pip install google-generativeai",
+                file=sys.stderr,
+            )
+
+    # Custom functions for generating title, description, and tags have been removed
+    # We now rely entirely on the instructions passed to the Gemini API
+
+    def generate_content_from_image(
+        self, image_path: str, instructions: str
+    ) -> Dict[str, str]:
+        """
+        Generate listing content (title, description, tags) from an image using Gemini API.
+
+        Args:
+            image_path: Path to the image file
+            instructions: Instructions for the LLM
+
+        Returns:
+            Dictionary with title, description, and tags
+        """
+        if not os.path.exists(image_path):
+            error_msg = f"Image file not found: {image_path}"
+            logger.error(error_msg)
+            import sys
+
+            print(error_msg, file=sys.stderr)
+            return {"title": "", "description": "", "tags": []}
+
+        try:
+            if not GEMINI_AVAILABLE:
+                error_msg = "Gemini API not available. Install with: pip install google-generativeai"
+                logger.error(error_msg)
+                import sys
+
+                print(error_msg, file=sys.stderr)
+                return {"title": "", "description": "", "tags": []}
+
+            # Check if the API key is valid
+            if not self.api_key:
+                error_msg = (
+                    "No Gemini API key provided. Set GEMINI_API_KEY in environment."
+                )
+                logger.error(error_msg)
+                import sys
+
+                print(error_msg, file=sys.stderr)
+                return {"title": "", "description": "", "tags": []}
+
+            # Load the image
+            try:
+                img = Image.open(image_path)
+                logger.info(f"Successfully loaded image: {image_path}")
+            except Exception as e:
+                logger.error(f"Error loading image {image_path}: {e}")
+                return {"title": "", "description": "", "tags": []}
+
+            # Use the instructions directly as the prompt
+            prompt = instructions
+
+            # Add a simple note about avoiding markers
+            prompt += "\n\nIMPORTANT: DO NOT include any ** or other markers in your response."
+
+            logger.info(f"Using Gemini model: {self.model_name}")
+
+            # Call Gemini API with image
+            try:
+                # Convert PIL Image to bytes for Gemini API
+                img_byte_arr = io.BytesIO()
+                img.save(img_byte_arr, format=img.format or "PNG")
+                img_bytes = img_byte_arr.getvalue()
+
+                # Create the content parts according to documentation
+                parts = [
+                    {"text": prompt},
                     {
-                        "role": "system",
-                        "content": "You are a helpful assistant that generates SEO-optimized content for Etsy listings.",
+                        "inline_data": {
+                            "mime_type": f"image/{img.format.lower() if img.format else 'png'}",
+                            "data": base64.b64encode(img_bytes).decode("utf-8"),
+                        }
                     },
-                    {"role": "user", "content": prompt},
-                ],
-                "temperature": 0.7,
-                "max_tokens": 1000,
-            }
+                ]
 
-            response = requests.post(self.api_url, headers=headers, json=data)
+                # Generate content with proper error handling
+                response = self.gemini_model.generate_content(parts)
 
-            if response.status_code == 200:
-                response_data = response.json()
-                return response_data["choices"][0]["message"]["content"].strip()
-            else:
-                logger.error(
-                    f"Error calling LLM API: {response.status_code} {response.text}"
-                )
-                return ""
+                # Check if the response is valid
+                if not hasattr(response, "text"):
+                    logger.error(f"Invalid response from Gemini API: {response}")
+                    return {"title": "", "description": "", "tags": []}
+
+                content = response.text.strip()
+                logger.info("Successfully received response from Gemini API")
+
+                # Log the raw response for debugging
+                logger.info(f"Raw Gemini API response:\n{content}")
+            except Exception as e:
+                logger.error(f"Error calling Gemini API: {e}")
+                print(f"Error calling Gemini API: {e}", file=sys.stderr)
+                return {"title": "", "description": "", "tags": []}
+
+            # Simple parsing to extract title, description, and tags
+            logger.info("Parsing content from Gemini API response")
+
+            title = ""
+            description = ""
+            tags = []
+
+            # Basic extraction with regex
+            title_match = re.search(
+                r"Title:\s*(.+?)(?:\n|Description:)", content, re.DOTALL
+            )
+            if title_match:
+                title = title_match.group(1).strip()
+                # Remove any ** markers if present
+                title = re.sub(r"^\*\*\s*", "", title)
+
+            desc_match = re.search(
+                r"Description:\s*(.+?)(?:\n|Tags:)", content, re.DOTALL
+            )
+            if desc_match:
+                description = desc_match.group(1).strip()
+                # Remove any ** markers if present
+                description = re.sub(r"^\*\*\s*", "", description)
+
+            tags_match = re.search(r"Tags:\s*(.+)$", content, re.DOTALL)
+            if tags_match:
+                tags_text = tags_match.group(1).strip()
+                # Remove any ** markers if present
+                tags_text = re.sub(r"^\*\*\s*", "", tags_text)
+                # Split by comma and clean up
+                tags = [tag.strip() for tag in tags_text.split(",") if tag.strip()]
+
+            # Log what we extracted
+            logger.info(f"Extracted title: {title}")
+            logger.info(f"Extracted description length: {len(description)}")
+            logger.info(f"Extracted tags count: {len(tags)}")
+
+            return {"title": title, "description": description, "tags": tags}
         except Exception as e:
-            logger.error(f"Error calling LLM API: {e}")
-            return ""
+            logger.error(f"Error generating content from image: {e}")
+            return {"title": "", "description": "", "tags": []}

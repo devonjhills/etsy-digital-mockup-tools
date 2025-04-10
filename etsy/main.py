@@ -11,7 +11,6 @@ from etsy.auth import EtsyAuth
 from etsy.listings import EtsyListings
 from etsy.templates import ListingTemplate
 from etsy.content import ContentGenerator
-from etsy.bulk import BulkOperations
 
 # Set up logging
 logger = setup_logging(__name__)
@@ -24,8 +23,8 @@ class EtsyIntegration:
         self,
         etsy_api_key: str,
         etsy_api_secret: str,
-        llm_api_key: Optional[str] = None,
-        llm_api_url: Optional[str] = None,
+        gemini_api_key: Optional[str] = None,
+        gemini_model: str = "gemini-2.5-pro-exp-03-25",
         templates_dir: str = "templates",
     ):
         """
@@ -34,8 +33,8 @@ class EtsyIntegration:
         Args:
             etsy_api_key: Etsy API key
             etsy_api_secret: Etsy API secret
-            llm_api_key: LLM API key (optional)
-            llm_api_url: LLM API URL (optional)
+            gemini_api_key: Gemini API key (optional)
+            gemini_model: Gemini model name to use
             templates_dir: Directory to store templates
         """
         self.auth = EtsyAuth(etsy_api_key, etsy_api_secret)
@@ -44,13 +43,8 @@ class EtsyIntegration:
 
         # Initialize content generator if API key is provided
         self.content_generator = None
-        if llm_api_key:
-            self.content_generator = ContentGenerator(llm_api_key, llm_api_url)
-
-        # Initialize bulk operations
-        self.bulk = BulkOperations(
-            self.auth, self.listings, self.templates, self.content_generator
-        )
+        if gemini_api_key:
+            self.content_generator = ContentGenerator(gemini_api_key, gemini_model)
 
     def authenticate(self) -> bool:
         """
@@ -140,11 +134,9 @@ class EtsyIntegration:
         # Add additional info based on folder contents
         product_info.update(self._extract_product_info(folder_path, product_type))
 
-        # Use custom values if provided, otherwise generate content
+        # Use custom values if provided, otherwise use template values
         if custom_title:
             title = custom_title
-        elif self.content_generator:
-            title = self.content_generator.generate_title(product_info, template)
         else:
             # Use template with basic substitution
             title_template = template.get("title_template", "{name}")
@@ -152,10 +144,6 @@ class EtsyIntegration:
 
         if custom_description:
             description = custom_description
-        elif self.content_generator:
-            description = self.content_generator.generate_description(
-                product_info, template
-            )
         else:
             description_template = template.get(
                 "description_template", "# {name}\n\nDigital product for download."
@@ -164,8 +152,6 @@ class EtsyIntegration:
 
         if custom_tags:
             tags = custom_tags[:13]  # Ensure max 13 tags
-        elif self.content_generator:
-            tags = self.content_generator.generate_tags(product_info, template)
         else:
             tags = template.get("tags", [])[:13]
 
@@ -293,6 +279,81 @@ class EtsyIntegration:
 
         logger.info(f"Created listing {listing_id} for {product_name}")
         return listing
+
+    def generate_content_from_mockup(
+        self, folder_path: str, product_type: str, instructions: str
+    ) -> Dict[str, str]:
+        """
+        Generate listing content from a mockup image using Gemini API.
+
+        Args:
+            folder_path: Path to the product folder
+            product_type: Product type
+            instructions: Instructions for the LLM
+
+        Returns:
+            Dictionary with title, description, and tags
+        """
+        # Check if content generator is available
+        if not self.content_generator:
+            error_msg = "Content generator not available. Check if GEMINI_API_KEY is set in environment."
+            logger.error(error_msg)
+            # Print to stderr to ensure it's captured
+            import sys
+
+            print(error_msg, file=sys.stderr)
+            return {"title": "", "description": "", "tags": []}
+
+        # Check if the content generator has the required method
+        if not hasattr(self.content_generator, "generate_content_from_image"):
+            error_msg = "Content generator doesn't support image analysis. Check implementation."
+            logger.error(error_msg)
+            print(error_msg, file=sys.stderr)
+            return {"title": "", "description": "", "tags": []}
+
+        # Find the main mockup image in the mocks folder
+        mocks_folder = os.path.join(folder_path, "mocks")
+        if not os.path.exists(mocks_folder):
+            error_msg = f"Mocks folder not found: {mocks_folder}"
+            logger.error(error_msg)
+            print(error_msg, file=sys.stderr)
+            return {"title": "", "description": "", "tags": []}
+
+        # Look specifically for main.png
+        main_mockup = os.path.join(mocks_folder, "main.png")
+
+        # If main.png doesn't exist, look for any main.jpg
+        if not os.path.exists(main_mockup):
+            main_mockup = os.path.join(mocks_folder, "main.jpg")
+
+        # If neither exists, fall back to any image
+        if not os.path.exists(main_mockup):
+            import glob
+
+            mockup_images = sorted(
+                glob.glob(os.path.join(mocks_folder, "*.jpg"))
+                + glob.glob(os.path.join(mocks_folder, "*.png"))
+            )
+
+            if not mockup_images:
+                error_msg = f"No mockup images found in {mocks_folder}"
+                logger.error(error_msg)
+                print(error_msg, file=sys.stderr)
+                return {"title": "", "description": "", "tags": []}
+
+            # Use the first available image as fallback
+            main_mockup = mockup_images[0]
+            logger.info(f"main.png not found, using fallback image: {main_mockup}")
+        else:
+            logger.info(f"Using mockup image: {main_mockup}")
+
+        # Generate content from the image
+        content = self.content_generator.generate_content_from_image(
+            main_mockup, instructions
+        )
+        logger.info(f"Generated content from mockup: {content['title']}")
+
+        return content
 
     def _extract_product_info(self, folder_path: str, product_type: str) -> Dict:
         """

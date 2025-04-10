@@ -21,11 +21,17 @@ def main():
     parser = argparse.ArgumentParser(description="Etsy integration tools")
     subparsers = parser.add_subparsers(dest="command", help="Command to run")
 
+    # Etsy commands
+    etsy_parser = subparsers.add_parser("etsy", help="Etsy integration commands")
+    etsy_subparsers = etsy_parser.add_subparsers(
+        dest="etsy_command", help="Etsy command to run"
+    )
+
     # Auth command
-    auth_parser = subparsers.add_parser("auth", help="Authenticate with Etsy")
+    auth_parser = etsy_subparsers.add_parser("auth", help="Authenticate with Etsy")
 
     # Create listing command
-    create_parser = subparsers.add_parser("create", help="Create an Etsy listing")
+    create_parser = etsy_subparsers.add_parser("create", help="Create an Etsy listing")
     create_parser.add_argument(
         "--folder", required=True, help="Path to the product folder"
     )
@@ -51,55 +57,78 @@ def main():
         help="Create as draft instead of publishing immediately",
     )
 
-    # Bulk create command
-    bulk_create_parser = subparsers.add_parser(
-        "bulk-create", help="Create multiple Etsy listings from a CSV file"
+    # Generate content command
+    generate_parser = etsy_subparsers.add_parser(
+        "generate", help="Generate listing content from mockup image"
     )
-    bulk_create_parser.add_argument("--csv", required=True, help="Path to the CSV file")
-    bulk_create_parser.add_argument(
-        "--image_base_dir", default="input", help="Base directory for images"
+    generate_parser.add_argument(
+        "--folder", required=True, help="Path to the product folder"
     )
-    bulk_create_parser.add_argument(
-        "--draft",
-        action="store_true",
-        help="Create as draft instead of publishing immediately",
+    generate_parser.add_argument(
+        "--product_type",
+        required=True,
+        choices=["pattern", "clipart", "wall_art", "brush_strokes"],
+        help="Product type",
     )
+    generate_parser.add_argument(
+        "--instructions",
+        default="""Instruction: Before generating the listing components, perform a quick analysis of current, popular Etsy listings for products visually similar to the one in the provided image. Identify common keywords, effective structures, and potential weaknesses in those top listings. Use these insights and advanced SEO outranking strategies to create a Title, Description, and Tags for the provided product image that are optimized to potentially outperform existing popular listings in Etsy search.
 
-    # Bulk update command
-    bulk_update_parser = subparsers.add_parser(
-        "bulk-update", help="Update multiple Etsy listings from a CSV file"
-    )
-    bulk_update_parser.add_argument("--csv", required=True, help="Path to the CSV file")
-
-    # Create CSV template command
-    csv_template_parser = subparsers.add_parser(
-        "csv-template", help="Create a CSV template for bulk operations"
-    )
-    csv_template_parser.add_argument(
-        "--output", required=True, help="Path to the output file"
-    )
-    csv_template_parser.add_argument(
-        "--operation",
-        choices=["create", "update"],
-        default="create",
-        help="Operation type",
+Context: You are a sophisticated E-commerce Copywriter and Etsy SEO Strategist. Your expertise lies in analyzing product visuals and translating them into high-converting Etsy listings. You understand modern e-commerce search algorithms (like Etsy's 2025 predicted direction), focusing on user intent, semantic search, visual appeal, and listing quality factors. Your goal is to create a complete, optimized Etsy listing (Title, Description, Tags) based solely on the provided product image.
+Input Requirements:
+1. Analyze Product Image: You will be provided with a single Etsy listing image. Analyze this image thoroughly to identify:
+    * Product Type: What is the product? (e.g., clip art, wall art, pattern set, etc.)
+    * Core Subject/Theme: What is depicted, or what is the central concept or design element?
+    * Style/Aesthetics: Describe the visual style (e.g., vintage, modern, minimalist, boho chic, watercolor, cartoonish, realistic, rustic, kawaii, gothic, etc).
+    * Key Features/Details: Note any specific characteristics clearly visible or strongly implied
+2. Infer Target Audience & Use Cases: Based only on the product identified in the image and its visual cues, deduce the likely target audience(s) (e.g., gift shoppers, DIY crafters, home decorators, fashion enthusiasts, specific hobbyists, parents, teachers) and primary applications/uses (e.g., home decor, apparel, gift-giving, crafting project, personal accessory, party supplies, digital design asset, journaling).
+Output Structure: Generate the following components in this exact order and format:
+Title (Target: 130-140 characters):
+* Prioritize Clarity & Relevance: Start with the most important, customer-centric keywords describing the core product type, subject, and style identified from the image. Clearly state what the product is.
+* Natural Language Longtail Keywords: Structure keywords to mimic real buyer searches. Seamlessly integrate multiple related longtail phrases (aim for ~6-8 keyword combinations relevant to the product).
+* Focus on Solutions/Applications: Weave in terms related to how the product can be used or the benefit it provides, as inferred from the visual context (e.g., 'Wall Decor Print', 'Unique Coffee Mug', 'DIY Craft Kit', 'Funny T-shirt Gift', 'Boho Chic Accessory').
+* Readability: Create a title that flows naturally without excessive punctuation or keyword stuffing. Avoid special characters.
+* Efficiency: Aim for full character count utilization for maximum keyword exposure. Use singular/plural forms based on common search patterns for that specific product type.
+* Accuracy: Ensure the title accurately reflects the product shown in the image.
+Description:
+* Hook with Benefits: Start immediately with a compelling sentence highlighting the primary benefit or appeal of the product based on its visual presentation.
+* Structured & Scannable: Use clear paragraphs with emoji-prefixed headings (choose relevant emojis based on the product):
+    * ✨ Product Highlights: Detail the key features and specifics inferred directly from the image or typically associated with this product type if clearly suggested.
+    * 💡 Perfect For: List diverse potential applications, uses, or recipient ideas identified using bullet points. Use this specific emoji for list items: 🔘
+    * ✅ What You Receive / Format: Explain the likely format based on visual cues. (e.g., "Instant Digital Download: Get your high-resolution file(s) immediately after purchase!"
+* Readability & Tone: Maintain a Flesch Reading Ease score of 70+. Use clear, concise language and active voice. Avoid jargon. Keep the tone appropriate for the product's style (e.g., playful, elegant, professional, cozy) but always helpful and inspiring.
+* Keyword Integration: Naturally weave primary and secondary keywords (including inferred synonyms like 'artwork', 'gift idea', 'home accessory', 'craft supply', 'clothing item', 'digital asset') throughout the description, mirroring conversational language and reflecting the image content.
+Tags (Exactly 13):
+* Format: Provide as a comma-separated list. Each tag must be under 20 characters.
+* Longtail & Specific: Prioritize multi-word phrases (2-3+ words often best) that are highly relevant to the specific product's style, subject, type, and likely uses as seen in the image.
+* Diverse Angles: Cover various search approaches based on the visual analysis:
+    * Style/Aesthetic (e.g., Boho Wall Art, Minimalist Jewelry)
+    * Subject/Theme (e.g., Cat Lover Gift, Floral Pattern)
+    * Product Type (e.g., Ceramic Coffee Mug, Printable Planner, Crochet Pattern PDF)
+    * Use Case/Occasion (e.g., Nursery Decor, Birthday Gift Idea, Office Accessory)
+    * Target Audience (e.g., Gifts for Her, Teacher Present, Crafter Supply)
+    * Materials/Format (if clear) (e.g., Wooden Sign Art, SVG Cutting File, Linen Pillow Case)
+    * Problem/Solution/Benefit (e.g., Unique Home Decor, Easy Craft Project)
+* Avoid Redundancy (where possible): While some overlap with the title is okay, try to introduce new relevant terms or variations drawn from the image.
+* No Single Words: Avoid highly competitive single-word tags (e.g., "art", "gift", "mug", "shirt", "digital").
+* Natural Language: Use phrases buyers actually type. Use singular/plural based on common searches for that product.
+* Image-Derived: All tags MUST be directly relevant to the product depicted in the provided image.
+Core SEO Philosophy (Internal Checklist for You):
+* Emulate Modern Etsy Search: Focus on semantic understanding, user intent signals, and overall listing quality derived from visual appeal and accurate description.
+* Outrank Competitors: Actively use insights from popular listings to improve keyword targeting, clarity, and appeal.
+* Solve Buyer Problems/Needs: Frame the listing around the purpose, application, or aesthetic appeal of the product shown. Why does someone need this? What will it enhance?
+* Target High-Intent Keywords: Use phrases indicating a buyer is looking for a specific item like the one pictured.
+* Niche Down: Leverage specific style, subject, and use-case keywords apparent from the image to attract the right buyers.
+* Optimize for Conversion: Create clear, compelling copy inspired by the visual that encourages clicks and purchases.
+Required Output Format:
+Title: [Generated Title following guidelines]
+Description: [Generated Description following guidelines and structure]
+Tags: [tag1, tag2, tag3, tag4, tag5, tag6, tag7, tag8, tag9, tag10, tag11, tag12, tag13]""",
+        help="Instructions for the LLM",
     )
 
     # Template commands
     template_parser = subparsers.add_parser("template", help="Manage listing templates")
-    template_subparsers = template_parser.add_subparsers(
-        dest="template_command", help="Template command to run"
-    )
-
-    # List templates command
-    template_list_parser = template_subparsers.add_parser(
-        "list", help="List available templates"
-    )
-
-    # Create default templates command
-    template_create_defaults_parser = template_subparsers.add_parser(
-        "create-defaults", help="Create default templates"
-    )
 
     args = parser.parse_args()
 
@@ -109,8 +138,8 @@ def main():
     # Get API keys from environment variables
     etsy_api_key = os.environ.get("ETSY_API_KEY")
     etsy_api_secret = os.environ.get("ETSY_API_SECRET")
-    llm_api_key = os.environ.get("LLM_API_KEY")
-    llm_api_url = os.environ.get("LLM_API_URL")
+    gemini_api_key = os.environ.get("GEMINI_API_KEY")
+    gemini_model = os.environ.get("GEMINI_MODEL", "gemini-2.5-pro-exp-03-25")
 
     # Log API key status (without revealing the full key)
     if etsy_api_key:
@@ -125,96 +154,91 @@ def main():
         )
         sys.exit(1)
 
+    if gemini_api_key:
+        logger.info(f"Using Gemini model: {gemini_model}")
+    else:
+        logger.warning(
+            "GEMINI_API_KEY not found in environment. Some features may not work."
+        )
+
     # Initialize Etsy integration
     etsy = EtsyIntegration(
         etsy_api_key=etsy_api_key,
         etsy_api_secret=etsy_api_secret,
-        llm_api_key=llm_api_key,
-        llm_api_url=llm_api_url,
+        gemini_api_key=gemini_api_key,
+        gemini_model=gemini_model,
     )
 
-    if args.command == "auth":
-        # Authenticate with Etsy
-        if etsy.authenticate():
-            logger.info("Authentication successful.")
-        else:
-            logger.error("Authentication failed.")
+    if args.command == "etsy":
+        # Handle Etsy commands
+        if not hasattr(args, "etsy_command") or not args.etsy_command:
+            # No etsy command specified
+            etsy_parser.print_help()
             sys.exit(1)
 
-    elif args.command == "create":
-        # Authenticate with Etsy
-        if not etsy.authenticate():
-            logger.error("Authentication failed.")
-            sys.exit(1)
+        if args.etsy_command == "auth":
+            # Authenticate with Etsy
+            if etsy.authenticate():
+                logger.info("Authentication successful.")
+            else:
+                logger.error("Authentication failed.")
+                sys.exit(1)
 
-        # Create a listing
-        listing = etsy.create_listing_from_folder(
-            folder_path=args.folder,
-            product_type=args.product_type,
-            product_name=args.name,
-            custom_title=args.title,
-            custom_description=args.description,
-            custom_tags=args.tags.split(",") if args.tags else None,
-            is_draft=args.draft,
-        )
+        elif args.etsy_command == "create":
+            # Authenticate with Etsy
+            if not etsy.authenticate():
+                logger.error("Authentication failed.")
+                sys.exit(1)
 
-        if listing:
-            logger.info(f"Listing created: {listing.get('listing_id')}")
-            logger.info(
-                f"URL: https://www.etsy.com/listing/{listing.get('listing_id')}"
+            # Create a listing
+            listing = etsy.create_listing_from_folder(
+                folder_path=args.folder,
+                product_type=args.product_type,
+                product_name=args.name,
+                custom_title=args.title,
+                custom_description=args.description,
+                custom_tags=args.tags.split(",") if args.tags else None,
+                is_draft=args.draft,
             )
+
+            if listing:
+                logger.info(f"Listing created: {listing.get('listing_id')}")
+                logger.info(f"URL: https://www.etsy.com/listing/{listing.get('listing_id')}")
+            else:
+                logger.error("Failed to create listing.")
+                sys.exit(1)
+
+        elif args.etsy_command == "generate":
+            # Check if folder exists
+            if not os.path.exists(args.folder):
+                logger.error(f"Folder not found: {args.folder}")
+                sys.exit(1)
+
+            # Generate content from mockup
+            instructions = (
+                args.instructions
+                if hasattr(args, "instructions")
+                else "Analyze this mockup image and generate content for an Etsy listing. The image shows a digital product that will be sold on Etsy."
+            )
+            content = etsy.generate_content_from_mockup(
+                folder_path=args.folder,
+                product_type=args.product_type,
+                instructions=instructions,
+            )
+
+            if content and content["title"]:
+                logger.info("\nGenerated content:")
+                logger.info(f"\nTitle: {content['title']}")
+                logger.info(f"\nDescription:\n{content['description']}")
+                logger.info(f"\nTags: {', '.join(content['tags'])}")
+            else:
+                logger.error("Failed to generate content from mockup.")
+                sys.exit(1)
+
         else:
-            logger.error("Failed to create listing.")
-            sys.exit(1)
-
-    elif args.command == "bulk-create":
-        # Authenticate with Etsy
-        if not etsy.authenticate():
-            logger.error("Authentication failed.")
-            sys.exit(1)
-
-        # Create listings from CSV
-        success_count, error_count, error_messages = etsy.bulk.create_listings_from_csv(
-            csv_file=args.csv, image_base_dir=args.image_base_dir, is_draft=args.draft
-        )
-
-        logger.info(
-            f"Bulk create completed: {success_count} successful, {error_count} failed"
-        )
-
-        if error_count > 0:
-            logger.info("Errors:")
-            for error in error_messages:
-                logger.info(f"  - {error}")
-
-    elif args.command == "bulk-update":
-        # Authenticate with Etsy
-        if not etsy.authenticate():
-            logger.error("Authentication failed.")
-            sys.exit(1)
-
-        # Update listings from CSV
-        success_count, error_count, error_messages = etsy.bulk.update_listings_from_csv(
-            csv_file=args.csv
-        )
-
-        logger.info(
-            f"Bulk update completed: {success_count} successful, {error_count} failed"
-        )
-
-        if error_count > 0:
-            logger.info("Errors:")
-            for error in error_messages:
-                logger.info(f"  - {error}")
-
-    elif args.command == "csv-template":
-        # Create CSV template
-        if etsy.bulk.create_csv_template(
-            output_file=args.output, operation=args.operation
-        ):
-            logger.info(f"CSV template created: {args.output}")
-        else:
-            logger.error("Failed to create CSV template.")
+            # Unknown etsy command
+            logger.error(f"Unknown etsy command: {args.etsy_command}")
+            etsy_parser.print_help()
             sys.exit(1)
 
     elif args.command == "template":

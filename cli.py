@@ -220,44 +220,6 @@ def main():
         help="Create as draft instead of publishing immediately",
     )
 
-    # Etsy bulk create command
-    etsy_bulk_create_parser = etsy_subparsers.add_parser(
-        "bulk-create", help="Create multiple Etsy listings from a CSV file"
-    )
-    etsy_bulk_create_parser.add_argument(
-        "--csv", required=True, help="Path to the CSV file"
-    )
-    etsy_bulk_create_parser.add_argument(
-        "--image_base_dir", default="input", help="Base directory for images"
-    )
-    etsy_bulk_create_parser.add_argument(
-        "--draft",
-        action="store_true",
-        help="Create as draft instead of publishing immediately",
-    )
-
-    # Etsy bulk update command
-    etsy_bulk_update_parser = etsy_subparsers.add_parser(
-        "bulk-update", help="Update multiple Etsy listings from a CSV file"
-    )
-    etsy_bulk_update_parser.add_argument(
-        "--csv", required=True, help="Path to the CSV file"
-    )
-
-    # Etsy CSV template command
-    etsy_csv_template_parser = etsy_subparsers.add_parser(
-        "csv-template", help="Create a CSV template for bulk operations"
-    )
-    etsy_csv_template_parser.add_argument(
-        "--output", required=True, help="Path to the output file"
-    )
-    etsy_csv_template_parser.add_argument(
-        "--operation",
-        choices=["create", "update"],
-        default="create",
-        help="Operation type",
-    )
-
     # Etsy template commands
     etsy_template_parser = etsy_subparsers.add_parser(
         "template", help="Manage listing templates"
@@ -398,16 +360,6 @@ def main():
                         sys.argv.extend(["--tags", args.tags])
                     if args.draft:
                         sys.argv.append("--draft")
-                elif args.etsy_command == "bulk-create":
-                    sys.argv.extend(["--csv", args.csv])
-                    sys.argv.extend(["--image_base_dir", args.image_base_dir])
-                    if args.draft:
-                        sys.argv.append("--draft")
-                elif args.etsy_command == "bulk-update":
-                    sys.argv.extend(["--csv", args.csv])
-                elif args.etsy_command == "csv-template":
-                    sys.argv.extend(["--output", args.output])
-                    sys.argv.extend(["--operation", args.operation])
                 elif args.etsy_command == "template" and args.etsy_template_command:
                     sys.argv.extend([args.etsy_template_command])
 

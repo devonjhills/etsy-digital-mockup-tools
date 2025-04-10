@@ -133,6 +133,26 @@
         background-color: var(--primary-hover);
       }
 
+      .secondary-button {
+        background-color: var(--section-bg);
+        border: 1px solid var(--secondary-color);
+        color: var(--secondary-color);
+      }
+
+      .secondary-button:hover {
+        background-color: var(--secondary-color);
+        color: var(--bg-color);
+      }
+
+      .highlight-update {
+        animation: highlight-fade 2s ease-in-out;
+      }
+
+      @keyframes highlight-fade {
+        0% { background-color: rgba(3, 218, 198, 0.3); }
+        100% { background-color: transparent; }
+      }
+
       button:active {
         transform: translateY(1px);
       }
@@ -418,6 +438,7 @@
           </div>
 
           <div class="actions">
+            <button onclick="generateEtsyListing()" class="secondary-button">Generate Listing Content</button>
             <button onclick="createEtsyListing()">Create Listing</button>
           </div>
         </div>
@@ -833,6 +854,99 @@
           .catch((error) => {
             console.error("Error refreshing subfolders:", error);
             log("Error refreshing subfolders: " + error);
+          });
+      }
+
+      function generateEtsyListing() {
+        const subfolder = document.getElementById("etsy-subfolder").value;
+        const productType = document.getElementById("etsy-product-type").value;
+
+        // Validate inputs
+        if (!subfolder) {
+          alert("Please select a subfolder from the input directory.");
+          return;
+        }
+
+        // Construct the full folder path
+        const folder = "input/" + subfolder;
+
+        // Show loading message
+        log("Generating listing content for " + subfolder + "...");
+
+        // Disable the button and show loading state
+        const generateButton = document.querySelector(".actions button.secondary-button");
+        const originalText = generateButton.textContent;
+        generateButton.disabled = true;
+        generateButton.textContent = "Generating...";
+
+        // Call the API to generate content
+        fetch("/run", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            command: "etsy-generate",
+            folder: folder,
+            productType: productType,
+          }),
+        })
+          .then((response) => {
+            if (!response.ok) {
+              return response.json().then(data => {
+                throw new Error(data.error || 'An error occurred');
+              });
+            }
+            return response.json();
+          })
+          .then((data) => {
+            log("Content generation completed.");
+
+            // If content is returned directly, update the form fields
+            if (data.content) {
+              // Log the content for debugging
+              console.log("Content received from server:", data.content);
+              log("Content received from server - Title length: " + (data.content.title ? data.content.title.length : 0) +
+                  ", Description length: " + (data.content.description ? data.content.description.length : 0) +
+                  ", Tags count: " + (data.content.tags ? data.content.tags.length : 0));
+
+              // Update the form fields
+              document.getElementById("etsy-title").value = data.content.title || "";
+              document.getElementById("etsy-description").value = data.content.description || "";
+              document.getElementById("etsy-tags").value = (data.content.tags || []).join(", ");
+
+              // Update counters
+              updateTitleCounter();
+              updateTagsCounter();
+
+              log("Listing content applied to form fields.");
+
+              // Highlight the fields that were updated
+              const titleField = document.getElementById("etsy-title");
+              const descriptionField = document.getElementById("etsy-description");
+              const tagsField = document.getElementById("etsy-tags");
+
+              // Add a temporary highlight class
+              titleField.classList.add("highlight-update");
+              descriptionField.classList.add("highlight-update");
+              tagsField.classList.add("highlight-update");
+
+              // Remove the highlight after a delay
+              setTimeout(() => {
+                titleField.classList.remove("highlight-update");
+                descriptionField.classList.remove("highlight-update");
+                tagsField.classList.remove("highlight-update");
+              }, 2000);
+            }
+          })
+          .catch((error) => {
+            alert(error.message);
+            log("Error: " + error.message);
+          })
+          .finally(() => {
+            // Re-enable the button and restore text
+            generateButton.disabled = false;
+            generateButton.textContent = originalText;
           });
       }
 
