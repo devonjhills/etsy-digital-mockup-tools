@@ -199,11 +199,20 @@ def main():
     etsy_create_parser.add_argument(
         "--product_type",
         required=True,
-        choices=["pattern", "clipart", "wall_art", "brush_strokes"],
+        choices=["pattern", "patterns", "clipart", "wall_art", "brush_strokes"],
         help="Product type",
     )
     etsy_create_parser.add_argument(
         "--name", help="Product name (defaults to folder name)"
+    )
+    etsy_create_parser.add_argument(
+        "--title", help="Custom title for the listing (optional)"
+    )
+    etsy_create_parser.add_argument(
+        "--description", help="Custom description for the listing (optional)"
+    )
+    etsy_create_parser.add_argument(
+        "--tags", help="Comma-separated list of tags for the listing (optional, max 13)"
     )
     etsy_create_parser.add_argument(
         "--draft",
@@ -381,6 +390,12 @@ def main():
                     sys.argv.extend(["--product_type", args.product_type])
                     if args.name:
                         sys.argv.extend(["--name", args.name])
+                    if args.title:
+                        sys.argv.extend(["--title", args.title])
+                    if args.description:
+                        sys.argv.extend(["--description", args.description])
+                    if args.tags:
+                        sys.argv.extend(["--tags", args.tags])
                     if args.draft:
                         sys.argv.append("--draft")
                 elif args.etsy_command == "bulk-create":

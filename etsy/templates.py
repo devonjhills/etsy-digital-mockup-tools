@@ -1,6 +1,7 @@
 """
 Module for managing listing templates.
 """
+
 import os
 import json
 from typing import Dict, List, Optional, Any
@@ -11,126 +12,129 @@ from utils.common import setup_logging
 # Set up logging
 logger = setup_logging(__name__)
 
+
 class ListingTemplate:
     """Manage listing templates."""
-    
+
     def __init__(self, templates_dir: str = "templates"):
         """
         Initialize the listing template manager.
-        
+
         Args:
             templates_dir: Directory to store templates
         """
         self.templates_dir = templates_dir
-        
+
         # Create templates directory if it doesn't exist
         os.makedirs(templates_dir, exist_ok=True)
-    
+
     def save_template(self, name: str, template_data: Dict) -> bool:
         """
         Save a template.
-        
+
         Args:
             name: Template name
             template_data: Template data
-            
+
         Returns:
             True if save was successful, False otherwise
         """
         try:
             # Sanitize the name
-            safe_name = re.sub(r'[^a-zA-Z0-9_-]', '_', name)
-            
+            safe_name = re.sub(r"[^a-zA-Z0-9_-]", "_", name)
+
             # Add .json extension if not present
-            if not safe_name.endswith('.json'):
-                safe_name += '.json'
-            
+            if not safe_name.endswith(".json"):
+                safe_name += ".json"
+
             file_path = os.path.join(self.templates_dir, safe_name)
-            
-            with open(file_path, 'w') as f:
+
+            with open(file_path, "w") as f:
                 json.dump(template_data, f, indent=2)
-            
+
             logger.info(f"Template saved: {file_path}")
             return True
         except Exception as e:
             logger.error(f"Error saving template: {e}")
             return False
-    
+
     def load_template(self, name: str) -> Optional[Dict]:
         """
         Load a template.
-        
+
         Args:
             name: Template name
-            
+
         Returns:
             Template data or None if not found
         """
         try:
             # Add .json extension if not present
-            if not name.endswith('.json'):
-                name += '.json'
-            
+            if not name.endswith(".json"):
+                name += ".json"
+
             file_path = os.path.join(self.templates_dir, name)
-            
+
             if not os.path.exists(file_path):
                 logger.error(f"Template not found: {file_path}")
                 return None
-            
-            with open(file_path, 'r') as f:
+
+            with open(file_path, "r") as f:
                 template_data = json.load(f)
-            
+
             return template_data
         except Exception as e:
             logger.error(f"Error loading template: {e}")
             return None
-    
+
     def list_templates(self) -> List[str]:
         """
         List available templates.
-        
+
         Returns:
             List of template names
         """
         try:
-            templates = [f for f in os.listdir(self.templates_dir) if f.endswith('.json')]
+            templates = [
+                f for f in os.listdir(self.templates_dir) if f.endswith(".json")
+            ]
             return templates
         except Exception as e:
             logger.error(f"Error listing templates: {e}")
             return []
-    
+
     def delete_template(self, name: str) -> bool:
         """
         Delete a template.
-        
+
         Args:
             name: Template name
-            
+
         Returns:
             True if deletion was successful, False otherwise
         """
         try:
             # Add .json extension if not present
-            if not name.endswith('.json'):
-                name += '.json'
-            
+            if not name.endswith(".json"):
+                name += ".json"
+
             file_path = os.path.join(self.templates_dir, name)
-            
+
             if not os.path.exists(file_path):
                 logger.error(f"Template not found: {file_path}")
                 return False
-            
+
             os.remove(file_path)
             logger.info(f"Template deleted: {file_path}")
             return True
         except Exception as e:
             logger.error(f"Error deleting template: {e}")
             return False
-    
+
     def create_default_templates(self) -> bool:
         """
         Create default templates for different product types.
-        
+
         Returns:
             True if creation was successful, False otherwise
         """
@@ -153,34 +157,19 @@ class ListingTemplate:
                     "wallpaper",
                     "wrapping paper",
                     "craft supply",
-                    "digital scrapbook"
+                    "digital scrapbook",
                 ],
-                "materials": [
-                    "digital file",
-                    "digital download",
-                    "digital pattern",
-                    "digital paper"
-                ],
-                "taxonomy_id": 2427,  # Digital Patterns & Textures
+                "taxonomy_id": 6844,
                 "who_made": "i_did",
                 "is_supply": True,
                 "when_made": "made_to_order",
                 "is_digital": True,
                 "is_personalizable": False,
                 "personalization_instructions": "",
-                "price": 4.99,
+                "price": 3.32,
                 "quantity": 999,
-                "seo_keywords": [
-                    "seamless pattern",
-                    "digital paper",
-                    "commercial use",
-                    "background",
-                    "scrapbooking",
-                    "printable",
-                    "digital download"
-                ]
             }
-            
+
             # Clipart template
             clipart_template = {
                 "product_type": "clipart",
@@ -199,34 +188,25 @@ class ListingTemplate:
                     "graphic design",
                     "illustration",
                     "digital art",
-                    "design element"
+                    "design element",
                 ],
                 "materials": [
                     "digital file",
                     "digital download",
                     "digital clipart",
-                    "transparent png"
+                    "transparent png",
                 ],
-                "taxonomy_id": 2428,  # Digital Clip Art
+                "taxonomy_id": 6844,  # Digital Clip Art
                 "who_made": "i_did",
                 "is_supply": True,
                 "when_made": "made_to_order",
                 "is_digital": True,
                 "is_personalizable": False,
                 "personalization_instructions": "",
-                "price": 4.99,
+                "price": 3.32,
                 "quantity": 999,
-                "seo_keywords": [
-                    "digital clipart",
-                    "clip art",
-                    "transparent png",
-                    "commercial use",
-                    "digital download",
-                    "printable",
-                    "scrapbooking"
-                ]
             }
-            
+
             # Wall art template
             wall_art_template = {
                 "product_type": "wall_art",
@@ -245,13 +225,13 @@ class ListingTemplate:
                     "poster",
                     "modern art",
                     "minimalist art",
-                    "gallery wall"
+                    "gallery wall",
                 ],
                 "materials": [
                     "digital file",
                     "digital download",
                     "printable art",
-                    "digital print"
+                    "digital print",
                 ],
                 "taxonomy_id": 2429,  # Digital Prints
                 "who_made": "i_did",
@@ -262,17 +242,8 @@ class ListingTemplate:
                 "personalization_instructions": "",
                 "price": 5.99,
                 "quantity": 999,
-                "seo_keywords": [
-                    "printable wall art",
-                    "digital download",
-                    "home decor",
-                    "wall art",
-                    "printable art",
-                    "instant download",
-                    "digital print"
-                ]
             }
-            
+
             # Brush strokes template
             brush_strokes_template = {
                 "product_type": "brush_strokes",
@@ -291,13 +262,13 @@ class ListingTemplate:
                     "graphic design",
                     "art supply",
                     "digital tool",
-                    "creative resource"
+                    "creative resource",
                 ],
                 "materials": [
                     "digital file",
                     "digital download",
                     "digital brushes",
-                    "digital tool"
+                    "digital tool",
                 ],
                 "taxonomy_id": 2430,  # Digital Design Tools
                 "who_made": "i_did",
@@ -308,45 +279,36 @@ class ListingTemplate:
                 "personalization_instructions": "",
                 "price": 6.99,
                 "quantity": 999,
-                "seo_keywords": [
-                    "digital brushes",
-                    "procreate brushes",
-                    "photoshop brushes",
-                    "brush set",
-                    "digital art",
-                    "digital download",
-                    "commercial use"
-                ]
             }
-            
+
             # Save templates
             self.save_template("pattern", pattern_template)
             self.save_template("clipart", clipart_template)
             self.save_template("wall_art", wall_art_template)
             self.save_template("brush_strokes", brush_strokes_template)
-            
+
             return True
         except Exception as e:
             logger.error(f"Error creating default templates: {e}")
             return False
-    
+
     def get_template_for_product_type(self, product_type: str) -> Optional[Dict]:
         """
         Get a template for a specific product type.
-        
+
         Args:
             product_type: Product type
-            
+
         Returns:
             Template data or None if not found
         """
         try:
             # Try to load the template
             template = self.load_template(product_type)
-            
+
             if template:
                 return template
-            
+
             # If not found, create default templates and try again
             self.create_default_templates()
             return self.load_template(product_type)

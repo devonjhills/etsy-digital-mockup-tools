@@ -71,6 +71,9 @@ class EtsyIntegration:
         folder_path: str,
         product_type: str,
         product_name: Optional[str] = None,
+        custom_title: Optional[str] = None,
+        custom_description: Optional[str] = None,
+        custom_tags: Optional[List[str]] = None,
         is_draft: bool = False,
     ) -> Optional[Dict]:
         """
@@ -80,6 +83,9 @@ class EtsyIntegration:
             folder_path: Path to the product folder
             product_type: Product type
             product_name: Product name (optional, defaults to folder name)
+            custom_title: Custom title for the listing (optional)
+            custom_description: Custom description for the listing (optional)
+            custom_tags: Custom tags for the listing (optional, max 13)
             is_draft: Whether to create the listing as a draft
 
         Returns:
@@ -134,43 +140,54 @@ class EtsyIntegration:
         # Add additional info based on folder contents
         product_info.update(self._extract_product_info(folder_path, product_type))
 
-        # Generate content
-        if self.content_generator:
+        # Use custom values if provided, otherwise generate content
+        if custom_title:
+            title = custom_title
+        elif self.content_generator:
             title = self.content_generator.generate_title(product_info, template)
-            description = self.content_generator.generate_description(
-                product_info, template
-            )
-            tags = self.content_generator.generate_tags(product_info, template)
         else:
             # Use template with basic substitution
             title_template = template.get("title_template", "{name}")
             title = title_template.format(name=product_name, **product_info)
 
+        if custom_description:
+            description = custom_description
+        elif self.content_generator:
+            description = self.content_generator.generate_description(
+                product_info, template
+            )
+        else:
             description_template = template.get(
                 "description_template", "# {name}\n\nDigital product for download."
             )
             description = description_template.format(name=product_name, **product_info)
 
+        if custom_tags:
+            tags = custom_tags[:13]  # Ensure max 13 tags
+        elif self.content_generator:
+            tags = self.content_generator.generate_tags(product_info, template)
+        else:
             tags = template.get("tags", [])[:13]
 
         # Create the listing
+        is_digital = template.get("is_digital", True)  # Default to digital listing
+
         listing_data = {
             "title": title,
             "description": description,
-            "price": float(template.get("price", 4.99)),
+            "price": float(template.get("price", 3.32)),
             "quantity": int(template.get("quantity", 999)),
             "tags": tags[:13],  # Etsy allows max 13 tags
             "materials": template.get("materials", [])[
                 :13
             ],  # Etsy allows max 13 materials
-            "shipping_profile_id": shipping_profile_id,
             "taxonomy_id": int(
-                template.get("taxonomy_id", 2427)
-            ),  # Default to Digital Patterns & Textures
+                template.get("taxonomy_id", 6844)
+            ),  # Default to Digital Patterns & Textures (6844 for clipart and patterns)
             "who_made": template.get("who_made", "i_did"),
-            "is_supply": template.get("is_supply", True),
+            "is_supply": template.get("is_supply", False),
             "when_made": template.get("when_made", "2020_2024"),
-            "is_digital": template.get("is_digital", True),
+            "is_digital": is_digital,
             "is_personalizable": template.get("is_personalizable", False),
             "personalization_instructions": template.get(
                 "personalization_instructions", ""
@@ -178,8 +195,24 @@ class EtsyIntegration:
             "is_draft": is_draft,
         }
 
-        # Add shop section ID if available
-        shop_section_id = template.get("shop_section_id")
+        # Only add shipping_profile_id for physical products
+        if not is_digital and shipping_profile_id:
+            listing_data["shipping_profile_id"] = shipping_profile_id
+
+        # Add shop section ID based on product type
+        shop_section_mapping = {
+            "pattern": 42625767,  # Support both singular and plural
+            "patterns": 42625767,
+            "clipart": 42698827,
+        }
+
+        # First try to get from the mapping based on product type
+        shop_section_id = shop_section_mapping.get(product_type)
+
+        # If not found in mapping, try to get from template
+        if shop_section_id is None:
+            shop_section_id = template.get("shop_section_id")
+
         if shop_section_id:
             listing_data["shop_section_id"] = int(shop_section_id)
 

@@ -70,6 +70,7 @@ class EtsyListings:
         materials: List[str],
         taxonomy_id: int,
         shipping_profile_id: Optional[int] = None,
+        shop_section_id: Optional[int] = None,
         who_made: str = "i_did",
         is_supply: bool = False,
         when_made: str = "made_to_order",
@@ -89,6 +90,7 @@ class EtsyListings:
             tags: Listing tags
             materials: Listing materials
             shipping_profile_id: Shipping profile ID
+            shop_section_id: Shop section ID
             taxonomy_id: Taxonomy ID
             who_made: Who made the item
             is_supply: Whether the item is a supply
@@ -120,6 +122,9 @@ class EtsyListings:
                 "taxonomy_id": taxonomy_id,
                 "state": "draft" if is_draft else "active",
                 "is_digital": is_digital,
+                "type": (
+                    "download" if is_digital else "physical"
+                ),  # Explicitly set type for digital listings
                 "is_personalizable": is_personalizable,
                 "personalization_is_required": is_personalizable,
                 "personalization_instructions": (
@@ -133,6 +138,10 @@ class EtsyListings:
             # Add shipping_profile_id only if provided (required for physical products)
             if shipping_profile_id is not None:
                 data["shipping_profile_id"] = shipping_profile_id
+
+            # Add shop_section_id if provided
+            if shop_section_id is not None:
+                data["shop_section_id"] = shop_section_id
 
             response = requests.post(url, headers=headers, json=data)
 
