@@ -662,8 +662,11 @@ def create_grid_mockup_with_borders(
     try:
         # Original font finding logic
         try:
-            font = ImageFont.truetype("Arial.ttf", 80)  # Original size
-        except IOError:
+            font_path = get_asset_path("DSMarkerFelt.ttf")
+            if not font_path:
+                raise FileNotFoundError("DSMarkerFelt.ttf not found")
+            font = ImageFont.truetype(font_path, 80)  # Original size
+        except (FileNotFoundError, IOError) as e:
             try:
                 font = ImageFont.truetype("DejaVuSans.ttf", 80)  # Original size
             except IOError:

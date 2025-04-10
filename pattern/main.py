@@ -4,13 +4,14 @@ Main module for pattern processing.
 
 import os
 import sys
-from typing import List, Optional
 
 from utils.common import setup_logging, ensure_dir_exists
 from pattern.resize import process_images
 from pattern.mockups.seamless import create_pattern, create_seamless_mockup
 from pattern.mockups.grid import create_grid_mockup_with_borders
-from pattern.mockups.main_mockup import create_main_mockup
+
+# Import the new dynamic main mockup instead of the old one
+from pattern.mockups.dynamic_main_mockup import create_main_mockup
 from pattern.mockups.layered import create_large_grid
 from pattern.video import create_seamless_zoom_video
 

@@ -105,7 +105,7 @@ def create_grid_mockup_with_borders(
     # Add watermarks
     try:
         # Get font
-        font = get_font("Arial.ttf", 80, ["DejaVuSans.ttf"])
+        font = get_font("DSMarkerFelt.ttf", 80, ["DejaVuSans.ttf"])
 
         txt_layer = Image.new("RGBA", grid_canvas.size, (255, 255, 255, 0))
         draw = ImageDraw.Draw(txt_layer)
