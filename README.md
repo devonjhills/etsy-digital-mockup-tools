@@ -2,8 +2,6 @@
 
 <div align="center">
 
-![Mockup Tools Logo](assets/logo.png)
-
 _A comprehensive toolkit for digital product creators and Etsy sellers_
 
 [![Python](https://img.shields.io/badge/Python-3.8%2B-blue)](https://www.python.org/)
