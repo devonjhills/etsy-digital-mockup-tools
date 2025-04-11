@@ -227,8 +227,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 For more examples of my work and professional inquiries:
 
-- **GitHub**: [github.com/yourusername](https://github.com/devonjhills)
-- **LinkedIn**: [linkedin.com/in/yourprofile](https://linkedin.com/in/devonjhills)
+- **GitHub**: [github.com/devonjhills](https://github.com/devonjhills)
+- **LinkedIn**: [linkedin.com/in/devonjhills](https://linkedin.com/in/devonjhills)
 - **Email**: devonjhills@gmail.com
 
 ---
