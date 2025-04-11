@@ -57,6 +57,49 @@ def main():
         help="Create as draft instead of publishing immediately",
     )
 
+    # Bulk create listings command
+    bulk_create_parser = etsy_subparsers.add_parser(
+        "bulk-create", help="Create Etsy listings for all subfolders in input directory"
+    )
+    bulk_create_parser.add_argument(
+        "--input_dir",
+        required=True,
+        help="Path to the input directory containing product subfolders",
+    )
+    bulk_create_parser.add_argument(
+        "--product_type",
+        required=True,
+        choices=["pattern", "clipart"],
+        help="Product type (pattern or clipart)",
+    )
+    bulk_create_parser.add_argument(
+        "--draft",
+        action="store_true",
+        help="Create listings as drafts instead of publishing immediately",
+    )
+
+    # Bulk prepare listings command
+    bulk_prepare_parser = etsy_subparsers.add_parser(
+        "bulk-prepare",
+        help="Prepare Etsy listings for all subfolders without uploading",
+    )
+    bulk_prepare_parser.add_argument(
+        "--input_dir",
+        required=True,
+        help="Path to the input directory containing product subfolders",
+    )
+    bulk_prepare_parser.add_argument(
+        "--product_type",
+        required=True,
+        choices=["pattern", "clipart"],
+        help="Product type (pattern or clipart)",
+    )
+    bulk_prepare_parser.add_argument(
+        "--output_file",
+        default="prepared_listings.json",
+        help="Output file to save prepared listings data (default: prepared_listings.json)",
+    )
+
     # Generate content command
     generate_parser = etsy_subparsers.add_parser(
         "generate", help="Generate listing content from mockup image"
@@ -96,6 +139,7 @@ Description:
     * ✨ Product Highlights: Detail the key features and specifics inferred directly from the image or typically associated with this product type if clearly suggested.
     * 💡 Perfect For: List diverse potential applications, uses, or recipient ideas identified using bullet points. Use this specific emoji for list items: 🔘
     * ✅ What You Receive / Format: Explain the likely format based on visual cues. (e.g., "Instant Digital Download: Get your high-resolution file(s) immediately after purchase!"
+    * 📝 Disclaimer: At the very end of the generated description add a disclaimer saying that all images were designed by me and brought to life with the assistance of ai tools.
 * Readability & Tone: Maintain a Flesch Reading Ease score of 70+. Use clear, concise language and active voice. Avoid jargon. Keep the tone appropriate for the product's style (e.g., playful, elegant, professional, cozy) but always helpful and inspiring.
 * Keyword Integration: Naturally weave primary and secondary keywords (including inferred synonyms like 'artwork', 'gift idea', 'home accessory', 'craft supply', 'clothing item', 'digital asset') throughout the description, mirroring conversational language and reflecting the image content.
 Tags (Exactly 13):
@@ -203,9 +247,93 @@ Tags: [tag1, tag2, tag3, tag4, tag5, tag6, tag7, tag8, tag9, tag10, tag11, tag12
 
             if listing:
                 logger.info(f"Listing created: {listing.get('listing_id')}")
-                logger.info(f"URL: https://www.etsy.com/listing/{listing.get('listing_id')}")
+                logger.info(
+                    f"URL: https://www.etsy.com/listing/{listing.get('listing_id')}"
+                )
             else:
                 logger.error("Failed to create listing.")
+                sys.exit(1)
+
+        elif args.etsy_command == "bulk-create":
+            # Authenticate with Etsy
+            if not etsy.authenticate():
+                logger.error("Authentication failed.")
+                sys.exit(1)
+
+            # Validate input directory
+            if not os.path.exists(args.input_dir) or not os.path.isdir(args.input_dir):
+                logger.error(f"Input directory not found: {args.input_dir}")
+                sys.exit(1)
+
+            # Create listings in bulk
+            logger.info(
+                f"Starting bulk creation of listings for {args.product_type} in {args.input_dir}"
+            )
+            listings = etsy.create_listings_bulk(
+                input_dir=args.input_dir,
+                product_type=args.product_type,
+                is_draft=args.draft,
+            )
+
+            # Log results
+            if listings:
+                logger.info(f"Successfully created {len(listings)} listings:")
+                for listing in listings:
+                    logger.info(
+                        f"  - {listing.get('title')}: https://www.etsy.com/listing/{listing.get('listing_id')}"
+                    )
+            else:
+                logger.error("Failed to create any listings.")
+                sys.exit(1)
+
+        elif args.etsy_command == "bulk-prepare":
+            # Validate input directory
+            if not os.path.exists(args.input_dir) or not os.path.isdir(args.input_dir):
+                logger.error(f"Input directory not found: {args.input_dir}")
+                sys.exit(1)
+
+            # Prepare listings in bulk
+            logger.info(
+                f"Starting bulk preparation of listings for {args.product_type} in {args.input_dir}"
+            )
+            prepared_listings = etsy.prepare_bulk_listings(
+                input_dir=args.input_dir,
+                product_type=args.product_type,
+            )
+
+            # Save prepared listings to file
+            if prepared_listings:
+                import json
+
+                try:
+                    # Convert file paths to relative paths for better portability
+                    for listing in prepared_listings:
+                        # Convert mockup_images to relative paths
+                        listing["mockup_images_rel"] = [
+                            os.path.relpath(img)
+                            for img in listing.get("mockup_images", [])
+                        ]
+                        # Convert zip_files to relative paths
+                        listing["zip_files_rel"] = [
+                            os.path.relpath(zip_file)
+                            for zip_file in listing.get("zip_files", [])
+                        ]
+
+                    # Save to file
+                    with open(args.output_file, "w") as f:
+                        json.dump(prepared_listings, f, indent=2)
+
+                    logger.info(
+                        f"Successfully prepared {len(prepared_listings)} listings:"
+                    )
+                    for listing in prepared_listings:
+                        logger.info(f"  - {listing['folder_name']}: {listing['title']}")
+                    logger.info(f"Prepared listings saved to {args.output_file}")
+                except Exception as e:
+                    logger.error(f"Error saving prepared listings to file: {e}")
+                    sys.exit(1)
+            else:
+                logger.error("Failed to prepare any listings.")
                 sys.exit(1)
 
         elif args.etsy_command == "generate":

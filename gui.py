@@ -551,6 +551,295 @@ def run_command():
 
         if data.get("draft"):
             command.append("--draft")
+
+        # Log the command being executed
+        log_messages.append(f"Creating Etsy listing for {data.get('folder')}...")
+
+    elif command_type == "etsy-bulk-prepare":
+        # Prepare command for bulk preparation
+        command = [
+            "python",
+            "-m",
+            "etsy.cli",
+            "etsy",
+            "bulk-prepare",
+            "--input_dir",
+            "input",  # Always use the input directory
+            "--product_type",
+            data.get("productType"),
+            "--output_file",
+            "prepared_listings.json",
+        ]
+
+        log_messages.append(
+            f"Starting bulk preparation of {data.get('productType')} listings from input directory..."
+        )
+
+    elif command_type == "etsy-bulk-create":
+        # Prepare command for bulk creation
+        command = [
+            "python",
+            "-m",
+            "etsy.cli",
+            "etsy",
+            "bulk-create",
+            "--input_dir",
+            "input",  # Always use the input directory
+            "--product_type",
+            data.get("productType"),
+        ]
+
+        # Add draft flag if specified
+        if data.get("draft"):
+            command.append("--draft")
+
+        log_messages.append(
+            f"Starting bulk creation of {data.get('productType')} listings from input directory..."
+        )
+
+    elif command_type == "etsy-upload-prepared":
+        # Get the prepared listings file
+        import json
+        import os
+
+        prepared_file = data.get("file", "prepared_listings.json")
+        if not os.path.exists(prepared_file):
+            return (
+                jsonify(
+                    {"error": f"Prepared listings file not found: {prepared_file}"}
+                ),
+                404,
+            )
+
+        try:
+            with open(prepared_file, "r") as f:
+                prepared_listings = json.load(f)
+
+            # Get the listing index to upload
+            listing_index = data.get("index", 0)
+            if listing_index < 0 or listing_index >= len(prepared_listings):
+                return (
+                    jsonify({"error": f"Invalid listing index: {listing_index}"}),
+                    400,
+                )
+
+            # Get the listing data
+            listing_data = prepared_listings[listing_index]
+
+            # Prepare command for uploading a single prepared listing
+            command = [
+                "python",
+                "-m",
+                "etsy.cli",
+                "etsy",
+                "create",
+                "--folder",
+                listing_data["folder_path"],
+                "--product_type",
+                listing_data["product_type"],
+                "--title",
+                listing_data["title"],
+                "--description",
+                listing_data["description"],
+                "--tags",
+                ",".join(listing_data["tags"]),
+            ]
+
+            # Add draft flag if specified
+            if data.get("draft"):
+                command.append("--draft")
+
+            log_messages.append(
+                f"Uploading prepared listing {listing_index + 1}/{len(prepared_listings)}: {listing_data['folder_name']}"
+            )
+
+            # Return the total number of listings for progress tracking
+            return jsonify(
+                {
+                    "command": " ".join(command),
+                    "total": len(prepared_listings),
+                    "current": listing_index + 1,
+                    "folder": listing_data["folder_name"],
+                    "title": listing_data["title"],
+                }
+            )
+
+        except Exception as e:
+            log_messages.append(f"Error loading prepared listings: {e}")
+            return jsonify({"error": f"Error loading prepared listings: {e}"}), 500
+
+    elif command_type == "etsy-get-prepared":
+        # Get the prepared listings file
+        import json
+        import os
+
+        prepared_file = data.get("file", "prepared_listings.json")
+        if not os.path.exists(prepared_file):
+            return (
+                jsonify(
+                    {"error": f"Prepared listings file not found: {prepared_file}"}
+                ),
+                404,
+            )
+
+        try:
+            with open(prepared_file, "r") as f:
+                prepared_listings = json.load(f)
+
+            # Process the listings to add relative paths for frontend
+            for listing in prepared_listings:
+                # Add relative paths for mockup images
+                if "mockup_images" in listing:
+                    listing["mockup_images_rel"] = [
+                        path.replace(os.getcwd() + "/", "")
+                        for path in listing["mockup_images"]
+                    ]
+
+                # Add relative paths for zip files
+                if "zip_files" in listing:
+                    listing["zip_files_rel"] = [
+                        path.replace(os.getcwd() + "/", "")
+                        for path in listing["zip_files"]
+                    ]
+
+                # Add relative paths for video files
+                if "video_files" in listing:
+                    listing["video_files_rel"] = [
+                        path.replace(os.getcwd() + "/", "")
+                        for path in listing["video_files"]
+                    ]
+
+            # Return the prepared listings
+            return jsonify(
+                {"listings": prepared_listings, "count": len(prepared_listings)}
+            )
+
+        except Exception as e:
+            log_messages.append(f"Error loading prepared listings: {e}")
+            return jsonify({"error": f"Error loading prepared listings: {e}"}), 500
+    elif command_type == "etsy-update-prepared":
+        # Get the prepared listings file
+        import json
+        import os
+
+        prepared_file = data.get("file", "prepared_listings.json")
+        if not os.path.exists(prepared_file):
+            return (
+                jsonify(
+                    {"error": f"Prepared listings file not found: {prepared_file}"}
+                ),
+                404,
+            )
+
+        try:
+            with open(prepared_file, "r") as f:
+                prepared_listings = json.load(f)
+
+            # Get the listing index to update
+            listing_index = data.get("index", 0)
+            if listing_index < 0 or listing_index >= len(prepared_listings):
+                return (
+                    jsonify({"error": f"Invalid listing index: {listing_index}"}),
+                    400,
+                )
+
+            # Get the listing data
+            listing_data = prepared_listings[listing_index]
+            folder_name = listing_data["folder_name"]
+
+            # Update the listing data
+            listing_data["title"] = data.get("title", listing_data["title"])
+            listing_data["description"] = data.get(
+                "description", listing_data["description"]
+            )
+            listing_data["tags"] = data.get("tags", listing_data["tags"])
+
+            # Save the updated listings
+            with open(prepared_file, "w") as f:
+                json.dump(prepared_listings, f, indent=2)
+
+            log_messages.append(f"Updated prepared listing: {folder_name}")
+            return jsonify({"success": True, "folder_name": folder_name})
+
+        except Exception as e:
+            log_messages.append(f"Error updating prepared listing: {e}")
+            return jsonify({"error": f"Error updating prepared listing: {e}"}), 500
+
+    elif command_type == "etsy-delete-prepared":
+        # Delete the prepared listings file
+        import os
+
+        prepared_file = data.get("file", "prepared_listings.json")
+        if not os.path.exists(prepared_file):
+            return jsonify({"success": True, "message": "File already deleted"})
+
+        try:
+            os.remove(prepared_file)
+            log_messages.append(f"Deleted prepared listings file: {prepared_file}")
+            return jsonify({"success": True, "message": "File deleted successfully"})
+        except Exception as e:
+            log_messages.append(f"Error deleting prepared listings file: {e}")
+            return jsonify({"error": f"Error deleting file: {e}"}), 500
+
+    elif command_type == "etsy-remove-uploaded":
+        # Remove a listing from the prepared listings file after it's been uploaded
+        import json
+        import os
+
+        prepared_file = data.get("file", "prepared_listings.json")
+        if not os.path.exists(prepared_file):
+            return (
+                jsonify(
+                    {"error": f"Prepared listings file not found: {prepared_file}"}
+                ),
+                404,
+            )
+
+        try:
+            # Get the listing index to remove
+            listing_index = data.get("index", 0)
+
+            # Read the current listings
+            with open(prepared_file, "r") as f:
+                prepared_listings = json.load(f)
+
+            # Validate index
+            if listing_index < 0 or listing_index >= len(prepared_listings):
+                return (
+                    jsonify({"error": f"Invalid listing index: {listing_index}"}),
+                    400,
+                )
+
+            # Get the listing data for logging
+            listing_data = prepared_listings[listing_index]
+            folder_name = listing_data["folder_name"]
+
+            # Remove the listing
+            removed_listing = prepared_listings.pop(listing_index)
+
+            # Save the updated listings
+            with open(prepared_file, "w") as f:
+                json.dump(prepared_listings, f, indent=2)
+
+            # Ensure the file is written to disk
+            import time
+
+            time.sleep(0.5)  # Small delay to ensure file is written
+
+            log_messages.append(
+                f"Removed uploaded listing from prepared listings: {folder_name}"
+            )
+            return jsonify(
+                {
+                    "success": True,
+                    "message": f"Removed listing: {folder_name}",
+                    "remaining": len(prepared_listings),
+                }
+            )
+
+        except Exception as e:
+            log_messages.append(f"Error removing listing: {e}")
+            return jsonify({"error": f"Error removing listing: {e}"}), 500
     else:
         return jsonify({"error": "Invalid command"}), 400
 

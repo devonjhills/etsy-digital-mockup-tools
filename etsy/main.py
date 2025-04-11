@@ -131,6 +131,31 @@ class EtsyIntegration:
             "product_type": product_type,
         }
 
+        # Add product-specific name field based on product type
+        if product_type == "pattern" or product_type == "patterns":
+            product_info["pattern_name"] = product_name
+            # Add default values for pattern template variables
+            product_info.update(
+                {
+                    "colors": "Multicolor",
+                    "style": "Modern",
+                    "dimensions": "3000x3000 pixels",
+                    "file_formats": "JPG",
+                    "num_files": "12",
+                }
+            )
+        elif product_type == "clipart":
+            product_info["clipart_name"] = product_name
+            # Add default values for clipart template variables
+            product_info.update(
+                {
+                    "style": "Modern",
+                    "theme": "Decorative",
+                    "dimensions": "3000x3000 pixels",
+                    "num_files": "12",
+                }
+            )
+
         # Add additional info based on folder contents
         product_info.update(self._extract_product_info(folder_path, product_type))
 
@@ -140,7 +165,8 @@ class EtsyIntegration:
         else:
             # Use template with basic substitution
             title_template = template.get("title_template", "{name}")
-            title = title_template.format(name=product_name, **product_info)
+            # Use product_info['name'] to avoid duplicate name parameter
+            title = title_template.format(**product_info)
 
         if custom_description:
             description = custom_description
@@ -148,7 +174,8 @@ class EtsyIntegration:
             description_template = template.get(
                 "description_template", "# {name}\n\nDigital product for download."
             )
-            description = description_template.format(name=product_name, **product_info)
+            # Use product_info['name'] to avoid duplicate name parameter
+            description = description_template.format(**product_info)
 
         if custom_tags:
             tags = custom_tags[:13]  # Ensure max 13 tags
@@ -233,11 +260,31 @@ class EtsyIntegration:
             logger.warning(f"No images found in {folder_path}")
         else:
             # Upload images
-            for i, image_path in enumerate(
-                image_paths[:10]
-            ):  # Etsy allows max 10 images
+            # Reorder images to put main.png first
+            main_image_paths = []
+            other_image_paths = []
+
+            for image_path in image_paths:
+                if os.path.basename(image_path) == "main.png":
+                    main_image_paths.append(image_path)
+                else:
+                    other_image_paths.append(image_path)
+
+            # Combine lists with main.png first
+            ordered_image_paths = main_image_paths + other_image_paths
+
+            # Upload images (max 10)
+            for i, image_path in enumerate(ordered_image_paths[:10]):
+                # Set rank based on image name
+                rank = i + 1
+
+                # Log the image being uploaded
+                logger.info(
+                    f"Uploading image {os.path.basename(image_path)} with rank {rank}"
+                )
+
                 image_result = self.listings.upload_listing_image(
-                    listing_id=listing_id, image_path=image_path, rank=i + 1
+                    listing_id=listing_id, image_path=image_path, rank=rank
                 )
 
                 if not image_result:
@@ -279,6 +326,643 @@ class EtsyIntegration:
 
         logger.info(f"Created listing {listing_id} for {product_name}")
         return listing
+
+    def create_listings_bulk(
+        self, input_dir: str, product_type: str, is_draft: bool = False
+    ) -> List[Dict]:
+        """
+        Create Etsy listings for all subfolders in the input directory.
+
+        Args:
+            input_dir: Path to the input directory containing product subfolders
+            product_type: Product type (pattern or clipart)
+            is_draft: Whether to create the listings as drafts
+
+        Returns:
+            List of created listings
+        """
+        if not os.path.exists(input_dir) or not os.path.isdir(input_dir):
+            logger.error(f"Input directory not found: {input_dir}")
+            return []
+
+        # Get all subfolders in the input directory
+        subfolders = [
+            f
+            for f in os.listdir(input_dir)
+            if os.path.isdir(os.path.join(input_dir, f))
+        ]
+
+        if not subfolders:
+            logger.error(f"No subfolders found in {input_dir}")
+            return []
+
+        logger.info(f"Found {len(subfolders)} subfolders in {input_dir}")
+
+        # Create listings for each subfolder
+        created_listings = []
+        failed_folders = []
+
+        for subfolder in subfolders:
+            folder_path = os.path.join(input_dir, subfolder)
+            logger.info(f"Processing folder: {folder_path}")
+
+            try:
+                # Step 1: Resize and rename images
+                logger.info(f"Resizing and renaming images for {subfolder}...")
+                self._resize_and_rename(folder_path, product_type)
+
+                # Step 2: Generate mockups based on product type
+                logger.info(f"Generating mockups for {subfolder}...")
+                self._generate_mockups(folder_path, product_type)
+
+                # Step 3: Create zip files
+                logger.info(f"Creating zip files for {subfolder}...")
+                self._create_zip_files(folder_path)
+
+                # Step 4: Generate content using Gemini API
+                logger.info(f"Generating content for {subfolder}...")
+                instructions = "Analyze this mockup image and generate content for an Etsy listing. The image shows a digital product that will be sold on Etsy."
+                content = self.generate_content_from_mockup(
+                    folder_path=folder_path,
+                    product_type=product_type,
+                    instructions=instructions,
+                )
+
+                # Step 4: Create listing with generated content
+                if content and content["title"]:
+                    logger.info(f"Creating Etsy listing for {subfolder}...")
+                    listing = self.create_listing_from_folder(
+                        folder_path=folder_path,
+                        product_type=product_type,
+                        custom_title=content["title"],
+                        custom_description=content["description"],
+                        custom_tags=content["tags"],
+                        is_draft=is_draft,
+                    )
+
+                    if listing:
+                        created_listings.append(listing)
+                        logger.info(f"Successfully created listing for {subfolder}")
+                    else:
+                        failed_folders.append(subfolder)
+                        logger.error(f"Failed to create listing for {subfolder}")
+                else:
+                    failed_folders.append(subfolder)
+                    logger.error(f"Failed to generate content for {subfolder}")
+            except Exception as e:
+                failed_folders.append(subfolder)
+                logger.error(f"Error processing {subfolder}: {e}")
+
+        # Log summary
+        logger.info(
+            f"Bulk processing complete. Created {len(created_listings)} listings."
+        )
+        if failed_folders:
+            logger.error(
+                f"Failed to create listings for {len(failed_folders)} folders: {', '.join(failed_folders)}"
+            )
+
+        return created_listings
+
+    def prepare_bulk_listings(self, input_dir: str, product_type: str) -> List[Dict]:
+        """
+        Prepare Etsy listings for all subfolders in the input directory without uploading.
+
+        Args:
+            input_dir: Path to the input directory containing product subfolders
+            product_type: Product type (pattern or clipart)
+
+        Returns:
+            List of prepared listings data
+        """
+        if not os.path.exists(input_dir) or not os.path.isdir(input_dir):
+            logger.error(f"Input directory not found: {input_dir}")
+            return []
+
+        # Get all subfolders in the input directory
+        subfolders = [
+            f
+            for f in os.listdir(input_dir)
+            if os.path.isdir(os.path.join(input_dir, f))
+        ]
+
+        if not subfolders:
+            logger.error(f"No subfolders found in {input_dir}")
+            return []
+
+        logger.info(f"Found {len(subfolders)} subfolders in {input_dir}")
+
+        # Prepare listings for each subfolder
+        prepared_listings = []
+        failed_folders = []
+
+        for subfolder in subfolders:
+            folder_path = os.path.join(input_dir, subfolder)
+            logger.info(f"Processing folder: {folder_path}")
+
+            try:
+                # Step 1: Resize and rename images
+                logger.info(f"Resizing and renaming images for {subfolder}...")
+                self._resize_and_rename(folder_path, product_type)
+
+                # Step 2: Generate mockups based on product type
+                logger.info(f"Generating mockups for {subfolder}...")
+                self._generate_mockups(folder_path, product_type)
+
+                # Step 3: Create zip files
+                logger.info(f"Creating zip files for {subfolder}...")
+                self._create_zip_files(folder_path)
+
+                # Step 4: Generate content using Gemini API
+                logger.info(f"Generating content for {subfolder}...")
+                # Import the default instructions from constants
+                from etsy.constants import DEFAULT_ETSY_INSTRUCTIONS
+
+                content = self.generate_content_from_mockup(
+                    folder_path=folder_path,
+                    product_type=product_type,
+                    instructions=DEFAULT_ETSY_INSTRUCTIONS,
+                )
+
+                if content and content["title"]:
+                    # Get mockup images
+                    mocks_folder = os.path.join(folder_path, "mocks")
+                    mockup_images = []
+                    if os.path.exists(mocks_folder):
+                        import glob
+
+                        mockup_images = sorted(
+                            glob.glob(os.path.join(mocks_folder, "*.jpg"))
+                            + glob.glob(os.path.join(mocks_folder, "*.png"))
+                        )
+
+                    # Get zip files
+                    zipped_folder = os.path.join(folder_path, "zipped")
+                    zip_files = []
+                    if os.path.exists(zipped_folder):
+                        import glob
+
+                        zip_files = sorted(
+                            glob.glob(os.path.join(zipped_folder, "*.zip"))
+                        )
+
+                    # Get video files (only from videos folder)
+                    videos_folder = os.path.join(folder_path, "videos")
+                    video_files = []
+                    if os.path.exists(videos_folder):
+                        import glob
+
+                        video_files = sorted(
+                            glob.glob(os.path.join(videos_folder, "*.mp4"))
+                        )
+
+                    # Prepare listing data
+                    listing_data = {
+                        "folder_path": folder_path,
+                        "folder_name": subfolder,
+                        "product_type": product_type,
+                        "title": content["title"],
+                        "description": content["description"],
+                        "tags": content["tags"],
+                        "mockup_images": mockup_images,
+                        "zip_files": zip_files,
+                        "video_files": video_files,
+                    }
+
+                    prepared_listings.append(listing_data)
+                    logger.info(f"Successfully prepared listing for {subfolder}")
+                else:
+                    failed_folders.append(subfolder)
+                    logger.error(f"Failed to generate content for {subfolder}")
+            except Exception as e:
+                failed_folders.append(subfolder)
+                logger.error(f"Error processing {subfolder}: {e}")
+
+        # Log summary
+        logger.info(
+            f"Bulk preparation complete. Prepared {len(prepared_listings)} listings."
+        )
+        if failed_folders:
+            logger.error(
+                f"Failed to prepare listings for {len(failed_folders)} folders: {', '.join(failed_folders)}"
+            )
+
+        return prepared_listings
+
+    def upload_prepared_listing(
+        self, listing_data: Dict, is_draft: bool = False
+    ) -> Optional[Dict]:
+        """
+        Upload a prepared listing to Etsy.
+
+        Args:
+            listing_data: Prepared listing data
+            is_draft: Whether to create the listing as a draft
+
+        Returns:
+            Uploaded listing data or None if upload failed
+        """
+        try:
+            # Create listing
+            listing = self.create_listing_from_folder(
+                folder_path=listing_data["folder_path"],
+                product_type=listing_data["product_type"],
+                custom_title=listing_data["title"],
+                custom_description=listing_data["description"],
+                custom_tags=listing_data["tags"],
+                is_draft=is_draft,
+            )
+
+            if listing:
+                logger.info(
+                    f"Successfully uploaded listing for {listing_data['folder_name']}"
+                )
+                return listing
+            else:
+                logger.error(
+                    f"Failed to upload listing for {listing_data['folder_name']}"
+                )
+                return None
+        except Exception as e:
+            logger.error(
+                f"Error uploading listing for {listing_data['folder_name']}: {e}"
+            )
+            return None
+
+    def _resize_and_rename(self, folder_path: str, product_type: str) -> None:
+        """
+        Resize and rename images in a product folder based on product type.
+        Skips processing if files are already properly named and sized.
+
+        Args:
+            folder_path: Path to the product folder
+            product_type: Product type (pattern or clipart)
+        """
+        try:
+            # Get the folder name (last part of the path)
+            folder_name = os.path.basename(folder_path)
+            logger.info(f"Checking images in {folder_name}...")
+
+            # Create a safe folder name for renaming files
+            import re
+
+            safe_folder_name = re.sub(r"[^a-zA-Z0-9_]", "_", folder_name).lower()
+
+            # Get all image files in the folder (excluding mocks and zipped folders)
+            image_files = []
+            properly_named_files = []
+
+            for file in os.listdir(folder_path):
+                file_path = os.path.join(folder_path, file)
+                if os.path.isfile(file_path) and file.lower().endswith(
+                    (".jpg", ".jpeg", ".png", ".gif")
+                ):
+                    # Skip files in mocks or zipped folders
+                    if "mocks" in file_path or "zipped" in file_path:
+                        continue
+
+                    # Check if the file is already properly named (follows the pattern safe_folder_name_X.jpg)
+                    if re.match(f"{safe_folder_name}_\d+\.jpe?g$", file.lower()):
+                        properly_named_files.append(file_path)
+                    else:
+                        image_files.append(file_path)
+
+            # If no image files found, check if we have properly named files
+            if not image_files and not properly_named_files:
+                logger.warning(f"No image files found in {folder_path}")
+                return
+
+            # If all files are already properly named, skip processing
+            if not image_files and properly_named_files:
+                logger.info(
+                    f"All images in {folder_path} are already properly named. Skipping processing."
+                )
+                return
+
+            logger.info(
+                f"Found {len(image_files)} images to process and {len(properly_named_files)} already processed images in {folder_path}"
+            )
+
+            # Process each image file that needs processing
+            from PIL import Image
+            from utils.common import get_resampling_filter
+
+            # Start numbering from the highest existing number + 1
+            next_index = 1
+            if properly_named_files:
+                # Extract numbers from existing properly named files
+                numbers = []
+                for file_path in properly_named_files:
+                    file_name = os.path.basename(file_path)
+                    match = re.search(
+                        f"{safe_folder_name}_(\d+)\.jpe?g$", file_name.lower()
+                    )
+                    if match:
+                        numbers.append(int(match.group(1)))
+
+                if numbers:
+                    next_index = max(numbers) + 1
+
+            for i, image_file in enumerate(sorted(image_files), start=next_index):
+                try:
+                    logger.info(f"Processing image: {image_file}")
+
+                    with Image.open(image_file) as img:
+                        # Get original dimensions
+                        original_width, original_height = img.size
+                        original_filename = os.path.basename(image_file)
+
+                        # Determine max size based on product type
+                        if product_type == "pattern" or product_type == "patterns":
+                            max_size = (3600, 3600)
+                        else:  # clipart
+                            max_size = (1500, 1500)
+
+                        # Determine if resizing is needed
+                        needs_resize = (
+                            original_width > max_size[0]
+                            or original_height > max_size[1]
+                        )
+
+                        # Create new filename
+                        new_filename = f"{safe_folder_name}_{i}.jpg"
+                        new_file_path = os.path.join(folder_path, new_filename)
+
+                        # Check if the file already exists with the target name
+                        if (
+                            os.path.exists(new_file_path)
+                            and new_file_path != image_file
+                        ):
+                            logger.info(
+                                f"  File {new_filename} already exists. Skipping."
+                            )
+                            continue
+
+                        logger.info(
+                            f"  Processing: {original_filename} -> {new_filename}"
+                        )
+
+                        # Resize if needed
+                        if needs_resize:
+                            # Calculate new dimensions
+                            width_ratio = max_size[0] / original_width
+                            height_ratio = max_size[1] / original_height
+                            ratio = min(width_ratio, height_ratio)
+
+                            new_width = int(original_width * ratio)
+                            new_height = int(original_height * ratio)
+
+                            # Resize the image
+                            img_to_save = img.resize(
+                                (new_width, new_height), get_resampling_filter()
+                            )
+
+                            # Set DPI
+                            if hasattr(img_to_save, "info"):
+                                img_to_save.info["dpi"] = (300, 300)
+
+                            logger.info(
+                                f"  Resized: {original_width}x{original_height} -> {new_width}x{new_height}"
+                            )
+                        else:
+                            img_to_save = img
+                            logger.info(
+                                f"  No resizing needed. Image is already within size limits."
+                            )
+
+                        # Save the image only if it's not already in the correct format
+                        if image_file != new_file_path or needs_resize:
+                            img_to_save.save(
+                                new_file_path,
+                                format="JPEG",
+                                dpi=(300, 300),
+                                quality=85,
+                                optimize=True,
+                            )
+                            logger.info(f"  Saved as: {new_filename}")
+
+                            # Delete the original file if it's different from the new file
+                            if image_file != new_file_path:
+                                try:
+                                    os.remove(image_file)
+                                    logger.info(
+                                        f"  Deleted original: {original_filename}"
+                                    )
+                                except Exception as e:
+                                    logger.error(f"  Error deleting {image_file}: {e}")
+                        else:
+                            logger.info(
+                                f"  File is already in the correct format. No changes needed."
+                            )
+                except Exception as e:
+                    logger.error(f"Error processing image {image_file}: {e}")
+
+            logger.info(f"Images processed successfully in {folder_path}")
+
+        except Exception as e:
+            logger.error(f"Error resizing and renaming images: {e}")
+            raise
+
+    def _generate_mockups(self, folder_path: str, product_type: str) -> None:
+        """
+        Generate mockups for a product folder based on product type.
+
+        Args:
+            folder_path: Path to the product folder
+            product_type: Product type (pattern or clipart)
+        """
+        try:
+            # Get product name from folder name
+            product_name = (
+                os.path.basename(folder_path)
+                .replace("_", " ")
+                .replace("-", " ")
+                .title()
+            )
+
+            # Import mockup modules dynamically to avoid circular imports
+            import importlib
+
+            # Create mocks directory if it doesn't exist
+            mocks_dir = os.path.join(folder_path, "mocks")
+            os.makedirs(mocks_dir, exist_ok=True)
+
+            if product_type == "pattern" or product_type == "patterns":
+                # Import pattern mockup modules
+                dynamic_main_mockup = importlib.import_module(
+                    "pattern.mockups.dynamic_main_mockup"
+                )
+                seamless = importlib.import_module("pattern.mockups.seamless")
+                layered = importlib.import_module("pattern.mockups.layered")
+                grid = importlib.import_module("pattern.mockups.grid")
+                pattern_video = importlib.import_module("pattern.video")
+
+                # Generate pattern mockups
+                logger.info(f"Creating main mockup for {product_name}...")
+                dynamic_main_mockup.create_main_mockup(folder_path, product_name)
+
+                logger.info(f"Creating seamless mockup for {product_name}...")
+                seamless_pattern_file = seamless.create_pattern(folder_path)
+                seamless.create_seamless_mockup(folder_path)
+
+                logger.info(f"Creating layered mockup for {product_name}...")
+                layered.create_large_grid(folder_path)
+
+                logger.info(f"Creating grid mockup for {product_name}...")
+                grid.create_grid_mockup_with_borders(folder_path)
+
+                # Create video mockup
+                logger.info(f"Creating video mockup for {product_name}...")
+                pattern_video.create_seamless_zoom_video(
+                    folder_path, seamless_pattern_file
+                )
+
+            elif product_type == "clipart":
+                # Import clipart mockup modules
+                clipart_mockup = importlib.import_module("clipart.mockups")
+                clipart_video = importlib.import_module("clipart.video")
+
+                # Generate clipart mockups
+                logger.info(f"Creating clipart mockups for {product_name}...")
+                mockup_files = clipart_mockup.create_mockups(folder_path)
+
+                # Create video mockup
+                logger.info(f"Creating clipart video mockup for {product_name}...")
+                # Create videos folder for Etsy integration
+                videos_folder = os.path.join(folder_path, "videos")
+                os.makedirs(videos_folder, exist_ok=True)
+
+                # Find mockup images to use for video
+                mocks_folder = os.path.join(folder_path, "mocks")
+                if os.path.exists(mocks_folder):
+                    import glob
+
+                    mockup_images = sorted(
+                        glob.glob(os.path.join(mocks_folder, "*.jpg"))
+                        + glob.glob(os.path.join(mocks_folder, "*.png"))
+                    )
+
+                    if mockup_images:
+                        # Only create video in the videos folder, not in mocks
+                        clipart_video.create_video_mockup(
+                            image_paths=mockup_images,
+                            output_path="",  # Not used anymore, videos go directly to videos folder
+                            fps=30,
+                            transition_frames=20,
+                            display_frames=50,
+                        )
+
+            logger.info(f"Mockups generated successfully for {product_name}")
+
+        except Exception as e:
+            logger.error(f"Error generating mockups: {e}")
+            raise
+
+    def _create_zip_files(self, folder_path: str) -> None:
+        """
+        Create zip files for a product folder.
+
+        Args:
+            folder_path: Path to the product folder
+        """
+        try:
+            import zipfile
+            import os
+
+            # Get the folder name
+            folder_name = os.path.basename(folder_path)
+            logger.info(f"Creating zip files for {folder_name}...")
+
+            # Create zipped directory if it doesn't exist
+            zipped_dir = os.path.join(folder_path, "zipped")
+            os.makedirs(zipped_dir, exist_ok=True)
+
+            # Get all image files in the folder
+            image_files = []
+            for file in os.listdir(folder_path):
+                file_path = os.path.join(folder_path, file)
+                if os.path.isfile(file_path) and file.lower().endswith(
+                    (".jpg", ".jpeg", ".png", ".gif")
+                ):
+                    # Skip files in mocks or zipped folders
+                    if "mocks" in file_path or "zipped" in file_path:
+                        continue
+                    image_files.append(file_path)
+
+            if not image_files:
+                logger.warning(f"No image files found in {folder_path} for zipping")
+                return
+
+            logger.info(f"Found {len(image_files)} image files to zip in {folder_path}")
+
+            # Create a safe folder name for the zip file
+            import re
+
+            safe_folder_name = re.sub(r"[^a-zA-Z0-9_]", "_", folder_name).lower()
+
+            # Calculate total size of all images
+            total_size_bytes = sum(os.path.getsize(f) for f in image_files)
+            total_size_mb = total_size_bytes / (1024 * 1024)
+
+            # Determine how many zip files we need (max 20MB per zip)
+            max_size_mb = 20.0
+            num_zips = max(1, int(total_size_mb / max_size_mb) + 1)
+
+            if num_zips > 1:
+                logger.info(
+                    f"Total size: {total_size_mb:.2f} MB, splitting into {num_zips} zip files"
+                )
+                files_per_zip = len(image_files) // num_zips
+                if len(image_files) % num_zips > 0:
+                    files_per_zip += 1
+            else:
+                files_per_zip = len(image_files)
+
+            # Create the zip files
+            zip_files_created = []
+
+            for i in range(num_zips):
+                start_idx = i * files_per_zip
+                end_idx = min((i + 1) * files_per_zip, len(image_files))
+
+                if start_idx >= len(image_files):
+                    break
+
+                # Create zip filename
+                if num_zips > 1:
+                    zip_filename = f"{safe_folder_name}_part{i+1}.zip"
+                else:
+                    zip_filename = f"{safe_folder_name}.zip"
+
+                zip_path = os.path.join(zipped_dir, zip_filename)
+
+                # Create the zip file
+                logger.info(
+                    f"Creating zip file: {zip_filename} with {end_idx - start_idx} files"
+                )
+
+                with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
+                    for j in range(start_idx, end_idx):
+                        file_path = image_files[j]
+                        file_name = os.path.basename(file_path)
+                        zipf.write(file_path, file_name)
+                        logger.info(f"  Added {file_name} to {zip_filename}")
+
+                zip_files_created.append(zip_path)
+                logger.info(f"Created zip file: {zip_path}")
+
+            if zip_files_created:
+                logger.info(
+                    f"Created {len(zip_files_created)} zip files for {folder_name}"
+                )
+            else:
+                logger.warning(f"No zip files were created for {folder_name}")
+
+            return zip_files_created
+
+        except Exception as e:
+            logger.error(f"Error creating zip files: {e}")
+            raise
 
     def generate_content_from_mockup(
         self, folder_path: str, product_type: str, instructions: str

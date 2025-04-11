@@ -187,13 +187,25 @@ class ContentGenerator:
                 # Remove any ** markers if present
                 title = re.sub(r"^\*\*\s*", "", title)
 
-            desc_match = re.search(
-                r"Description:\s*(.+?)(?:\n|Tags:)", content, re.DOTALL
-            )
-            if desc_match:
-                description = desc_match.group(1).strip()
-                # Remove any ** markers if present
-                description = re.sub(r"^\*\*\s*", "", description)
+            # Extract description - look for everything between Description: and Tags:
+            desc_start = content.find("Description:")
+            tags_start = content.find("Tags:")
+
+            if desc_start >= 0 and tags_start > desc_start:
+                # Extract everything between Description: and Tags:
+                description = content[desc_start + 12 : tags_start].strip()
+                logger.info(f"Found description with length: {len(description)}")
+            else:
+                # Try regex as a fallback
+                logger.info("Using regex fallback for description")
+                desc_match = re.search(
+                    r"Description:\s*(.+?)(?:\n|Tags:)", content, re.DOTALL
+                )
+                if desc_match:
+                    description = desc_match.group(1).strip()
+
+            # Remove any ** markers if present
+            description = re.sub(r"^\*\*\s*", "", description)
 
             tags_match = re.search(r"Tags:\s*(.+)$", content, re.DOTALL)
             if tags_match:

@@ -207,7 +207,6 @@ def get_font(
         The font, or None if not found
     """
     logger = logging.getLogger(__name__)
-    print(f"DEBUG: Loading font '{font_name}' at size {size}")
 
     if fallback_names is None:
         fallback_names = []
@@ -215,17 +214,14 @@ def get_font(
     # Get the project root and assets directory
     project_root = get_project_root()
     fonts_dir = os.path.join(project_root, "assets", "fonts")
-    print(f"DEBUG: Fonts directory: {fonts_dir}")
 
     # Check if fonts directory exists
     if not os.path.exists(fonts_dir):
-        print(f"DEBUG: Fonts directory not found at {fonts_dir}")
         logger.warning(f"Fonts directory not found at {fonts_dir}")
         return ImageFont.load_default()
 
     # Try to find the font in the assets/fonts directory
     font_files = os.listdir(fonts_dir)
-    print(f"DEBUG: Available font files: {font_files}")
     matching_fonts = []
 
     # First, try to find an exact match
@@ -234,42 +230,29 @@ def get_font(
             # Check if the font name is in the filename
             if font_name.lower() in font_file.lower():
                 matching_fonts.append(os.path.join(fonts_dir, font_file))
-                print(f"DEBUG: Found matching font: {font_file}")
-
-    print(f"DEBUG: Matching fonts: {matching_fonts}")
 
     # If we found matching fonts, try to load them
     for font_path in matching_fonts:
         try:
-            print(f"DEBUG: Trying to load font: {font_path}")
             font = ImageFont.truetype(font_path, size)
-            print(f"DEBUG: Successfully loaded font: {font_path}")
             return font
         except Exception as e:
-            print(f"DEBUG: Error loading font {font_path}: {e}")
             logger.warning(f"Error loading font {font_path}: {e}")
 
     # If we didn't find any matching fonts, try the fallback fonts
     for fallback in fallback_names:
-        print(f"DEBUG: Trying fallback font: {fallback}")
         # Try to find the fallback font in the assets/fonts directory
         for font_file in font_files:
             if font_file.lower().endswith((".ttf", ".otf")):
                 if fallback.lower() in font_file.lower():
                     try:
-                        print(f"DEBUG: Found fallback font: {font_file}")
                         font_path = os.path.join(fonts_dir, font_file)
                         font = ImageFont.truetype(font_path, size)
-                        print(f"DEBUG: Successfully loaded fallback font: {font_path}")
                         return font
                     except Exception as e:
-                        print(f"DEBUG: Error loading fallback font {font_file}: {e}")
                         logger.warning(f"Error loading fallback font {font_file}: {e}")
 
     # If we still haven't found a font, use the default font
-    print(
-        f"DEBUG: Could not find font '{font_name}' or any fallbacks. Using default font."
-    )
     logger.warning(
         f"Could not find font '{font_name}' or any fallbacks. Using default font."
     )
