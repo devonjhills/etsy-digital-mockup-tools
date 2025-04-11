@@ -6,7 +6,7 @@ import os
 import glob
 from typing import Optional, Tuple, List, Dict
 import colorsys
-from PIL import Image, ImageDraw, ImageFont, ImageColor, ImageStat
+from PIL import Image, ImageDraw, ImageFont, ImageColor, ImageStat, ImageEnhance
 
 from utils.common import (
     setup_logging,
@@ -283,6 +283,7 @@ def create_dynamic_overlay(
     palette: Dict[str, Tuple[int, int, int]],
     title: str,
     num_images: int = 12,
+    texture_image: Optional[Image.Image] = None,
 ) -> Image.Image:
     """
     Create a dynamic overlay with colors from the palette.
@@ -380,12 +381,102 @@ def create_dynamic_overlay(
     border_thickness = max(2, divider_height // 20)  # Same as divider border thickness
     border_radius = 15
 
-    # Draw the main rectangle
-    draw.rounded_rectangle(
-        [(text_x, text_y), (text_x + text_width, text_y + text_height)],
-        radius=border_radius,
-        fill=palette["text_bg"],
+    # Create a separate image for the text backdrop with texture
+    text_backdrop = Image.new("RGBA", (text_width, text_height), palette["text_bg"])
+
+    # If we have a texture image, apply it as a distressed background
+    if texture_image is not None:
+        try:
+            # Resize the texture to fit the text backdrop
+            texture_resized = texture_image.resize(
+                (text_width, text_height), get_resampling_filter()
+            )
+
+            # Convert to grayscale for better blending if it's not already
+            if texture_resized.mode != "L":
+                texture_grayscale = texture_resized.convert("L")
+            else:
+                texture_grayscale = texture_resized
+
+            # Create a mask from the texture with varying opacity
+            # Adjust contrast to enhance the distressed effect
+            enhancer = ImageEnhance.Contrast(texture_grayscale)
+            enhanced_texture = enhancer.enhance(1.5)  # Increase contrast
+
+            # Convert the texture to RGBA with transparency
+            texture_rgba = Image.new("RGBA", (text_width, text_height), (0, 0, 0, 0))
+
+            # Use the texture as an alpha mask with the text_bg color
+            r, g, b = palette["text_bg"][:3]  # Get RGB from text_bg
+            for y in range(text_height):
+                for x in range(text_width):
+                    # Get pixel value from enhanced texture (0-255)
+                    pixel = enhanced_texture.getpixel((x, y))
+
+                    # Create a semi-transparent pixel based on texture
+                    # Darker areas of texture = more transparent
+                    alpha = max(30, min(80, 255 - pixel))  # Limit transparency range
+
+                    # Add subtle color variation based on texture
+                    # Darker areas of texture get slightly darker color
+                    color_variation = max(
+                        0, min(20, (255 - pixel) // 12)
+                    )  # Small variation
+                    r_var = max(0, r - color_variation)
+                    g_var = max(0, g - color_variation)
+                    b_var = max(0, b - color_variation)
+
+                    texture_rgba.putpixel((x, y), (r_var, g_var, b_var, alpha))
+
+            # Composite the texture with the text backdrop
+            text_backdrop = Image.alpha_composite(text_backdrop, texture_rgba)
+
+            # Add a subtle grain effect
+            try:
+                import random
+
+                # Create a smaller grain texture and then resize it for efficiency
+                small_size = (text_width // 4, text_height // 4)
+                grain_small = Image.new("RGBA", small_size, (0, 0, 0, 0))
+
+                # Generate grain on the smaller image
+                for y in range(small_size[1]):
+                    for x in range(small_size[0]):
+                        # Random noise with very low opacity
+                        if random.random() < 0.4:  # Increase density for small image
+                            noise = random.randint(-15, 15)
+                            alpha = random.randint(
+                                5, 20
+                            )  # Slightly stronger for small image
+                            grain_small.putpixel((x, y), (noise, noise, noise, alpha))
+
+                # Resize the grain to full size with nearest neighbor for a gritty look
+                grain_overlay = grain_small.resize(
+                    (text_width, text_height), Image.NEAREST
+                )
+
+                # Apply the grain effect
+                text_backdrop = Image.alpha_composite(text_backdrop, grain_overlay)
+            except Exception as e:
+                # If grain effect fails, just continue without it
+                logger.debug(f"Skipping grain effect: {e}")
+        except Exception as e:
+            logger.warning(
+                f"Error applying texture to text backdrop: {e}. Using solid color."
+            )
+
+    # Draw rounded corners on the text backdrop
+    mask = Image.new("L", (text_width, text_height), 0)
+    mask_draw = ImageDraw.Draw(mask)
+    mask_draw.rounded_rectangle(
+        [(0, 0), (text_width, text_height)], radius=border_radius, fill=255
     )
+
+    # Apply the mask to get rounded corners
+    text_backdrop.putalpha(mask)
+
+    # Paste the text backdrop onto the overlay
+    overlay.paste(text_backdrop, (text_x, text_y), text_backdrop)
 
     # Draw the border
     draw.rounded_rectangle(
@@ -550,10 +641,25 @@ def create_main_mockup(input_folder: str, title: str) -> Optional[str]:
             except Exception as e:
                 logger.error(f"Error pasting shadow at ({shadow_x},{shadow_y}): {e}")
 
+    # Select a texture image for the distressed effect
+    texture_image = None
+    if images:
+        try:
+            # Use the first image as texture
+            texture_image_path = images[0]
+            texture_image = Image.open(texture_image_path).convert("RGBA")
+            logger.info(
+                f"Using {os.path.basename(texture_image_path)} as texture for distressed effect"
+            )
+        except Exception as e:
+            logger.warning(
+                f"Error loading texture image: {e}. Will use solid color background."
+            )
+
     # Create and add dynamic overlay
     try:
         dynamic_overlay = create_dynamic_overlay(
-            grid_width, grid_height, color_palette, title, num_images
+            grid_width, grid_height, color_palette, title, num_images, texture_image
         )
         final_image = Image.alpha_composite(grid_canvas, dynamic_overlay)
     except Exception as e:
