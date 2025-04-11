@@ -335,7 +335,7 @@ def create_dynamic_overlay(
     title_font = get_font("Free Version Angelina.ttf", size=title_font_size)
 
     # Top subtitle
-    subtitle_text = "Seamless"
+    subtitle_text = "Seamless & Commercial Use"
     subtitle_width, subtitle_height = draw.textbbox(
         (0, 0), subtitle_text, font=top_subtitle_font
     )[2:4]
@@ -349,9 +349,7 @@ def create_dynamic_overlay(
         title_width, title_height = draw.textbbox((0, 0), title, font=title_font)[2:4]
 
     # Bottom subtitle
-    bottom_subtitle_text = (
-        f"{num_images} tileable images  |  300 dpi  |  commercial use"
-    )
+    bottom_subtitle_text = f"{num_images} tileable images  |  300 dpi  |  12x12in jpg"
     bottom_subtitle_width, bottom_subtitle_height = draw.textbbox(
         (0, 0), bottom_subtitle_text, font=bottom_subtitle_font
     )[2:4]

@@ -46,3 +46,8 @@ input/
 output/
 mockups_output/
 clipart_output/
+
+# API tokens and credentials
+etsy_token.json
+*.token.json
+*.credentials.json

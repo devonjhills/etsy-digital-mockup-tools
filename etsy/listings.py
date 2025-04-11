@@ -36,10 +36,17 @@ class EtsyListings:
         Returns:
             Shop ID or None if not found
         """
-        # Use the hardcoded shop ID for digitalveil
+        # First try to get the shop ID from environment variables
+        shop_id = os.environ.get("ETSY_SHOP_ID")
+        if shop_id:
+            logger.info(f"Using shop ID from environment: {shop_id}")
+            return shop_id
+
+        # Fall back to the hardcoded shop ID if environment variable is not set
+        logger.info("Using default shop ID: 42865309")
         return "42865309"
 
-        # Uncomment this code if you want to fetch the shop ID dynamically
+        # Uncomment this code if you want to fetch the shop ID dynamically instead
         # try:
         #     url = f"{self.base_url}/application/shops"
         #     headers = self.auth.get_headers()
