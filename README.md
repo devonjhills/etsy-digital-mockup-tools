@@ -221,6 +221,10 @@ python cli.py pattern all --input_dir input/patterns
 python cli.py etsy bulk-create --input_dir input/patterns --product_type pattern
 ```
 
+## 📝 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
 ## 🔗 Contact & Portfolio
 
 For more examples of my work and professional inquiries:
