@@ -6,7 +6,7 @@ import os
 import glob
 from typing import Optional, Tuple, List, Dict
 import colorsys
-from PIL import Image, ImageDraw, ImageFont, ImageColor, ImageStat, ImageEnhance
+from PIL import Image, ImageDraw, ImageStat
 
 from utils.common import (
     setup_logging,
@@ -37,8 +37,8 @@ def extract_colors_from_images(
         logger.warning("No images provided for color extraction")
         return [(222, 215, 211)]  # Default background color
 
-    # Use the first few images for color extraction
-    sample_images = images[: min(3, len(images))]
+    # Use more images for better color representation
+    sample_images = images[: min(5, len(images))]
     all_colors = []
 
     for img_path in sample_images:
@@ -85,12 +85,12 @@ def extract_colors_from_images(
         # Convert to HSV for better color comparison
         h, s, v = colorsys.rgb_to_hsv(color[0] / 255, color[1] / 255, color[2] / 255)
 
-        # Skip very dark or very light colors
-        if v < 0.2 or v > 0.95:
+        # Allow a wider range of colors, only skip extreme values
+        if v < 0.1 or v > 0.98:
             continue
 
-        # Skip colors with very low saturation
-        if s < 0.1:
+        # Allow colors with lower saturation for more subtle palette
+        if s < 0.05:
             continue
 
         # Check if this color is too similar to ones we've already kept
@@ -164,7 +164,7 @@ def calculate_contrast_ratio(
 
 def generate_color_palette(
     base_colors: List[Tuple[int, int, int]],
-) -> Dict[str, Tuple[int, int, int]]:
+) -> Dict[str, Tuple[int, int, int, int]]:
     """
     Generate a color palette from base colors.
 
@@ -180,7 +180,12 @@ def generate_color_palette(
             "background": (222, 215, 211),
             "divider": (180, 180, 180),
             "divider_border": (150, 150, 150),
-            "text_bg": (240, 240, 240, 200),
+            "text_bg": (
+                240,
+                240,
+                240,
+                200,
+            ),  # Semi-transparent background (200/255 = ~80% opacity)
             "title_text": (50, 50, 50),
             "subtitle_text": (80, 80, 80),
         }
@@ -203,13 +208,15 @@ def generate_color_palette(
     border_hsv = (h, s, max(0.1, v - 0.2))
     border_rgb = tuple(int(x * 255) for x in colorsys.hsv_to_rgb(*border_hsv))
 
-    # Create a lighter version for the text background (no transparency)
+    # Create a lighter version for the text background (with transparency)
     text_bg_hsv = (h, s * 0.3, min(0.95, v + 0.2))
     text_bg_rgb = tuple(int(x * 255) for x in colorsys.hsv_to_rgb(*text_bg_hsv))
+    # Add alpha channel (200 out of 255 for semi-transparency - ~80% opacity for the base color)
+    text_bg_with_alpha = text_bg_rgb + (200,)
 
     # Calculate relative luminance of the background color (using the formula for perceived brightness)
     # Formula: 0.299*R + 0.587*G + 0.114*B
-    r, g, b = text_bg_rgb
+    r, g, b = text_bg_rgb[:3]  # Use only RGB components
     luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
 
     # Determine if background is light or dark (threshold at 0.5)
@@ -271,7 +278,7 @@ def generate_color_palette(
         "background": background,
         "divider": divider_color,
         "divider_border": border_rgb,
-        "text_bg": text_bg_rgb,
+        "text_bg": text_bg_with_alpha,  # Now includes alpha channel
         "title_text": title_text,
         "subtitle_text": subtitle_text,
     }
@@ -280,10 +287,10 @@ def generate_color_palette(
 def create_dynamic_overlay(
     width: int,
     height: int,
-    palette: Dict[str, Tuple[int, int, int]],
+    palette: Dict[str, Tuple],
     title: str,
     num_images: int = 12,
-    texture_image: Optional[Image.Image] = None,
+    sample_image: Optional[Image.Image] = None,
 ) -> Image.Image:
     """
     Create a dynamic overlay with colors from the palette.
@@ -294,6 +301,7 @@ def create_dynamic_overlay(
         palette: Color palette to use
         title: Title text to display
         num_images: Number of images in the pattern set
+        sample_image: Optional image to use as a semi-transparent overlay on the backdrop
 
     Returns:
         RGBA image with the overlay
@@ -327,16 +335,18 @@ def create_dynamic_overlay(
 
     # Load fonts and prepare text elements
     top_subtitle_font_size = (
-        divider_height // 1.5
+        divider_height // 2
     )  # Larger size for top subtitle, but not too large
-    bottom_subtitle_font_size = divider_height // 2  # Smaller size for bottom subtitle
-    top_subtitle_font = get_font("DSMarkerFelt.ttf", size=top_subtitle_font_size)
-    bottom_subtitle_font = get_font("DSMarkerFelt.ttf", size=bottom_subtitle_font_size)
-    title_font_size = divider_height // 1.2
+    bottom_subtitle_font_size = divider_height // 3  # Smaller size for bottom subtitle
+    top_subtitle_font = get_font("Poppins-SemiBold.ttf", size=top_subtitle_font_size)
+    bottom_subtitle_font = get_font(
+        "Poppins-SemiBold.ttf", size=bottom_subtitle_font_size
+    )
+    title_font_size = divider_height // 1.0
     title_font = get_font("Free Version Angelina.ttf", size=title_font_size)
 
     # Top subtitle
-    subtitle_text = "Seamless & Commercial Use"
+    subtitle_text = "Commercial Use"
     subtitle_width, subtitle_height = draw.textbbox(
         (0, 0), subtitle_text, font=top_subtitle_font
     )[2:4]
@@ -350,7 +360,7 @@ def create_dynamic_overlay(
         title_width, title_height = draw.textbbox((0, 0), title, font=title_font)[2:4]
 
     # Bottom subtitle
-    bottom_subtitle_text = f"{num_images} tileable images  |  300 dpi  |  12x12in jpg"
+    bottom_subtitle_text = f"{num_images} seamless images  |  300 dpi  |  12x12in jpg"
     bottom_subtitle_width, bottom_subtitle_height = draw.textbbox(
         (0, 0), bottom_subtitle_text, font=bottom_subtitle_font
     )[2:4]
@@ -381,99 +391,110 @@ def create_dynamic_overlay(
     border_thickness = max(2, divider_height // 20)  # Same as divider border thickness
     border_radius = 15
 
-    # Create a separate image for the text backdrop with texture
-    text_backdrop = Image.new("RGBA", (text_width, text_height), palette["text_bg"])
+    # Get the solid color for the backdrop from the palette
+    if len(palette["text_bg"]) >= 3:
+        backdrop_color = palette["text_bg"][:3] + (255,)  # Fully opaque
+    else:
+        backdrop_color = (240, 240, 240, 255)  # Default if no color provided
 
-    # If we have a texture image, apply it as a distressed background
-    if texture_image is not None:
-        try:
-            # Resize the texture to fit the text backdrop
-            texture_resized = texture_image.resize(
-                (text_width, text_height), get_resampling_filter()
-            )
-
-            # Convert to grayscale for better blending if it's not already
-            if texture_resized.mode != "L":
-                texture_grayscale = texture_resized.convert("L")
-            else:
-                texture_grayscale = texture_resized
-
-            # Create a mask from the texture with varying opacity
-            # Adjust contrast to enhance the distressed effect
-            enhancer = ImageEnhance.Contrast(texture_grayscale)
-            enhanced_texture = enhancer.enhance(1.5)  # Increase contrast
-
-            # Convert the texture to RGBA with transparency
-            texture_rgba = Image.new("RGBA", (text_width, text_height), (0, 0, 0, 0))
-
-            # Use the texture as an alpha mask with the text_bg color
-            r, g, b = palette["text_bg"][:3]  # Get RGB from text_bg
-            for y in range(text_height):
-                for x in range(text_width):
-                    # Get pixel value from enhanced texture (0-255)
-                    pixel = enhanced_texture.getpixel((x, y))
-
-                    # Create a semi-transparent pixel based on texture
-                    # Darker areas of texture = more transparent
-                    alpha = max(30, min(80, 255 - pixel))  # Limit transparency range
-
-                    # Add subtle color variation based on texture
-                    # Darker areas of texture get slightly darker color
-                    color_variation = max(
-                        0, min(20, (255 - pixel) // 12)
-                    )  # Small variation
-                    r_var = max(0, r - color_variation)
-                    g_var = max(0, g - color_variation)
-                    b_var = max(0, b - color_variation)
-
-                    texture_rgba.putpixel((x, y), (r_var, g_var, b_var, alpha))
-
-            # Composite the texture with the text backdrop
-            text_backdrop = Image.alpha_composite(text_backdrop, texture_rgba)
-
-            # Add a subtle grain effect
-            try:
-                import random
-
-                # Create a smaller grain texture and then resize it for efficiency
-                small_size = (text_width // 4, text_height // 4)
-                grain_small = Image.new("RGBA", small_size, (0, 0, 0, 0))
-
-                # Generate grain on the smaller image
-                for y in range(small_size[1]):
-                    for x in range(small_size[0]):
-                        # Random noise with very low opacity
-                        if random.random() < 0.4:  # Increase density for small image
-                            noise = random.randint(-15, 15)
-                            alpha = random.randint(
-                                5, 20
-                            )  # Slightly stronger for small image
-                            grain_small.putpixel((x, y), (noise, noise, noise, alpha))
-
-                # Resize the grain to full size with nearest neighbor for a gritty look
-                grain_overlay = grain_small.resize(
-                    (text_width, text_height), Image.NEAREST
-                )
-
-                # Apply the grain effect
-                text_backdrop = Image.alpha_composite(text_backdrop, grain_overlay)
-            except Exception as e:
-                # If grain effect fails, just continue without it
-                logger.debug(f"Skipping grain effect: {e}")
-        except Exception as e:
-            logger.warning(
-                f"Error applying texture to text backdrop: {e}. Using solid color."
-            )
-
-    # Draw rounded corners on the text backdrop
+    # Create a mask for rounded corners
     mask = Image.new("L", (text_width, text_height), 0)
     mask_draw = ImageDraw.Draw(mask)
     mask_draw.rounded_rectangle(
         [(0, 0), (text_width, text_height)], radius=border_radius, fill=255
     )
 
-    # Apply the mask to get rounded corners
-    text_backdrop.putalpha(mask)
+    # Create the solid backdrop with rounded corners
+    solid_backdrop = Image.new("RGBA", (text_width, text_height), backdrop_color)
+    solid_backdrop.putalpha(mask)  # Apply rounded corners
+
+    # Create the final text backdrop that will hold all layers
+    text_backdrop = solid_backdrop.copy()
+
+    # If we have a sample image, overlay it on the backdrop with transparency
+    if sample_image is not None:
+        try:
+            # Resize the sample image to fill the text backdrop while preserving aspect ratio
+            # This is similar to CSS "background-size: cover"
+            img_aspect = (
+                sample_image.width / sample_image.height
+                if sample_image.height > 0
+                else 1
+            )
+            backdrop_aspect = text_width / text_height
+
+            # Determine which dimension to match and which to overflow
+            if img_aspect > backdrop_aspect:  # Image is wider than backdrop
+                # Match height and let width overflow
+                new_height = text_height
+                new_width = int(text_height * img_aspect)
+            else:  # Image is taller than backdrop or same aspect ratio
+                # Match width and let height overflow
+                new_width = text_width
+                new_height = int(text_width / img_aspect)
+
+            # Resize to the calculated dimensions
+            sample_resized = sample_image.resize(
+                (new_width, new_height), get_resampling_filter()
+            )
+
+            # Calculate position to center the image in the backdrop
+            # This will create negative offsets if the image is larger than the backdrop
+            # which is exactly what we want for the "cover" effect
+            pos_x = (text_width - new_width) // 2
+            pos_y = (text_height - new_height) // 2
+
+            logger.info(
+                f"Image resized to {new_width}x{new_height} with offset ({pos_x}, {pos_y}) to fill {text_width}x{text_height} backdrop"
+            )
+
+            # Create a semi-transparent version of the sample image
+            sample_overlay = Image.new("RGBA", (text_width, text_height), (0, 0, 0, 0))
+            sample_pixels = sample_overlay.load()
+            resized_pixels = sample_resized.load()
+
+            # Copy pixels with reduced alpha (semi-transparent)
+            # We'll iterate through the target image coordinates to ensure we fill the entire backdrop
+            for target_y in range(text_height):
+                for target_x in range(text_width):
+                    # Calculate the corresponding position in the source image
+                    source_x = target_x - pos_x
+                    source_y = target_y - pos_y
+
+                    # Check if the source coordinates are within the resized image
+                    if (
+                        0 <= source_x < sample_resized.width
+                        and 0 <= source_y < sample_resized.height
+                    ):
+                        r, g, b, a = resized_pixels[source_x, source_y]
+                        # Make the overlay extremely transparent (10% opacity)
+                        new_alpha = min(25, a)  # Cap at 25 for extreme transparency
+                        sample_pixels[target_x, target_y] = (r, g, b, new_alpha)
+
+            # Apply the rounded corner mask to the sample overlay
+            # First, get the alpha channel from the sample overlay
+            sample_alpha = sample_overlay.split()[3]
+
+            # Apply the mask to the alpha channel
+            masked_alpha = Image.new("L", (text_width, text_height), 0)
+            masked_alpha.paste(sample_alpha, (0, 0), mask)
+
+            # Apply the masked alpha channel back to the sample overlay
+            r, g, b, _ = sample_overlay.split()
+            sample_overlay = Image.merge("RGBA", (r, g, b, masked_alpha))
+
+            logger.info(
+                "Applied transparency and rounded corners to sample image overlay"
+            )
+
+            # Composite the sample overlay onto the backdrop
+            text_backdrop = Image.alpha_composite(text_backdrop, sample_overlay)
+
+            logger.info("Applied semi-transparent sample image to backdrop")
+        except Exception as e:
+            logger.warning(
+                f"Error applying sample image overlay: {e}. Using solid backdrop."
+            )
 
     # Paste the text backdrop onto the overlay
     overlay.paste(text_backdrop, (text_x, text_y), text_backdrop)
@@ -641,25 +662,25 @@ def create_main_mockup(input_folder: str, title: str) -> Optional[str]:
             except Exception as e:
                 logger.error(f"Error pasting shadow at ({shadow_x},{shadow_y}): {e}")
 
-    # Select a texture image for the distressed effect
-    texture_image = None
+    # Load a sample image for the backdrop overlay
+    sample_image = None
     if images:
         try:
-            # Use the first image as texture
-            texture_image_path = images[0]
-            texture_image = Image.open(texture_image_path).convert("RGBA")
+            # Use the first image as a sample for the backdrop
+            sample_image_path = images[0]
+            sample_image = Image.open(sample_image_path).convert("RGBA")
             logger.info(
-                f"Using {os.path.basename(texture_image_path)} as texture for distressed effect"
+                f"Using {os.path.basename(sample_image_path)} as semi-transparent overlay"
             )
         except Exception as e:
             logger.warning(
-                f"Error loading texture image: {e}. Will use solid color background."
+                f"Error loading sample image: {e}. Will use solid color background."
             )
 
     # Create and add dynamic overlay
     try:
         dynamic_overlay = create_dynamic_overlay(
-            grid_width, grid_height, color_palette, title, num_images, texture_image
+            grid_width, grid_height, color_palette, title, num_images, sample_image
         )
         final_image = Image.alpha_composite(grid_canvas, dynamic_overlay)
     except Exception as e:

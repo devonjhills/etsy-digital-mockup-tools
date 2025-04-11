@@ -906,27 +906,47 @@ class EtsyIntegration:
 
             # Determine how many zip files we need (max 20MB per zip)
             max_size_mb = 20.0
-            num_zips = max(1, int(total_size_mb / max_size_mb) + 1)
+            import math
+
+            # Use math.ceil to properly round up the number of zips needed
+            num_zips = max(1, math.ceil(total_size_mb / max_size_mb))
 
             if num_zips > 1:
                 logger.info(
                     f"Total size: {total_size_mb:.2f} MB, splitting into {num_zips} zip files"
                 )
-                files_per_zip = len(image_files) // num_zips
-                if len(image_files) % num_zips > 0:
-                    files_per_zip += 1
+
+                # Sort files by size (largest first) for better distribution
+                image_files_with_size = [(f, os.path.getsize(f)) for f in image_files]
+                image_files_with_size.sort(key=lambda x: x[1], reverse=True)
+
+                # Distribute files across zips using a greedy approach
+                zip_contents = [[] for _ in range(num_zips)]
+                zip_sizes = [0] * num_zips
+
+                # Assign each file to the zip with the smallest current size
+                for file_path, file_size in image_files_with_size:
+                    smallest_zip_idx = zip_sizes.index(min(zip_sizes))
+                    zip_contents[smallest_zip_idx].append(file_path)
+                    zip_sizes[smallest_zip_idx] += file_size
+
+                logger.info(
+                    f"Estimated zip sizes after distribution: {[size/(1024*1024) for size in zip_sizes]}"
+                )
+
+                # Replace image_files with the distributed contents
+                image_files = zip_contents
             else:
-                files_per_zip = len(image_files)
+                # Just one zip file needed
+                image_files = [image_files]
 
             # Create the zip files
             zip_files_created = []
 
-            for i in range(num_zips):
-                start_idx = i * files_per_zip
-                end_idx = min((i + 1) * files_per_zip, len(image_files))
-
-                if start_idx >= len(image_files):
-                    break
+            for i, files_for_this_zip in enumerate(image_files):
+                # Skip if no files for this zip
+                if not files_for_this_zip:
+                    continue
 
                 # Create zip filename
                 if num_zips > 1:
@@ -938,15 +958,23 @@ class EtsyIntegration:
 
                 # Create the zip file
                 logger.info(
-                    f"Creating zip file: {zip_filename} with {end_idx - start_idx} files"
+                    f"Creating zip file: {zip_filename} with {len(files_for_this_zip)} files"
                 )
 
                 with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
-                    for j in range(start_idx, end_idx):
-                        file_path = image_files[j]
+                    for file_path in files_for_this_zip:
                         file_name = os.path.basename(file_path)
                         zipf.write(file_path, file_name)
                         logger.info(f"  Added {file_name} to {zip_filename}")
+
+                # Verify the zip size is under the limit
+                zip_size_mb = os.path.getsize(zip_path) / (1024 * 1024)
+                logger.info(f"  Created {zip_filename}: {zip_size_mb:.2f} MB")
+
+                if zip_size_mb > max_size_mb:
+                    logger.warning(
+                        f"  Warning: {zip_filename} is {zip_size_mb:.2f} MB, which exceeds the {max_size_mb} MB limit"
+                    )
 
                 zip_files_created.append(zip_path)
                 logger.info(f"Created zip file: {zip_path}")
