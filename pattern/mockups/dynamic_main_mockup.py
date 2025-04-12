@@ -6,7 +6,7 @@ import os
 import glob
 from typing import Optional, Tuple, List, Dict
 import colorsys
-from PIL import Image, ImageDraw, ImageStat
+from PIL import Image, ImageDraw, ImageStat, ImageFont
 
 from utils.common import (
     setup_logging,
@@ -188,6 +188,8 @@ def generate_color_palette(
             ),  # Semi-transparent background (200/255 = ~80% opacity)
             "title_text": (50, 50, 50),
             "subtitle_text": (80, 80, 80),
+            "title_outline": (255, 255, 255),
+            "subtitle_outline": (255, 255, 255),
         }
 
     # Sort colors by saturation (most saturated first)
@@ -222,54 +224,94 @@ def generate_color_palette(
     # Determine if background is light or dark (threshold at 0.5)
     is_light_bg = luminance > 0.5
 
-    # Choose contrasting colors based on background luminance
-    # For dark backgrounds, use lighter text; for light backgrounds, use darker text
-    if is_light_bg:
-        # Dark text for light backgrounds - start with almost black
-        title_text = (40, 40, 40)  # Almost black for title
-        subtitle_text = (60, 60, 60)  # Dark gray for subtitle
-    else:
-        # Light text for dark backgrounds - start with almost white
-        title_text = (250, 250, 250)  # Almost white for title
-        subtitle_text = (230, 230, 230)  # Light gray for subtitle
+    # Find a vibrant color from the extracted colors for the title text
+    title_text = None
+    subtitle_text = None
 
-    # Check contrast ratio and adjust if needed to ensure readability
-    # WCAG AA standard requires a contrast ratio of at least 4.5:1 for normal text
-    min_contrast = 4.5
+    # Try to find a vibrant color with good contrast for the title
+    for color, h, s, v in colors_with_hsv:
+        # Skip colors that are too similar to the background
+        bg_contrast = calculate_contrast_ratio(text_bg_rgb, color)
+        if bg_contrast >= 4.5 and s >= 0.4 and 0.2 <= v <= 0.9:
+            title_text = color
+            # Create a slightly less saturated version for subtitle
+            subtitle_hsv = (h, max(0.3, s - 0.1), v)
+            subtitle_rgb = tuple(
+                int(x * 255) for x in colorsys.hsv_to_rgb(*subtitle_hsv)
+            )
+            subtitle_text = subtitle_rgb
+            break
 
-    # Check and adjust title text contrast
-    title_contrast = calculate_contrast_ratio(text_bg_rgb, title_text)
-    if title_contrast < min_contrast:
-        # Adjust title text to be darker or lighter based on background
+    # If we couldn't find a suitable vibrant color, fall back to contrast-based selection
+    if title_text is None:
+        # Choose contrasting colors based on background luminance
+        # For dark backgrounds, use lighter text; for light backgrounds, use darker text
         if is_light_bg:
-            title_text = (
-                0,
-                0,
-                0,
-            )  # Pure black for maximum contrast on light background
+            # Dark text for light backgrounds - start with almost black
+            title_text = (40, 40, 40)  # Almost black for title
+            subtitle_text = (60, 60, 60)  # Dark gray for subtitle
         else:
-            title_text = (
-                255,
-                255,
-                255,
-            )  # Pure white for maximum contrast on dark background
+            # Light text for dark backgrounds - start with almost white
+            title_text = (250, 250, 250)  # Almost white for title
+            subtitle_text = (230, 230, 230)  # Light gray for subtitle
 
-    # Check and adjust subtitle text contrast
-    subtitle_contrast = calculate_contrast_ratio(text_bg_rgb, subtitle_text)
-    if subtitle_contrast < min_contrast:
-        # Adjust subtitle text to be darker or lighter based on background
-        if is_light_bg:
-            subtitle_text = (
-                20,
-                20,
-                20,
-            )  # Very dark gray for good contrast on light background
-        else:
-            subtitle_text = (
-                240,
-                240,
-                240,
-            )  # Very light gray for good contrast on dark background
+        # Check contrast ratio and adjust if needed to ensure readability
+        # WCAG AA standard requires a contrast ratio of at least 4.5:1 for normal text
+        min_contrast = 4.5
+
+        # Check and adjust title text contrast
+        title_contrast = calculate_contrast_ratio(text_bg_rgb, title_text)
+        if title_contrast < min_contrast:
+            # Adjust title text to be darker or lighter based on background
+            if is_light_bg:
+                title_text = (
+                    0,
+                    0,
+                    0,
+                )  # Pure black for maximum contrast on light background
+            else:
+                title_text = (
+                    255,
+                    255,
+                    255,
+                )  # Pure white for maximum contrast on dark background
+
+        # Check and adjust subtitle text contrast
+        subtitle_contrast = calculate_contrast_ratio(text_bg_rgb, subtitle_text)
+        if subtitle_contrast < min_contrast:
+            # Adjust subtitle text to be darker or lighter based on background
+            if is_light_bg:
+                subtitle_text = (
+                    20,
+                    20,
+                    20,
+                )  # Very dark gray for good contrast on light background
+            else:
+                subtitle_text = (
+                    240,
+                    240,
+                    240,
+                )  # Very light gray for good contrast on dark background
+
+    # Create contrasting outline colors for the text
+    # For dark text, use light outline and vice versa
+    title_luminance = (
+        0.299 * title_text[0] + 0.587 * title_text[1] + 0.114 * title_text[2]
+    ) / 255
+    subtitle_luminance = (
+        0.299 * subtitle_text[0] + 0.587 * subtitle_text[1] + 0.114 * subtitle_text[2]
+    ) / 255
+
+    # Create outline colors with opposite luminance
+    if title_luminance > 0.5:  # Light text
+        title_outline = (0, 0, 0)  # Black outline
+    else:  # Dark text
+        title_outline = (255, 255, 255)  # White outline
+
+    if subtitle_luminance > 0.5:  # Light text
+        subtitle_outline = (0, 0, 0)  # Black outline
+    else:  # Dark text
+        subtitle_outline = (255, 255, 255)  # White outline
 
     # Use a neutral background color
     background = (240, 240, 240) if v < 0.5 else (220, 220, 220)
@@ -281,7 +323,44 @@ def generate_color_palette(
         "text_bg": text_bg_with_alpha,  # Now includes alpha channel
         "title_text": title_text,
         "subtitle_text": subtitle_text,
+        "title_outline": title_outline,
+        "subtitle_outline": subtitle_outline,
     }
+
+
+def draw_text_with_outline(
+    draw: ImageDraw.Draw,
+    position: Tuple[int, int],
+    text: str,
+    font: ImageFont.FreeTypeFont,
+    text_color: Tuple[int, int, int],
+    outline_color: Tuple[int, int, int],
+    outline_width: int = 1,
+) -> None:
+    """
+    Draw text with an outline for better visibility.
+
+    Args:
+        draw: ImageDraw object to draw on
+        position: (x, y) position for the text
+        text: Text to draw
+        font: Font to use
+        text_color: RGB color for the text
+        outline_color: RGB color for the outline
+        outline_width: Width of the outline in pixels
+    """
+    x, y = position
+
+    # Draw the outline by drawing the text multiple times with offsets
+    for offset_x in range(-outline_width, outline_width + 1):
+        for offset_y in range(-outline_width, outline_width + 1):
+            # Skip the center position (that will be the main text)
+            if offset_x == 0 and offset_y == 0:
+                continue
+            draw.text((x + offset_x, y + offset_y), text, font=font, fill=outline_color)
+
+    # Draw the main text on top
+    draw.text(position, text, font=font, fill=text_color)
 
 
 def create_dynamic_overlay(
@@ -467,8 +546,10 @@ def create_dynamic_overlay(
                         and 0 <= source_y < sample_resized.height
                     ):
                         r, g, b, a = resized_pixels[source_x, source_y]
-                        # Make the overlay extremely transparent (10% opacity)
-                        new_alpha = min(25, a)  # Cap at 25 for extreme transparency
+                        # Make the overlay semi-transparent (20-25% opacity)
+                        new_alpha = min(
+                            60, a
+                        )  # Cap at 60 for better visibility while maintaining readability
                         sample_pixels[target_x, target_y] = (r, g, b, new_alpha)
 
             # Apply the rounded corner mask to the sample overlay
@@ -524,21 +605,38 @@ def create_dynamic_overlay(
     bottom_subtitle_x = (width - bottom_subtitle_width) // 2
     bottom_subtitle_y = text_y + text_height - padding_y - bottom_subtitle_height
 
-    # Draw text elements
-    draw.text(
-        (subtitle_x, subtitle_y),
-        subtitle_text,
+    # Draw text elements with outlines for better visibility
+    # Top subtitle with outline
+    draw_text_with_outline(
+        draw=draw,
+        position=(subtitle_x, subtitle_y),
+        text=subtitle_text,
         font=top_subtitle_font,
-        fill=palette["subtitle_text"],
+        text_color=palette["subtitle_text"],
+        outline_color=palette["subtitle_outline"],
+        outline_width=1,
     )
 
-    draw.text((title_x, title_y), title, font=title_font, fill=palette["title_text"])
+    # Main title with slightly thicker outline
+    draw_text_with_outline(
+        draw=draw,
+        position=(title_x, title_y),
+        text=title,
+        font=title_font,
+        text_color=palette["title_text"],
+        outline_color=palette["title_outline"],
+        outline_width=2,  # Thicker outline for the main title
+    )
 
-    draw.text(
-        (bottom_subtitle_x, bottom_subtitle_y),
-        bottom_subtitle_text,
+    # Bottom subtitle with outline
+    draw_text_with_outline(
+        draw=draw,
+        position=(bottom_subtitle_x, bottom_subtitle_y),
+        text=bottom_subtitle_text,
         font=bottom_subtitle_font,
-        fill=palette["subtitle_text"],
+        text_color=palette["subtitle_text"],
+        outline_color=palette["subtitle_outline"],
+        outline_width=1,
     )
 
     return overlay

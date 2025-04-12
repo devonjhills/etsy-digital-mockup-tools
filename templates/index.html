@@ -223,25 +223,50 @@
       .info-box {
         display: flex;
         align-items: flex-start;
-        gap: 12px;
+        gap: 16px;
         background-color: rgba(52, 152, 219, 0.08);
         color: var(--text-color);
         border-left: 4px solid #3498db;
-        padding: 16px;
-        margin-top: 20px;
-        border-radius: 6px;
+        padding: 20px;
+        margin: 0;
+        border-radius: 0;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .info-box::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+          135deg,
+          rgba(52, 152, 219, 0.05) 0%,
+          transparent 100%
+        );
+        pointer-events: none;
       }
 
       .info-box i {
         color: #3498db;
-        font-size: 18px;
+        font-size: 20px;
         margin-top: 2px;
+        filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
       }
 
       .info-box p {
         margin: 0;
-        line-height: 1.5;
+        line-height: 1.6;
         font-size: 14px;
+        position: relative;
+        z-index: 1;
+      }
+
+      .info-box strong {
+        color: #3498db;
+        font-weight: 600;
       }
 
       .view-button {
@@ -652,36 +677,73 @@
         border-radius: 8px;
         height: 300px;
         overflow-y: auto;
-        font-family: "JetBrains Mono", "Fira Code", "SF Mono", "Roboto Mono", monospace;
+        font-family: "JetBrains Mono", "Fira Code", "SF Mono", "Roboto Mono",
+          monospace;
         font-size: 14px;
         line-height: 1.6;
       }
 
       /* Bulk tab styling */
-      .bulk-preparation-section,
+      .bulk-preparation-section {
+        margin-bottom: 32px;
+        border-radius: 12px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        overflow: hidden;
+      }
+
       .prepared-listings-section {
-        margin-bottom: 24px;
+        margin-bottom: 32px;
+        border-radius: 12px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        overflow: hidden;
       }
 
       .bulk-form-container {
         display: flex;
         flex-direction: column;
-        gap: 16px;
-        margin-bottom: 20px;
+        gap: 20px;
+        margin-bottom: 24px;
+        padding: 0 8px;
+        animation: slideIn 0.4s ease-out;
+      }
+
+      @keyframes slideIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
       }
 
       .checkbox-group {
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 10px;
+        padding: 8px 12px;
+        background-color: rgba(255, 255, 255, 0.03);
+        border-radius: 8px;
+        transition: all 0.2s ease;
+      }
+
+      .checkbox-group:hover {
+        background-color: rgba(255, 255, 255, 0.05);
       }
 
       .checkbox-group label {
         margin: 0;
+        font-weight: 500;
+        cursor: pointer;
       }
 
       .bulk-actions {
-        margin-top: 8px;
+        margin-top: 16px;
+        display: flex;
+        justify-content: flex-start;
       }
 
       .info-box {
@@ -707,10 +769,10 @@
       }
 
       .prepared-listings-content {
-        padding: 16px;
+        padding: 24px;
         background-color: var(--container-bg);
-        border-radius: 6px;
-        min-height: 100px;
+        min-height: 200px;
+        position: relative;
       }
 
       .loading {
@@ -718,24 +780,49 @@
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        padding: 24px;
+        padding: 48px 24px;
         color: var(--text-secondary);
         text-align: center;
+        height: 100%;
+        width: 100%;
+        position: absolute;
+        top: 0;
+        left: 0;
+        background-color: var(--container-bg);
       }
 
       .loading i {
-        font-size: 32px;
-        margin-bottom: 12px;
+        font-size: 48px;
+        margin-bottom: 16px;
         opacity: 0.7;
+        animation: pulse 2s infinite ease-in-out;
+      }
+
+      @keyframes pulse {
+        0% {
+          opacity: 0.5;
+          transform: scale(0.95);
+        }
+        50% {
+          opacity: 0.8;
+          transform: scale(1.05);
+        }
+        100% {
+          opacity: 0.5;
+          transform: scale(0.95);
+        }
       }
 
       .loading p {
         margin: 0;
+        font-size: 16px;
+        max-width: 300px;
+        line-height: 1.6;
       }
 
       .enhanced-select {
-        padding: 10px 12px;
-        border-radius: 6px;
+        padding: 12px 16px;
+        border-radius: 8px;
         border: 1px solid var(--border-color);
         background-color: var(--container-bg);
         color: var(--text-color);
@@ -746,23 +833,23 @@
         appearance: none;
         background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23a0a0a0%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
         background-repeat: no-repeat;
-        background-position: right 12px top 50%;
+        background-position: right 16px top 50%;
         background-size: 12px auto;
-        transition: border-color 0.2s ease;
+        transition: all 0.2s ease;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) inset;
+      }
+
+      .enhanced-select:hover {
+        border-color: var(--primary-color);
+        background-color: rgba(255, 255, 255, 0.03);
       }
 
       .enhanced-select:focus {
         border-color: var(--primary-color);
         outline: none;
-        box-shadow: 0 0 0 2px rgba(98, 0, 238, 0.2);
-      }
-        font-family: "JetBrains Mono", "Fira Code", "SF Mono", "Roboto Mono",
-          "Ubuntu Mono", "Menlo", "Consolas", "Courier New", monospace;
-        font-size: 0.9em;
-        line-height: 1.6;
-        color: #ddd;
-        white-space: pre-wrap;
-        word-break: break-word;
+        box-shadow: 0 0 0 3px rgba(98, 0, 238, 0.15),
+          0 2px 4px rgba(0, 0, 0, 0.1) inset;
+        background-color: rgba(255, 255, 255, 0.05);
       }
 
       .log-entry {
@@ -787,28 +874,76 @@
       /* Etsy sub-tabs styles */
       .etsy-tabs {
         display: flex;
-        margin-bottom: 20px;
+        margin: 32px 0 24px;
         border-bottom: 1px solid var(--border-color);
+        position: relative;
+      }
+
+      .etsy-tabs::after {
+        content: "";
+        position: absolute;
+        bottom: -1px;
+        left: 0;
+        width: 100%;
+        height: 1px;
+        background: linear-gradient(90deg, var(--primary-color), transparent);
+        opacity: 0.5;
       }
 
       .etsy-tab {
-        padding: 10px 20px;
+        padding: 12px 24px;
         background-color: var(--tab-bg);
         border: none;
-        border-radius: 4px 4px 0 0;
+        border-radius: 8px 8px 0 0;
         color: var(--text-color);
         cursor: pointer;
-        margin-right: 5px;
+        margin-right: 8px;
         font-size: 14px;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.2s ease;
+        position: relative;
+        box-shadow: none;
+        margin-bottom: -1px;
+      }
+
+      .etsy-tab:hover {
+        background-color: rgba(255, 255, 255, 0.05);
+        transform: translateY(-2px);
       }
 
       .etsy-tab.active {
         background-color: var(--tab-active-bg);
         color: white;
+        border-bottom: 2px solid var(--primary-color);
+      }
+
+      .etsy-tab.active::after {
+        content: "";
+        position: absolute;
+        bottom: -2px;
+        left: 0;
+        width: 100%;
+        height: 2px;
+        background-color: var(--primary-color);
       }
 
       .etsy-tab-content {
         display: none;
+        animation: fadeIn 0.3s ease-in-out;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(5px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
       }
 
       .etsy-tab-content.active {
@@ -865,27 +1000,41 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: var(--spacing-md);
-        padding-bottom: var(--spacing-sm);
+        padding: 20px 24px;
+        background-color: rgba(0, 0, 0, 0.2);
         border-bottom: 1px solid var(--border-color);
+        position: relative;
+      }
+
+      .section-header::after {
+        content: "";
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 1px;
+        background: linear-gradient(90deg, var(--primary-color), transparent);
+        opacity: 0.5;
       }
 
       .section-header h3 {
         margin: 0;
         font-size: 18px;
+        font-weight: 600;
         display: flex;
         align-items: center;
-        gap: var(--spacing-xs);
+        gap: 10px;
+        color: var(--primary-color);
       }
 
-      .section-header h3::before {
-        content: "\2699\FE0F"; /* Gear emoji */
-        font-size: 16px;
+      .section-header h3 i {
+        font-size: 18px;
+        opacity: 0.9;
       }
 
       .section-actions {
         display: flex;
-        gap: var(--spacing-sm);
+        gap: 12px;
       }
 
       .danger-button {
@@ -995,9 +1144,11 @@
         <!-- Etsy sub-tabs -->
         <div class="etsy-tabs">
           <button class="etsy-tab active" id="etsy-single-tab">
-            Single Listing
+            <i class="fas fa-file"></i> Single Listing
           </button>
-          <button class="etsy-tab" id="etsy-bulk-tab">Bulk Listings</button>
+          <button class="etsy-tab" id="etsy-bulk-tab">
+            <i class="fas fa-layer-group"></i> Bulk Listings
+          </button>
         </div>
 
         <!-- Single listing tab content -->
@@ -1163,10 +1314,11 @@
             class="prepared-listings-content"
           >
             <div class="loading">
-              <i class="fas fa-inbox"></i>
+              <i class="fas fa-layer-group"></i>
               <p>
-                No prepared listings yet. Click "Prepare Bulk Listings" to get
-                started.
+                No prepared listings yet. Click "Prepare Bulk Listings" to
+                generate mockups, zip files, and listing content for all
+                subfolders.
               </p>
             </div>
           </div>
