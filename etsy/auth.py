@@ -42,28 +42,48 @@ class CallbackHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         """Handle GET request."""
-        query = urllib.parse.urlparse(self.path).query
+        logger.info(f"Received callback: {self.path}")
+
+        # Handle both root path and /oauth/redirect path
+        parsed_url = urllib.parse.urlparse(self.path)
+        path = parsed_url.path
+        query = parsed_url.query
         params = urllib.parse.parse_qs(query)
 
+        logger.info(f"Path: {path}, Query parameters: {params}")
+
+        # Check if this is the Etsy redirect with a code
         if "code" in params:
             CallbackHandler.code = params["code"][0]
+            logger.info(f"Received authorization code: {CallbackHandler.code[:5]}...")
             self.send_response(200)
             self.send_header("Content-type", "text/html")
             self.end_headers()
             self.wfile.write(
                 b"<html><body><h1>Authentication successful!</h1><p>You can close this window now.</p></body></html>"
             )
-        else:
+        # If it's the redirect path but no code, show an error
+        elif path == "/oauth/redirect":
+            logger.error(f"Redirect received but no code in parameters: {params}")
             self.send_response(400)
             self.send_header("Content-type", "text/html")
             self.end_headers()
             self.wfile.write(
                 b"<html><body><h1>Authentication failed!</h1><p>No authorization code received.</p></body></html>"
             )
+        # For root path or other paths, show a waiting message
+        else:
+            logger.info("Received request to root path, showing waiting message")
+            self.send_response(200)
+            self.send_header("Content-type", "text/html")
+            self.end_headers()
+            self.wfile.write(
+                b"<html><body><h1>Waiting for Etsy authentication...</h1><p>Please complete the authentication in the Etsy window.</p></body></html>"
+            )
 
     def log_message(self, format_str, *args):
-        """Suppress logging."""
-        return
+        """Log messages to our logger instead of stderr."""
+        logger.debug(f"HTTP Server: {format_str % args}")
 
 
 class EtsyAuth:
@@ -144,8 +164,19 @@ class EtsyAuth:
                 "expiry": self.token_expiry,
             }
 
-            with open(self.token_file, "w") as f:
+            # Get absolute path for token file
+            token_path = os.path.abspath(self.token_file)
+            logger.info(f"Saving token to: {token_path}")
+
+            # Ensure directory exists
+            token_dir = os.path.dirname(token_path)
+            if token_dir and not os.path.exists(token_dir):
+                os.makedirs(token_dir)
+                logger.info(f"Created directory: {token_dir}")
+
+            with open(token_path, "w") as f:
                 json.dump(token_data, f)
+                logger.info(f"Token saved successfully")
 
             return True
         except Exception as e:
@@ -182,29 +213,66 @@ class EtsyAuth:
         Returns:
             True if authentication was successful, False otherwise
         """
+        # Reset the callback handler code
+        CallbackHandler.code = None
+
         # Get the OAuth URL
         oauth_url = self.get_oauth_url()
+        logger.info(f"Opening OAuth URL: {oauth_url}")
 
-        # Open the URL in the default browser
-        webbrowser.open(oauth_url)
-
-        # Start a local server to receive the callback
+        # Create a server that will keep running until we get the code
         server_address = ("", 3003)
-        httpd = HTTPServer(server_address, CallbackHandler)
+        try:
+            # Create a custom server class that we can stop from another thread
+            class StoppableHTTPServer(HTTPServer):
+                def __init__(self, *args, **kwargs):
+                    super().__init__(*args, **kwargs)
+                    self.stop_requested = False
 
-        # Start the server in a separate thread
-        server_thread = threading.Thread(target=httpd.handle_request)
-        server_thread.start()
+                def serve_until_code_received(self, timeout=120):
+                    """Serve requests until code is received or timeout is reached."""
+                    start_time = time.time()
+                    while (
+                        not self.stop_requested and time.time() - start_time < timeout
+                    ):
+                        self.handle_request()
+                        if CallbackHandler.code:
+                            logger.info("Code received, stopping server")
+                            self.stop_requested = True
+                            return True
+                    return False
 
-        # Wait for the server to receive the callback
-        server_thread.join(timeout=120)
+            # Create and start the server
+            httpd = StoppableHTTPServer(server_address, CallbackHandler)
+            logger.info(f"Started HTTP server on port 3003")
 
-        # Check if we received the code
-        if CallbackHandler.code:
-            # Exchange the code for an access token
-            return self.exchange_code(CallbackHandler.code)
-        else:
-            logger.error("No authorization code received.")
+            # Open the URL in the default browser
+            webbrowser.open(oauth_url)
+            logger.info("Opened browser for authentication")
+
+            # Wait for the code in a separate thread so we can handle keyboard interrupts
+            def serve_in_thread():
+                return httpd.serve_until_code_received(timeout=120)
+
+            server_thread = threading.Thread(target=serve_in_thread)
+            server_thread.daemon = (
+                True  # Allow the program to exit even if thread is running
+            )
+            server_thread.start()
+
+            # Wait for the server thread to complete
+            server_thread.join(timeout=120)
+
+            # Check if we received the code
+            if CallbackHandler.code:
+                logger.info("Received authorization code, exchanging for token...")
+                # Exchange the code for an access token
+                return self.exchange_code(CallbackHandler.code)
+            else:
+                logger.error("No authorization code received after timeout.")
+                return False
+        except Exception as e:
+            logger.error(f"Error in OAuth flow: {e}")
             return False
 
     def exchange_code(self, code: str) -> bool:
