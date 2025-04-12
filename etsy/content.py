@@ -179,27 +179,58 @@ class ContentGenerator:
             tags = []
 
             # Basic extraction with regex
+            # First try with "Title:" format
             title_match = re.search(
                 r"Title:\s*(.+?)(?:\n|Description:)", content, re.DOTALL
             )
-            if title_match:
+
+            # If that doesn't work, try with "**Title:**" format
+            if not title_match:
+                title_match = re.search(
+                    r"\*\*Title:\*\*\s*(.+?)(?:\n|\*\*Description:\*\*)",
+                    content,
+                    re.DOTALL,
+                )
+
+            # If still no match, try just looking for the first line after a blank line
+            if not title_match:
+                lines = content.split("\n")
+                for i, line in enumerate(lines):
+                    if i > 0 and line.strip() and not lines[i - 1].strip():
+                        title = line.strip()
+                        break
+            else:
                 title = title_match.group(1).strip()
-                # Remove any ** markers if present
-                title = re.sub(r"^\*\*\s*", "", title)
+
+            # Remove any ** markers if present
+            title = re.sub(r"^\*\*\s*", "", title)
 
             # Extract description - look for everything between Description: and Tags:
             desc_start = content.find("Description:")
+            if desc_start < 0:
+                desc_start = content.find("**Description:**")
+                if desc_start >= 0:
+                    desc_start += 16  # Length of "**Description:**"
+                else:
+                    desc_start = -1
+            else:
+                desc_start += 12  # Length of "Description:"
+
             tags_start = content.find("Tags:")
+            if tags_start < 0:
+                tags_start = content.find("**Tags:**")
 
             if desc_start >= 0 and tags_start > desc_start:
                 # Extract everything between Description: and Tags:
-                description = content[desc_start + 12 : tags_start].strip()
+                description = content[desc_start:tags_start].strip()
                 logger.info(f"Found description with length: {len(description)}")
             else:
                 # Try regex as a fallback
                 logger.info("Using regex fallback for description")
                 desc_match = re.search(
-                    r"Description:\s*(.+?)(?:\n|Tags:)", content, re.DOTALL
+                    r"(?:Description:|\*\*Description:\*\*)\s*(.+?)(?:\n|(?:Tags:|\*\*Tags:\*\*))",
+                    content,
+                    re.DOTALL,
                 )
                 if desc_match:
                     description = desc_match.group(1).strip()
@@ -207,13 +238,23 @@ class ContentGenerator:
             # Remove any ** markers if present
             description = re.sub(r"^\*\*\s*", "", description)
 
-            tags_match = re.search(r"Tags:\s*(.+)$", content, re.DOTALL)
+            # Try both formats for tags
+            tags_match = re.search(
+                r"(?:Tags:|\*\*Tags:\*\*)\s*(.+)$", content, re.DOTALL
+            )
             if tags_match:
                 tags_text = tags_match.group(1).strip()
                 # Remove any ** markers if present
                 tags_text = re.sub(r"^\*\*\s*", "", tags_text)
                 # Split by comma and clean up
                 tags = [tag.strip() for tag in tags_text.split(",") if tag.strip()]
+
+                # If we didn't get any tags with commas, try splitting by newlines
+                if not tags:
+                    tags = [tag.strip() for tag in tags_text.split("\n") if tag.strip()]
+
+                # Remove any leading/trailing punctuation or markdown formatting
+                tags = [re.sub(r"^[\*\-\s]+|[\*\-\s]+$", "", tag) for tag in tags]
 
             # Log what we extracted
             logger.info(f"Extracted title: {title}")

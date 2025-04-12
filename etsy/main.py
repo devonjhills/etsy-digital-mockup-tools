@@ -3,8 +3,7 @@ Main module for Etsy integration.
 """
 
 import os
-import sys
-from typing import Dict, List, Optional, Any, Tuple
+from typing import Dict, List, Optional
 
 from utils.common import setup_logging
 from etsy.auth import EtsyAuth
@@ -484,7 +483,14 @@ class EtsyIntegration:
                     instructions=DEFAULT_ETSY_INSTRUCTIONS,
                 )
 
-                if content and content["title"]:
+                # If title is empty but we have content, use folder name as fallback title
+                if content and not content["title"] and subfolder:
+                    logger.warning(
+                        f"No title extracted from Gemini API response. Using folder name as fallback."
+                    )
+                    content["title"] = subfolder
+
+                if content:
                     # Get mockup images
                     mocks_folder = os.path.join(folder_path, "mocks")
                     mockup_images = []
@@ -824,7 +830,9 @@ class EtsyIntegration:
 
                 # Generate clipart mockups
                 logger.info(f"Creating clipart mockups for {product_name}...")
-                mockup_files = clipart_mockup.create_mockups(folder_path)
+                clipart_mockup.create_mockups(
+                    folder_path
+                )  # We don't need to store the return value
 
                 # Create video mockup
                 logger.info(f"Creating clipart video mockup for {product_name}...")
@@ -995,6 +1003,7 @@ class EtsyIntegration:
     def generate_content_from_mockup(
         self, folder_path: str, product_type: str, instructions: str
     ) -> Dict[str, str]:
+        # product_type parameter is kept for future use when we might customize prompts by product type
         """
         Generate listing content from a mockup image using Gemini API.
 

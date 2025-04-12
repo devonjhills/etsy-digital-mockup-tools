@@ -156,13 +156,21 @@ if __name__ == "__main__":
     input_folder = "input"
     output_folder = "output"
 
-    # Delete all .Identifier files in the entire tree under the input folder
-    print("Deleting all .Identifier files...")
-    for root, _, files in os.walk(input_folder):
-        for file in files:
-            if file.endswith(".Identifier"):
-                file_path = os.path.join(root, file)
-                os.remove(file_path)
+    # Clean up identifier files using the utility function
+    try:
+        # Add the project root to the Python path to import utils
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        project_root = os.path.dirname(script_dir)
+        import sys
+
+        sys.path.insert(0, project_root)
+        from utils.common import clean_identifier_files
+
+        num_removed = clean_identifier_files(input_folder)
+        print(f"Deleted {num_removed} identifier/system files")
+    except ImportError:
+        print("Could not import clean_identifier_files from utils.common")
+        print("Skipping identifier file cleanup")
 
     # Process each immediate subfolder within the input folder
     top_level = next(os.walk(input_folder))

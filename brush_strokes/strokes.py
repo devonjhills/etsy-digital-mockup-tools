@@ -2,7 +2,8 @@ import os
 import glob
 import cv2
 from PIL import Image, ImageFont, ImageDraw, ImageEnhance
-import numpy as np
+
+# numpy as np is imported but not used in this file
 
 # Set up constants for size and padding
 OUTPUT_SIZE = (3000, 2250)
@@ -70,7 +71,6 @@ def create_brush_strokes_layout(input_images):
 
     canvas_width = OUTPUT_SIZE[0]
     stroke_width = int(canvas_width / (max_strokes - overlap_amount))
-
 
     # Calculate vertical scaling
     canvas_height = OUTPUT_SIZE[1]
@@ -154,6 +154,7 @@ def create_grid_display(input_images, grid_index):
 
     return grid_img
 
+
 def create_transparency_demo(image_path):
     """
     Opens an existing background image (transparency_demo.png) and places
@@ -176,6 +177,7 @@ def create_transparency_demo(image_path):
     demo.paste(image, (x_pos, y_pos), image)
 
     return demo
+
 
 def add_overlay_and_title(image, title):
     """Add clip overlay and centered title text."""
@@ -235,7 +237,7 @@ def add_overlay_and_title(image, title):
         return image
 
     # Calculate center position
-    text = "\n".join(lines)
+    # text = "\n".join(lines)  # This variable is not used
     center_x = image.width // 2
     center_y = (image.height // 2) - 50
 
@@ -390,13 +392,20 @@ if __name__ == "__main__":
     script_dir = os.path.dirname(os.path.abspath(__file__))
     input_folder = os.path.join(script_dir, "input")
 
-    print("Cleaning up .Identifier files...")
-    for root, _, files in os.walk(input_folder):
-        for file in files:
-            if file.endswith(".Identifier"):
-                file_path = os.path.join(root, file)
-                os.remove(file_path)
-                print(f"Deleted {file_path}")
+    # Clean up identifier files using the utility function
+    try:
+        # Add the project root to the Python path to import utils
+        project_root = os.path.dirname(script_dir)
+        import sys
+
+        sys.path.insert(0, project_root)
+        from utils.common import clean_identifier_files
+
+        num_removed = clean_identifier_files(input_folder)
+        print(f"Deleted {num_removed} identifier/system files")
+    except ImportError:
+        print("Could not import clean_identifier_files from utils.common")
+        print("Skipping identifier file cleanup")
 
     # Process each subfolder
     processed_count = 0

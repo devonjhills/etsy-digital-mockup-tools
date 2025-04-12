@@ -121,28 +121,36 @@
       }
 
       .form-group {
-        margin-bottom: 20px;
+        margin-bottom: 24px;
       }
 
       label {
         display: block;
-        margin-bottom: 8px;
+        margin-bottom: 10px;
         font-weight: 500;
         color: var(--secondary-color);
+        font-size: 14px;
       }
 
       input[type="text"],
       select,
       textarea {
         width: 100%;
-        padding: 10px 12px;
+        padding: 12px 14px;
         border: 1px solid var(--border-color);
-        border-radius: 6px;
+        border-radius: 8px;
         box-sizing: border-box;
         background-color: var(--input-bg);
         color: var(--input-text);
         font-family: inherit;
-        transition: border-color 0.2s;
+        font-size: 14px;
+        transition: all 0.2s ease;
+      }
+
+      input[type="text"]:hover,
+      select:hover,
+      textarea:hover {
+        border-color: var(--primary-color);
       }
 
       input[type="text"]:focus,
@@ -150,7 +158,7 @@
       textarea:focus {
         outline: none;
         border-color: var(--primary-color);
-        box-shadow: 0 0 0 2px rgba(98, 0, 238, 0.2);
+        box-shadow: 0 0 0 3px rgba(98, 0, 238, 0.15);
       }
 
       button {
@@ -162,22 +170,41 @@
         cursor: pointer;
         margin-right: 10px;
         font-weight: 500;
-        transition: background-color 0.2s, transform 0.1s;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        transition: all 0.2s ease;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
       }
 
       button:hover {
         background-color: var(--primary-hover);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+      }
+
+      button:active {
+        transform: translateY(1px);
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
       }
 
       .secondary-button {
         background-color: var(--section-bg);
         border: 1px solid var(--secondary-color);
         color: var(--secondary-color);
+        box-shadow: none;
       }
 
       .secondary-button:hover {
         background-color: var(--secondary-color);
         color: var(--bg-color);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+      }
+
+      .primary-button {
+        background-color: var(--primary-color);
+        font-weight: 600;
       }
 
       .highlight-update {
@@ -194,17 +221,27 @@
       }
 
       .info-box {
-        background-color: #f0f0f0;
-        color: #333;
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        background-color: rgba(52, 152, 219, 0.08);
+        color: var(--text-color);
         border-left: 4px solid #3498db;
-        padding: 10px 15px;
-        margin-top: 15px;
-        border-radius: 4px;
-        font-size: 0.9em;
+        padding: 16px;
+        margin-top: 20px;
+        border-radius: 6px;
+      }
+
+      .info-box i {
+        color: #3498db;
+        font-size: 18px;
+        margin-top: 2px;
       }
 
       .info-box p {
-        margin: 5px 0;
+        margin: 0;
+        line-height: 1.5;
+        font-size: 14px;
       }
 
       .view-button {
@@ -324,13 +361,13 @@
 
       /* Prepared listings styles */
       .prepared-listing {
-        margin-bottom: var(--spacing-lg);
-        padding: var(--spacing-lg);
-        border-radius: var(--radius-md);
-        background-color: var(--section-bg);
+        margin-bottom: 24px;
+        padding: 24px;
+        border-radius: 8px;
+        background-color: var(--container-bg);
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         transition: all 0.2s ease;
-        border-left: 3px solid var(--primary-color);
+        border-left: 4px solid var(--primary-color);
       }
 
       .prepared-listing:hover {
@@ -340,11 +377,12 @@
 
       .prepared-listing h3 {
         margin-top: 0;
+        margin-bottom: 16px;
         color: var(--primary-color);
         font-size: 18px;
         display: flex;
         align-items: center;
-        gap: var(--spacing-xs);
+        gap: 8px;
       }
 
       .prepared-listing h3::before {
@@ -558,33 +596,49 @@
 
       /* Log section styling */
       .log-section {
-        margin-top: var(--spacing-xl);
+        margin-top: 32px;
         background-color: var(--section-bg);
-        border-radius: var(--radius-md);
-        padding: var(--spacing-lg);
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        border-radius: 8px;
+        padding: 24px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
       }
 
       .log-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 15px;
+        margin-bottom: 20px;
       }
 
       .log-title {
         margin: 0;
-        font-size: 1.2em;
+        font-size: 18px;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .log-title::before {
+        content: "\1F4DD"; /* Memo emoji */
+        font-size: 18px;
       }
 
       .log-controls {
         display: flex;
-        gap: 10px;
+        gap: 12px;
       }
 
       .log-button {
-        padding: 8px 12px;
-        font-size: 0.85em;
+        padding: 8px 14px;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .log-button i {
+        font-size: 14px;
       }
 
       .log-button.active {
@@ -592,12 +646,116 @@
       }
 
       .log-area {
-        padding: 15px;
+        padding: 16px;
         background-color: var(--log-bg);
         border: 1px solid var(--border-color);
-        border-radius: 6px;
+        border-radius: 8px;
         height: 300px;
         overflow-y: auto;
+        font-family: "JetBrains Mono", "Fira Code", "SF Mono", "Roboto Mono", monospace;
+        font-size: 14px;
+        line-height: 1.6;
+      }
+
+      /* Bulk tab styling */
+      .bulk-preparation-section,
+      .prepared-listings-section {
+        margin-bottom: 24px;
+      }
+
+      .bulk-form-container {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        margin-bottom: 20px;
+      }
+
+      .checkbox-group {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .checkbox-group label {
+        margin: 0;
+      }
+
+      .bulk-actions {
+        margin-top: 8px;
+      }
+
+      .info-box {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        background-color: rgba(98, 0, 238, 0.08);
+        border-left: 4px solid var(--primary-color);
+        padding: 16px;
+        border-radius: 6px;
+        margin-top: 20px;
+      }
+
+      .info-box i {
+        color: var(--primary-color);
+        font-size: 18px;
+        margin-top: 2px;
+      }
+
+      .info-box p {
+        margin: 0;
+        line-height: 1.5;
+      }
+
+      .prepared-listings-content {
+        padding: 16px;
+        background-color: var(--container-bg);
+        border-radius: 6px;
+        min-height: 100px;
+      }
+
+      .loading {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        color: var(--text-secondary);
+        text-align: center;
+      }
+
+      .loading i {
+        font-size: 32px;
+        margin-bottom: 12px;
+        opacity: 0.7;
+      }
+
+      .loading p {
+        margin: 0;
+      }
+
+      .enhanced-select {
+        padding: 10px 12px;
+        border-radius: 6px;
+        border: 1px solid var(--border-color);
+        background-color: var(--container-bg);
+        color: var(--text-color);
+        width: 100%;
+        max-width: 300px;
+        font-family: inherit;
+        font-size: 14px;
+        appearance: none;
+        background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23a0a0a0%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
+        background-repeat: no-repeat;
+        background-position: right 12px top 50%;
+        background-size: 12px auto;
+        transition: border-color 0.2s ease;
+      }
+
+      .enhanced-select:focus {
+        border-color: var(--primary-color);
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(98, 0, 238, 0.2);
+      }
         font-family: "JetBrains Mono", "Fira Code", "SF Mono", "Roboto Mono",
           "Ubuntu Mono", "Menlo", "Consolas", "Courier New", monospace;
         font-size: 0.9em;
@@ -933,36 +1091,45 @@
 
       <!-- Bulk listings tab content -->
       <div id="etsy-bulk" class="etsy-tab-content">
-        <div class="section">
-          <h3>Bulk Listing Preparation</h3>
-
-          <div class="form-group">
-            <label for="etsy-bulk-product-type">Product Type:</label>
-            <select id="etsy-bulk-product-type" name="etsy-bulk-product-type">
-              <option value="pattern">Pattern</option>
-              <option value="clipart">Clipart</option>
-              <option value="wall_art">Wall Art</option>
-              <option value="brush_strokes">Brush Strokes</option>
-            </select>
+        <div class="section bulk-preparation-section">
+          <div class="section-header">
+            <h3><i class="fas fa-layer-group"></i> Bulk Listing Preparation</h3>
           </div>
 
-          <div class="form-group">
-            <label for="etsy-bulk-draft">Create as Draft:</label>
-            <input
-              type="checkbox"
-              id="etsy-bulk-draft"
-              name="etsy-bulk-draft"
-              checked
-            />
-          </div>
+          <div class="bulk-form-container">
+            <div class="form-group">
+              <label for="etsy-bulk-product-type">Product Type:</label>
+              <select
+                id="etsy-bulk-product-type"
+                name="etsy-bulk-product-type"
+                class="enhanced-select"
+              >
+                <option value="pattern">Pattern</option>
+                <option value="clipart">Clipart</option>
+                <option value="wall_art">Wall Art</option>
+                <option value="brush_strokes">Brush Strokes</option>
+              </select>
+            </div>
 
-          <div class="actions">
-            <button onclick="prepareBulkListings()" class="primary-button">
-              Prepare Bulk Listings
-            </button>
+            <div class="form-group checkbox-group">
+              <input
+                type="checkbox"
+                id="etsy-bulk-draft"
+                name="etsy-bulk-draft"
+                checked
+              />
+              <label for="etsy-bulk-draft">Create as Draft</label>
+            </div>
+
+            <div class="actions bulk-actions">
+              <button onclick="prepareBulkListings()" class="primary-button">
+                <i class="fas fa-cogs"></i> Prepare Bulk Listings
+              </button>
+            </div>
           </div>
 
           <div class="info-box">
+            <i class="fas fa-info-circle"></i>
             <p>
               <strong>Prepare Bulk Listings:</strong> Generates mockups, zip
               files, and listing content for all subfolders in the input
@@ -971,9 +1138,9 @@
           </div>
         </div>
 
-        <div class="section">
+        <div class="section prepared-listings-section">
           <div class="section-header">
-            <h3>Prepared Listings</h3>
+            <h3><i class="fas fa-list-alt"></i> Prepared Listings</h3>
             <div class="section-actions">
               <button
                 onclick="showPreparedListings()"
@@ -991,10 +1158,16 @@
               </button>
             </div>
           </div>
-          <div id="prepared-listings-container">
+          <div
+            id="prepared-listings-container"
+            class="prepared-listings-content"
+          >
             <div class="loading">
-              No prepared listings yet. Click "Prepare Bulk Listings" to get
-              started.
+              <i class="fas fa-inbox"></i>
+              <p>
+                No prepared listings yet. Click "Prepare Bulk Listings" to get
+                started.
+              </p>
             </div>
           </div>
         </div>
@@ -1004,13 +1177,15 @@
         <div class="log-header">
           <h3 class="log-title">Command Log</h3>
           <div class="log-controls">
-            <button onclick="clearLog()" class="log-button">Clear Log</button>
+            <button onclick="clearLog()" class="log-button">
+              <i class="fas fa-trash-alt"></i> Clear Log
+            </button>
             <button
               onclick="toggleAutoScroll()"
               id="autoscroll-button"
               class="log-button active"
             >
-              Auto-scroll: ON
+              <i class="fas fa-scroll"></i> Auto-scroll: ON
             </button>
           </div>
         </div>
@@ -1162,13 +1337,13 @@
         autoScroll = !autoScroll;
         const button = document.getElementById("autoscroll-button");
         if (autoScroll) {
-          button.textContent = "Auto-scroll: ON";
+          button.innerHTML = '<i class="fas fa-scroll"></i> Auto-scroll: ON';
           button.classList.add("active");
           // Scroll to bottom immediately when turning on
           const logArea = document.getElementById("log");
           logArea.scrollTop = logArea.scrollHeight;
         } else {
-          button.textContent = "Auto-scroll: OFF";
+          button.innerHTML = '<i class="fas fa-scroll"></i> Auto-scroll: OFF';
           button.classList.remove("active");
         }
       }

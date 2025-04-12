@@ -2,8 +2,7 @@ import cv2
 import numpy as np
 from pathlib import Path
 from skimage import measure
-import matplotlib.pyplot as plt
-import os
+import matplotlib.pyplot as plt  # Used for debug visualization
 
 
 # --- create_output_dir and delete_identifier_files remain the same ---
@@ -20,11 +19,25 @@ def create_output_dir():
 def delete_identifier_files(input_dir):
     """Delete all .Identifier files in the input directory"""
     try:
-        for file in input_dir.glob("*.Identifier"):
-            file.unlink()
-            print(f"Deleted: {file}")
-    except Exception as e:
-        print(f"Error deleting .Identifier files: {e}")
+        # Try to use the centralized function from utils.common
+        import sys
+        import os
+
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        project_root = os.path.dirname(script_dir)
+        sys.path.insert(0, project_root)
+        from utils.common import clean_identifier_files
+
+        num_removed = clean_identifier_files(str(input_dir))
+        print(f"Deleted {num_removed} identifier/system files")
+    except ImportError:
+        # Fallback to original implementation
+        try:
+            for file in input_dir.glob("*.Identifier"):
+                file.unlink()
+                print(f"Deleted: {file}")
+        except Exception as e:
+            print(f"Error deleting .Identifier files: {e}")
 
 
 # --------------------------------------------------------------------
@@ -45,18 +58,22 @@ def extract_illustrations(image_path, output_dir, debug_dir):
 
     # Store original shape and check for alpha
     if len(img_original_unchanged.shape) == 3 and img_original_unchanged.shape[2] == 4:
-        height, width, channels = img_original_unchanged.shape
+        height, width, _ = (
+            img_original_unchanged.shape
+        )  # _ for unused channels variable
         has_alpha = True
         img_bgr = img_original_unchanged[:, :, :3]  # Keep BGR for processing if needed
     elif (
         len(img_original_unchanged.shape) == 3 and img_original_unchanged.shape[2] == 3
     ):
-        height, width, channels = img_original_unchanged.shape
+        height, width, _ = (
+            img_original_unchanged.shape
+        )  # _ for unused channels variable
         has_alpha = False
         img_bgr = img_original_unchanged  # Already BGR
     elif len(img_original_unchanged.shape) == 2:  # Grayscale
         height, width = img_original_unchanged.shape
-        channels = 1
+        # channels not needed here
         has_alpha = False
         img_bgr = cv2.cvtColor(
             img_original_unchanged, cv2.COLOR_GRAY2BGR
@@ -71,7 +88,7 @@ def extract_illustrations(image_path, output_dir, debug_dir):
     print(f"Processing '{image_path.name}' ({width}x{height}, Alpha: {has_alpha})...")
 
     mask = None
-    mask_from_alpha = False  # Flag to track if we used the alpha channel successfully
+    # mask_from_alpha flag was used for debugging but is no longer needed
 
     # --- Method 1: Try Alpha Channel ---
     if has_alpha:
@@ -83,7 +100,7 @@ def extract_illustrations(image_path, output_dir, debug_dir):
                 1  # Pixels with alpha > 0 are considered part of an object
             )
             mask = (alpha >= alpha_threshold).astype(np.uint8) * 255
-            mask_from_alpha = True  # Set the flag
+            # Flag was used for debugging but is no longer needed
         else:
             print(
                 "   Alpha channel present but appears mostly opaque. Attempting background removal."
@@ -110,9 +127,9 @@ def extract_illustrations(image_path, output_dir, debug_dir):
         # Define parameters for flood fill (more robust check: check corners)
         corners = [
             img_floodfill[0, 0],
-            img_floodfill[0, w - 1],
-            img_floodfill[h - 1, 0],
-            img_floodfill[h - 1, w - 1],
+            img_floodfill[0, width - 1],
+            img_floodfill[height - 1, 0],
+            img_floodfill[height - 1, width - 1],
         ]
         # Let's assume the most frequent corner color is background, or just use top-left
         bg_color_sample = corners[0]  # Simple: use top-left
@@ -127,7 +144,7 @@ def extract_illustrations(image_path, output_dir, debug_dir):
             20,
         )  # Increased tolerance slightly (BGR + Alpha tolerance if needed, though not used here)
         # Create a mask for flood fill (must be 2 pixels larger)
-        flood_mask = np.zeros((h + 2, w + 2), np.uint8)
+        flood_mask = np.zeros((height + 2, width + 2), np.uint8)
 
         # Perform flood fill from the top-left corner
         try:

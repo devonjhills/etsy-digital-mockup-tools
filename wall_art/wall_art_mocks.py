@@ -1,14 +1,12 @@
 import warnings
-from PIL import Image, ImageDraw, ImageFont
-
-warnings.simplefilter("ignore", Image.DecompressionBombWarning)
-Image.MAX_IMAGE_PIXELS = None
-
 import os
 import cv2
 import numpy as np
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
+
+warnings.simplefilter("ignore", Image.DecompressionBombWarning)
+Image.MAX_IMAGE_PIXELS = None
 
 #############################
 # IMAGE MOCKUP FUNCTIONS

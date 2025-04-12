@@ -71,15 +71,14 @@ def create_single_image_grid():
 
 
 if __name__ == "__main__":
-    print("Deleting all .Identifier files...")
-    for root, _, files in os.walk(input_folder):
-        for file in files:
-            if file.endswith(".Identifier"):
-                file_path = os.path.join(root, file)
-                try:
-                    os.remove(file_path)
-                    print(f"Deleted: {file_path}")
-                except Exception as e:
-                    print(f"Error deleting {file_path}: {e}")
+    # Import the clean_identifier_files function from utils.common
+    try:
+        from utils.common import clean_identifier_files
+
+        num_removed = clean_identifier_files(input_folder)
+        print(f"Deleted {num_removed} identifier/system files")
+    except ImportError:
+        print("Could not import clean_identifier_files from utils.common")
+        print("Skipping identifier file cleanup")
 
     create_single_image_grid()
