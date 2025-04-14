@@ -10,6 +10,7 @@ from etsy.auth import EtsyAuth
 from etsy.listings import EtsyListings
 from etsy.templates import ListingTemplate
 from etsy.content import ContentGenerator
+from etsy.constants import DEFAULT_ETSY_INSTRUCTIONS
 
 # Set up logging
 logger = setup_logging(__name__)
@@ -380,11 +381,11 @@ class EtsyIntegration:
 
                 # Step 4: Generate content using Gemini API
                 logger.info(f"Generating content for {subfolder}...")
-                instructions = "Analyze this mockup image and generate content for an Etsy listing. The image shows a digital product that will be sold on Etsy."
+                # Use the standard instructions from constants
                 content = self.generate_content_from_mockup(
                     folder_path=folder_path,
                     product_type=product_type,
-                    instructions=instructions,
+                    instructions=DEFAULT_ETSY_INSTRUCTIONS,
                 )
 
                 # Step 4: Create listing with generated content

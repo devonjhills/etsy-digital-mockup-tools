@@ -9,6 +9,7 @@ import argparse
 from utils.common import setup_logging
 from utils.env_loader import load_env_from_file
 from etsy.content import ContentGenerator, GEMINI_AVAILABLE
+from etsy.constants import DEFAULT_ETSY_INSTRUCTIONS
 
 # Set up logging
 logger = setup_logging(__name__)
@@ -24,8 +25,13 @@ def main():
     )
     parser.add_argument(
         "--instructions",
-        default="Analyze this image and describe what you see. This is a digital product that will be sold on Etsy.",
+        default="Analyze this image and describe what you see. This is a digital product that will be sold on Etsy. IMPORTANT: Etsy only supports plain text in listings, so do not use any markdown formatting in your response.",
         help="Instructions for the LLM",
+    )
+    parser.add_argument(
+        "--use-default-instructions",
+        action="store_true",
+        help="Use the default Etsy instructions from constants.py instead of the simple instructions",
     )
 
     args = parser.parse_args()
@@ -57,10 +63,20 @@ def main():
         api_key=gemini_api_key, model_name=gemini_model
     )
 
+    # Determine which instructions to use
+    instructions = (
+        DEFAULT_ETSY_INSTRUCTIONS
+        if args.use_default_instructions
+        else args.instructions
+    )
+    logger.info(
+        f"Using {'default' if args.use_default_instructions else 'custom'} instructions"
+    )
+
     # Generate content from image
     content = content_generator.generate_content_from_image(
         image_path=args.image,
-        instructions=args.instructions,
+        instructions=instructions,
     )
 
     if content and content["title"]:

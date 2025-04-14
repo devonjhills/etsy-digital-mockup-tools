@@ -130,8 +130,13 @@ class ContentGenerator:
             # Use the instructions directly as the prompt
             prompt = instructions
 
-            # Add a simple note about avoiding markers
-            prompt += "\n\nIMPORTANT: DO NOT include any ** or other markers in your response."
+            # Add a strong note about avoiding markdown formatting
+            prompt += (
+                "\n\nIMPORTANT: Etsy only supports plain text in listings. DO NOT use any markdown formatting in your response. "
+                "This means no asterisks for bold, no hashtags for headings, no hyphens or asterisks for bullet points, "
+                "no backticks for code formatting, and no other markdown syntax. "
+                "Provide all content as plain text only. Etsy will display your text exactly as provided."
+            )
 
             logger.info(f"Using Gemini model: {self.model_name}")
 
@@ -202,8 +207,8 @@ class ContentGenerator:
             else:
                 title = title_match.group(1).strip()
 
-            # Remove any ** markers if present
-            title = re.sub(r"^\*\*\s*", "", title)
+            # Remove any markdown formatting from title
+            title = re.sub(r"\*\*|\*|#|`|\[|\]|\(|\)|_", "", title)
 
             # Extract description - look for everything between Description: and Tags:
             desc_start = content.find("Description:")
@@ -235,8 +240,16 @@ class ContentGenerator:
                 if desc_match:
                     description = desc_match.group(1).strip()
 
-            # Remove any ** markers if present
-            description = re.sub(r"^\*\*\s*", "", description)
+            # Remove any markdown formatting from description
+            description = re.sub(
+                r"\*\*|\*(?!\s*\d+\s*\*)|#|`|\[|\]|\((?!\s*\d+\s*\))|\)(?!\s*\d+\s*\()|_",
+                "",
+                description,
+            )
+
+            # Clean up any bullet points or numbered lists
+            description = re.sub(r"^\s*[-*]\s+", "", description, flags=re.MULTILINE)
+            description = re.sub(r"^\s*\d+\.\s+", "", description, flags=re.MULTILINE)
 
             # Try both formats for tags
             tags_match = re.search(
@@ -244,8 +257,9 @@ class ContentGenerator:
             )
             if tags_match:
                 tags_text = tags_match.group(1).strip()
-                # Remove any ** markers if present
-                tags_text = re.sub(r"^\*\*\s*", "", tags_text)
+                # Remove any markdown formatting from tags text
+                tags_text = re.sub(r"\*\*|\*|#|`|\[|\]|\(|\)|_", "", tags_text)
+
                 # Split by comma and clean up
                 tags = [tag.strip() for tag in tags_text.split(",") if tag.strip()]
 
@@ -256,10 +270,30 @@ class ContentGenerator:
                 # Remove any leading/trailing punctuation or markdown formatting
                 tags = [re.sub(r"^[\*\-\s]+|[\*\-\s]+$", "", tag) for tag in tags]
 
+                # Remove any bullet points or list markers
+                tags = [re.sub(r"^\s*[-*]\s+", "", tag) for tag in tags]
+                tags = [re.sub(r"^\s*\d+\.\s+", "", tag) for tag in tags]
+
             # Log what we extracted
             logger.info(f"Extracted title: {title}")
             logger.info(f"Extracted description length: {len(description)}")
             logger.info(f"Extracted tags count: {len(tags)}")
+
+            # Final cleanup to ensure all content is plain text
+            def ensure_plain_text(text):
+                # Remove any remaining markdown formatting
+                text = re.sub(r"\*\*|\*|#|`|\[|\]|\(|\)|_", "", text)
+                # Remove any HTML tags
+                text = re.sub(r"<[^>]*>", "", text)
+                # Normalize whitespace
+                text = re.sub(r"\s+", " ", text).strip()
+                return text
+
+            title = ensure_plain_text(title)
+            description = description.replace(
+                "\n\n", "\n"
+            )  # Preserve line breaks but remove excessive ones
+            tags = [ensure_plain_text(tag) for tag in tags]
 
             return {"title": title, "description": description, "tags": tags}
         except Exception as e:
