@@ -12,7 +12,7 @@ import math  # For ceiling division
 # --- Configure Logging ---
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s",
+    format="%(levelname)s - %(message)s",
     stream=sys.stdout,  # Ensure output goes to stdout for immediate feedback
 )
 log = logging.getLogger(__name__)

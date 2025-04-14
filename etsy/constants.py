@@ -25,11 +25,8 @@ Title (Target: 130-140 characters):
 - Accuracy: Ensure the title accurately reflects the product shown in the image.
 Description:
 - Hook with Benefits: Start immediately with a compelling sentence highlighting the primary benefit or appeal of the product based on its visual presentation.
-- Structured & Scannable: Use clear paragraphs with emoji-prefixed headings (choose relevant emojis based on the product):
-    - ✨ Product Highlights: Detail the key features and specifics inferred directly from the image or typically associated with this product type if clearly suggested.
-    - 💡 Perfect For: List diverse potential applications, uses, or recipient ideas identified. Use this specific emoji for list items: 🔘
-    - ✅ What You Receive / Format: Explain the likely format based on visual cues. (e.g., "Instant Digital Download: Get your high-resolution file(s) immediately after purchase!"
-    - 📝 Disclaimer: At the very end of the generated description add a disclaimer saying that all images were designed by me and brought to life with the assistance of ai tools.
+- Structured & Scannable: Use clear paragraphs with emoji-prefixed headings (choose relevant emojis based on the product), add new empty lines after each section.
+- 📝 Disclaimer: At the very end of the generated description add a disclaimer saying that all images were designed by me and brought to life with the assistance of ai tools.
 - Readability & Tone: Maintain a Flesch Reading Ease score of 70+. Use clear, concise language and active voice. Avoid jargon. Keep the tone appropriate for the product's style (e.g., playful, elegant, professional, cozy) but always helpful and inspiring.
 - Keyword Integration: Naturally weave primary and secondary keywords (including inferred synonyms like 'artwork', 'gift idea', 'home accessory', 'craft supply', 'clothing item', 'digital asset') throughout the description, mirroring conversational language and reflecting the image content.
 Tags (Exactly 13):
@@ -41,9 +38,8 @@ Tags (Exactly 13):
     - Product Type (e.g., Ceramic Coffee Mug, Printable Planner, Crochet Pattern PDF)
     - Use Case/Occasion (e.g., Nursery Decor, Birthday Gift Idea, Office Accessory)
     - Target Audience (e.g., Gifts for Her, Teacher Present, Crafter Supply)
-    - Materials/Format (if clear) (e.g., Wooden Sign Art, SVG Cutting File, Linen Pillow Case)
     - Problem/Solution/Benefit (e.g., Unique Home Decor, Easy Craft Project)
-- Avoid Redundancy (where possible): While some overlap with the title is okay, try to introduce new relevant terms or variations drawn from the image.
+- Avoid Redundancy (where possible): While some overlap with the title is okay, try to introduce new relevant terms or variations drawn from the image. Try not to repeat words across tags.
 - No Single Words: Avoid highly competitive single-word tags (e.g., "art", "gift", "mug", "shirt", "digital").
 - Natural Language: Use phrases buyers actually type. Use singular/plural based on common searches for that product.
 - Image-Derived: All tags MUST be directly relevant to the product depicted in the provided image.

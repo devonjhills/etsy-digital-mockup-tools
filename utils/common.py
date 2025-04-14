@@ -5,6 +5,7 @@ Common utility functions used across different modules.
 import os
 import sys
 import logging
+import math
 from typing import Optional, Tuple, List, Dict, Any, Union
 from pathlib import Path
 import glob
@@ -26,9 +27,7 @@ def setup_logging(name: str, level: int = logging.INFO) -> logging.Logger:
     logger = logging.getLogger(name)
     if not logger.handlers:
         handler = logging.StreamHandler()
-        formatter = logging.Formatter(
-            "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-        )
+        formatter = logging.Formatter("%(name)s - %(levelname)s - %(message)s")
         handler.setFormatter(formatter)
         logger.addHandler(handler)
     logger.setLevel(level)
@@ -189,6 +188,118 @@ def clean_identifier_files(directory: str) -> int:
         pass
 
     return files_removed
+
+
+def apply_watermark(
+    image: Image.Image,
+    watermark_type: str = "text",
+    text: str = "digital veil",
+    logo_path: Optional[str] = None,
+    font_name: str = "Clattering",
+    font_size: int = 50,
+    text_color: Tuple[int, int, int] = (150, 150, 150),
+    opacity: int = 100,
+    angle: float = 45.0,
+    spacing_factor: float = 3.0,
+) -> Image.Image:
+    """
+    Apply a watermark to an image. Supports both text and logo watermarks.
+
+    Args:
+        image: The image to watermark
+        watermark_type: Type of watermark ("text" or "logo")
+        text: The watermark text (used when watermark_type is "text")
+        logo_path: Path to the logo image (used when watermark_type is "logo")
+        font_name: The font name for text watermarks
+        font_size: The font size for text watermarks
+        text_color: The text color for text watermarks
+        opacity: The opacity of the watermark (0-100)
+        angle: The angle of the watermark
+        spacing_factor: The spacing factor between watermarks
+
+    Returns:
+        The watermarked image
+    """
+    logger = setup_logging(__name__)
+    logger.info(f"Applying {watermark_type} watermark...")
+
+    # Create a copy of the image and ensure it's RGBA
+    result = image.copy().convert("RGBA")
+
+    # Create a transparent layer for the watermark
+    watermark_layer = Image.new("RGBA", result.size, (0, 0, 0, 0))
+
+    if watermark_type.lower() == "text":
+        draw = ImageDraw.Draw(watermark_layer)
+
+        # Get font
+        font = get_font(font_name, font_size)
+
+        # Calculate text size
+        try:
+            bbox = draw.textbbox((0, 0), text, font=font)
+            text_width = bbox[2] - bbox[0]
+            text_height = bbox[3] - bbox[1]
+        except AttributeError:
+            text_width, text_height = draw.textsize(text, font=font)
+
+        # Calculate spacing
+        spacing_x = int(text_width * spacing_factor)
+        spacing_y = int(text_height * spacing_factor)
+
+        # Calculate number of watermarks needed
+        num_x = math.ceil(result.width / spacing_x) + 2
+        num_y = math.ceil(result.height / spacing_y) + 2
+
+        # Draw watermarks in a grid
+        for y in range(-1, num_y):
+            for x in range(-1, num_x):
+                # Stagger every other row
+                offset_x = spacing_x // 2 if y % 2 else 0
+                pos_x = x * spacing_x + offset_x
+                pos_y = y * spacing_y
+
+                # Draw text
+                draw.text((pos_x, pos_y), text, font=font, fill=(*text_color, opacity))
+
+    elif watermark_type.lower() == "logo":
+        if not logo_path or not os.path.exists(logo_path):
+            logger.error(f"Logo file not found: {logo_path}")
+            return result
+
+        # Load and resize the logo
+        logo = Image.open(logo_path).convert("RGBA")
+        logo_width = result.width // 12  # Adjust size as needed
+        logo_height = int(logo_width * logo.height / logo.width)
+        logo = logo.resize((logo_width, logo_height), Image.LANCZOS)
+
+        # Adjust opacity
+        logo = logo.copy()
+        alpha = logo.split()[3]
+        from PIL import ImageEnhance
+
+        alpha = ImageEnhance.Brightness(alpha).enhance(opacity / 100)
+        logo.putalpha(alpha)
+
+        # Calculate spacing
+        spacing_x = logo_width * spacing_factor
+        spacing_y = logo_height * spacing_factor
+
+        # Add watermarks in a grid pattern
+        for y in range(-spacing_y, result.height + spacing_y, spacing_y):
+            offset_x = (y // spacing_y % 2) * (spacing_x // 2)
+            for x in range(-spacing_x, result.width + spacing_x, spacing_x):
+                watermark_layer.paste(logo, (x + offset_x, y), logo)
+
+    # Rotate the watermark layer
+    watermark_layer = watermark_layer.rotate(
+        angle, resample=Image.BICUBIC, expand=False
+    )
+
+    # Composite the watermark onto the image
+    result = Image.alpha_composite(result, watermark_layer)
+
+    return result
 
 
 # Font handling

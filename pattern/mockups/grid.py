@@ -4,15 +4,15 @@ Module for creating grid mockups.
 
 import os
 import glob
-from typing import Optional, Tuple, List
-from PIL import Image, ImageDraw, ImageFont
+from typing import Optional
+from PIL import Image
 
 from utils.common import (
     setup_logging,
     get_resampling_filter,
     get_asset_path,
     ensure_dir_exists,
-    get_font,
+    apply_watermark,
 )
 
 # Set up logging
@@ -104,50 +104,20 @@ def create_grid_mockup_with_borders(
 
     # Add watermarks
     try:
-        # Get font
-        font = get_font("DSMarkerFelt.ttf", 80, ["DejaVuSans.ttf"])
-
-        txt_layer = Image.new("RGBA", grid_canvas.size, (255, 255, 255, 0))
-        draw = ImageDraw.Draw(txt_layer)
-
-        # Calculate watermark dimensions
-        try:
-            bbox = draw.textbbox((0, 0), watermark_text, font=font)
-            watermark_width, watermark_height = bbox[2] - bbox[0], bbox[3] - bbox[1]
-        except AttributeError:
-            watermark_width, watermark_height = draw.textsize(watermark_text, font=font)
-
-        if watermark_width <= 0 or watermark_height <= 0:
-            raise ValueError("Watermark zero size.")
-
-        # Place watermarks in a grid
-        num_watermarks_x = 5
-        num_watermarks_y = 7
-
-        for i in range(num_watermarks_y):
-            for j in range(num_watermarks_x):
-                offset = (watermark_width / 2) if i % 2 else 0
-                x = (
-                    (j * grid_width // (num_watermarks_x - 1))
-                    - watermark_width // 2
-                    + offset
-                )
-                y = (i * grid_height // (num_watermarks_y - 1)) - watermark_height // 2
-
-                # Draw shadow and text
-                draw.text((x + 2, y + 2), watermark_text, fill=(0, 0, 0, 30), font=font)
-                draw.text((x, y), watermark_text, fill=(255, 255, 255, 128), font=font)
-
-        # Rotate watermark layer
-        angle = -30
-        txt_layer_rotated = txt_layer.rotate(
-            angle, resample=Image.BICUBIC, expand=False
-        )
-
-        # Composite watermark onto grid
+        # Use the consolidated watermarking function
         grid_canvas_rgba = grid_canvas.convert("RGBA")
-        final_image = Image.alpha_composite(grid_canvas_rgba, txt_layer_rotated)
-        final_image = final_image.convert("RGB")
+        watermarked_image = apply_watermark(
+            image=grid_canvas_rgba,
+            watermark_type="text",
+            text=watermark_text,
+            font_name="DSMarkerFelt.ttf",
+            font_size=80,
+            text_color=(255, 255, 255),
+            opacity=128,
+            angle=-30,
+            spacing_factor=3.0,
+        )
+        final_image = watermarked_image.convert("RGB")
 
     except Exception as e:
         logger.error(f"Error adding watermark: {e}")

@@ -2,12 +2,15 @@
 Module for creating grid layouts.
 """
 
-import os
-import math
-from typing import List, Tuple, Dict, Optional, Any
-from PIL import Image, ImageDraw, ImageFont
+from typing import List, Tuple
+from PIL import Image, ImageDraw
 
-from utils.common import setup_logging, get_resampling_filter, safe_load_image, get_font
+from utils.common import (
+    setup_logging,
+    get_resampling_filter,
+    safe_load_image,
+    apply_watermark,
+)
 from clipart.config import WATERMARK_TEXT_SPACING_FACTOR
 
 # Set up logging
@@ -134,51 +137,15 @@ def apply_watermark(
     Returns:
         The watermarked image
     """
-    logger.info("Applying watermark...")
-
-    # Create a copy of the image
-    result = image.copy()
-
-    # Create a transparent layer for the watermark
-    watermark_layer = Image.new("RGBA", result.size, (0, 0, 0, 0))
-    draw = ImageDraw.Draw(watermark_layer)
-
-    # Get font
-    font = get_font(font_name, font_size)
-
-    # Calculate text size
-    try:
-        bbox = draw.textbbox((0, 0), text, font=font)
-        text_width = bbox[2] - bbox[0]
-        text_height = bbox[3] - bbox[1]
-    except AttributeError:
-        text_width, text_height = draw.textsize(text, font=font)
-
-    # Calculate spacing
-    spacing_x = int(text_width * spacing_factor)
-    spacing_y = int(text_height * spacing_factor)
-
-    # Calculate number of watermarks needed
-    num_x = math.ceil(result.width / spacing_x) + 2
-    num_y = math.ceil(result.height / spacing_y) + 2
-
-    # Draw watermarks in a grid
-    for y in range(-1, num_y):
-        for x in range(-1, num_x):
-            # Stagger every other row
-            offset_x = spacing_x // 2 if y % 2 else 0
-            pos_x = x * spacing_x + offset_x
-            pos_y = y * spacing_y
-
-            # Draw text
-            draw.text((pos_x, pos_y), text, font=font, fill=(*text_color, opacity))
-
-    # Rotate the watermark layer
-    watermark_layer = watermark_layer.rotate(
-        angle, resample=Image.BICUBIC, expand=False
+    # Use the consolidated watermarking function from utils.common
+    return apply_watermark(
+        image=image,
+        watermark_type="text",
+        text=text,
+        font_name=font_name,
+        font_size=font_size,
+        text_color=text_color,
+        opacity=opacity,
+        angle=angle,
+        spacing_factor=spacing_factor,
     )
-
-    # Composite the watermark onto the image
-    result = Image.alpha_composite(result.convert("RGBA"), watermark_layer)
-
-    return result

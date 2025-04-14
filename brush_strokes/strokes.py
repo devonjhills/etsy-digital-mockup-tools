@@ -1,9 +1,11 @@
 import os
 import glob
 import cv2
-from PIL import Image, ImageFont, ImageDraw, ImageEnhance
+import sys
+from PIL import Image, ImageFont, ImageDraw
 
-# numpy as np is imported but not used in this file
+# Add the project root to the Python path to import utils
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Set up constants for size and padding
 OUTPUT_SIZE = (3000, 2250)
@@ -22,32 +24,17 @@ def load_images(image_paths):
 
 def apply_watermark(image, logo_path="logo.png", opacity=45, spacing_multiplier=3):
     """Apply a logo watermark in a grid pattern with adjustable opacity and spacing."""
-    image = image.convert("RGBA")
-    watermark_layer = Image.new("RGBA", image.size, (0, 0, 0, 0))
+    # Use the consolidated watermarking function from utils.common
+    from utils.common import apply_watermark as apply_watermark_util
 
-    # Load and resize the logo
-    logo = Image.open(logo_path).convert("RGBA")
-    logo_width = image.width // 12  # Even smaller logo for more repeats
-    logo_height = int(logo_width * logo.height / logo.width)
-    logo = logo.resize((logo_width, logo_height), Image.LANCZOS)
-
-    # Adjust opacity
-    logo = logo.copy()
-    alpha = logo.split()[3]
-    alpha = ImageEnhance.Brightness(alpha).enhance(opacity / 100)
-    logo.putalpha(alpha)
-
-    # Tighter spacing for denser watermark grid
-    spacing_x = logo_width * spacing_multiplier
-    spacing_y = logo_height * spacing_multiplier
-
-    # Add watermarks in a denser grid pattern with double-offset
-    for y in range(-spacing_y * 2, image.height + spacing_y * 2, spacing_y):
-        offset_x = (y // spacing_y % 2) * (spacing_x // 2)
-        for x in range(-spacing_x * 2, image.width + spacing_x * 2, spacing_x):
-            watermark_layer.paste(logo, (x + offset_x, y), logo)
-
-    return Image.alpha_composite(image, watermark_layer)
+    return apply_watermark_util(
+        image=image,
+        watermark_type="logo",
+        logo_path=logo_path,
+        opacity=opacity,
+        spacing_factor=spacing_multiplier,
+        angle=0,  # No rotation for logo watermarks
+    )
 
 
 def create_brush_strokes_layout(input_images):
