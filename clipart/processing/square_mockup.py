@@ -100,8 +100,7 @@ def create_square_mockup(
         canvas_bg_image=canvas,
         grid_size=grid_size,
         padding=padding,
-        shadow_color=shadow_color,
-        shadow_offset=shadow_offset,
+        # Shadow parameters removed as requested
     )
 
     # Add title overlay

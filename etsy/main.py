@@ -324,6 +324,57 @@ class EtsyIntegration:
                 if not video_result:
                     logger.warning(f"Failed to upload video {video_path}")
 
+        # Set additional attributes based on product type
+        if listing_id:
+            attributes = {}
+
+            if product_type == "pattern" or product_type == "patterns":
+                # Set attributes for patterns - using only verified Etsy options
+                attributes = {
+                    "craft_types": [
+                        "Scrapbooking",
+                        "Card Making",  # Verified Etsy option
+                    ],
+                    "length": 12,  # 12 inches
+                    "width": 12,  # 12 inches
+                    "length_unit": "inches",
+                    "width_unit": "inches",
+                }
+
+                # Try to extract primary color from product info if available
+                if "colors" in product_info and product_info["colors"]:
+                    # If specific colors are mentioned, use the first one as primary
+                    colors = product_info["colors"].split(",")
+                    if colors:
+                        # Let the API match to valid Etsy color options
+                        attributes["primary_color"] = colors[0].strip()
+                        if len(colors) > 1:
+                            attributes["secondary_color"] = colors[1].strip()
+
+            elif product_type == "clipart":
+                # Set attributes for clipart - using only verified Etsy options
+                attributes = {
+                    "craft_types": [
+                        "Scrapbooking",
+                        "Card Making",  # Verified Etsy option
+                    ],
+                }
+
+                # Try to extract subject from product info if available
+                if "theme" in product_info and product_info["theme"]:
+                    # Let the API match to valid Etsy subject options
+                    attributes["subjects"] = [product_info["theme"]]
+
+            # Set the attributes on the listing
+            logger.info(f"Setting additional attributes for listing {listing_id}...")
+            result = self.listings.set_listing_attributes(
+                listing_id, product_type, attributes
+            )
+            if result:
+                logger.info(f"Successfully set attributes for listing {listing_id}")
+            else:
+                logger.warning(f"Failed to set attributes for listing {listing_id}")
+
         logger.info(f"Created listing {listing_id} for {product_name}")
         return listing
 
@@ -843,14 +894,12 @@ class EtsyIntegration:
 
             elif product_type == "clipart":
                 # Import clipart modules directly
-                from clipart.processing.collage import create_collage_layout
+                # Note: Using square_mockup for main.png (2x3 grid) and grid for 2x2 grid mockups
+                from clipart.processing.square_mockup import create_square_mockup
                 from clipart.processing.grid import create_2x2_grid, apply_watermark
                 from clipart.processing.transparency import create_transparency_demo
-                from clipart.processing.title import add_title_bar_and_text
-                import clipart.config as clipart_config
                 from utils.common import (
                     get_asset_path,
-                    safe_load_image,
                     get_resampling_filter,
                 )
 
@@ -1054,68 +1103,37 @@ class EtsyIntegration:
                         f"{num_images} clip arts • 300 DPI • Transparent PNG"
                     )
 
-                    # Create the title layer
-                    logger.info("Creating title layer...")
-                    title_layer_canvas = Image.new("RGBA", (3000, 2250), (0, 0, 0, 0))
+                    # Create main mockup using square_mockup (2x3 grid)
+                    logger.info("Creating 2x3 grid layout for main mockup...")
 
-                    # Add title bar and text
-                    title_style_args = {
-                        "title_font_name": "Angelina",
-                        "title_font_size": 170,
-                        "title_text_color": (50, 50, 50, 255),
-                        "subtitle_font_name": "MarkerFelt",
-                        "subtitle_font_size": 70,
-                        "subtitle_text_color": (80, 80, 80, 255),
-                        "title_backdrop_color": (255, 255, 255, 255),
-                        "title_backdrop_border_color": (218, 165, 32, 255),
-                        "title_backdrop_border_width": 5,
-                        "title_backdrop_corner_radius": 40,
-                    }
-
-                    image_with_title_block_only, title_backdrop_bounds = (
-                        add_title_bar_and_text(
-                            image=title_layer_canvas,
-                            background_image=canvas_bg_main,
-                            title=title,
-                            subtitle_top="Commercial Use",
-                            subtitle_bottom=subtitle_bottom_text,
-                            **title_style_args,
-                        )
+                    # Create the main mockup using the square_mockup module (2x3 grid)
+                    final_main_mockup, used_images = create_square_mockup(
+                        input_image_paths=input_image_paths[
+                            :6
+                        ],  # Use up to 6 images for 2x3 grid
+                        canvas_bg_image=canvas_bg_main.copy(),
+                        title=title,
+                        subtitle_top="Commercial Use",
+                        subtitle_bottom=subtitle_bottom_text,
+                        grid_size=(3000, 2250),  # Match canvas size
+                        padding=30,
                     )
 
-                    if not title_backdrop_bounds:
+                    if not final_main_mockup:
                         logger.warning(
-                            "Title bounds calculation failed. Collage placement might be affected."
+                            "Failed to create main mockup. Using fallback approach."
                         )
-
-                    # Create collage layout
-                    logger.info("Creating collage layout...")
-                    collage_style_args = {
-                        "centerpiece_scale_factor": 0.65,
-                        "surround_min_width_factor": 0.20,
-                        "surround_max_width_factor": 0.30,
-                        "placement_step": 5,
-                        "title_avoid_padding": 20,
-                        "centerpiece_avoid_padding": 20,
-                        "rescale_factor": 0.95,
-                        "rescale_attempts": 3,
-                        "max_acceptable_overlap_ratio": 0.10,
-                        "min_scale_abs": 0.30,
-                    }
-
-                    layout_with_images = create_collage_layout(
-                        image_paths=input_image_paths,
-                        canvas=canvas_bg_main.copy(),
-                        title_backdrop_bounds=title_backdrop_bounds,
-                        **collage_style_args,
-                    )
-
-                    # Composite title onto collage
-                    logger.info("Compositing title block...")
-                    final_main_mockup = Image.alpha_composite(
-                        layout_with_images.convert("RGBA"),
-                        image_with_title_block_only.convert("RGBA"),
-                    )
+                        # Create a simple grid as fallback
+                        final_main_mockup = create_2x2_grid(
+                            input_image_paths=input_image_paths[:4],
+                            canvas_bg_image=canvas_bg_main.copy(),
+                            grid_size=(3000, 2250),
+                            padding=30,
+                        )
+                    else:
+                        logger.info(
+                            f"Successfully created main mockup with {len(used_images)} images"
+                        )
 
                     # Save main mockup
                     main_mockup_path = os.path.join(mocks_folder, "main.png")

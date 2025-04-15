@@ -1,8 +1,9 @@
 """
-Main entry point for running folder_renamer as a module.
+Main entry point for the application.
+
+Note: The folder_renamer functionality has been removed.
 """
 
-from folder_renamer import run_module
-
 if __name__ == "__main__":
-    run_module()
+    print("The folder_renamer functionality has been removed.")
+    print("Please use the GUI or specific module commands instead.")

@@ -3,7 +3,7 @@ Module for creating transparency demonstrations.
 """
 
 import os
-from typing import List, Tuple, Dict, Optional, Any
+from typing import Tuple, Optional
 from PIL import Image, ImageDraw
 
 from utils.common import setup_logging, get_resampling_filter, safe_load_image
@@ -50,8 +50,10 @@ def create_transparency_demo(
 
     # Calculate maximum dimensions
     canvas_w, canvas_h = canvas.size
-    max_w = int(canvas_w * 0.5 * scale)
-    max_h = int(canvas_h * scale)
+    # Increase the scale by 15% to make the image larger
+    adjusted_scale = scale * 1.15
+    max_w = int(canvas_w * 0.5 * adjusted_scale)
+    max_h = int(canvas_h * adjusted_scale)
 
     if max_w <= 0 or max_h <= 0:
         logger.warning("Invalid scale/canvas size.")
@@ -91,7 +93,10 @@ def create_transparency_demo(
         checker_composite = Image.alpha_composite(checkerboard, img_copy)
 
         # Paste only onto the left side of the canvas
-        left_x = center_x - img_w - 20
+        # Move the image more to the left by increasing the offset
+        left_x = (
+            center_x - img_w - 60
+        )  # Increased from 20 to 60 to move more to the left
         top_y = center_y - img_h // 2
 
         # Ensure positions are valid

@@ -88,21 +88,11 @@ def create_2x3_grid(
             x_centered = x + (cell_width - img_width) // 2
             y_centered = y + (cell_height - img_height) // 2
 
-            # Draw shadow
-            shadow_img = Image.new("RGBA", img_resized.size, (0, 0, 0, 0))
-            shadow_draw = ImageDraw.Draw(shadow_img)
-            shadow_draw.rectangle([(0, 0), img_resized.size], fill=shadow_color)
-
-            # Paste shadow
-            canvas.paste(
-                shadow_img,
-                (x_centered + shadow_offset[0], y_centered + shadow_offset[1]),
-                img_resized,
-            )
+            # Shadow removed as requested
 
             # Paste image
             canvas.paste(img_resized, (x_centered, y_centered), img_resized)
-            
+
             logger.info(f"Placed image {i+1} at position ({col}, {row}): {img_path}")
 
         except Exception as e:
