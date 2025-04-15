@@ -25,12 +25,14 @@ Title (Target: 130-140 characters):
 - Accuracy: Ensure the title accurately reflects the product shown in the image.
 Description:
 - Hook with Benefits: Start immediately with a compelling sentence highlighting the primary benefit or appeal of the product based on its visual presentation.
-- Structured & Scannable: Use clear paragraphs with emoji-prefixed headings (choose relevant emojis based on the product), add new empty lines after each section.
+- Structured & Scannable: Use clear paragraphs with emoji-prefixed headings (choose relevant emojis based on the product), add new lines after each section for better formatting and readability fo scanning.
 - 📝 Disclaimer: At the very end of the generated description add a disclaimer saying that all images were designed by me and brought to life with the assistance of ai tools.
 - Readability & Tone: Maintain a Flesch Reading Ease score of 70+. Use clear, concise language and active voice. Avoid jargon. Keep the tone appropriate for the product's style (e.g., playful, elegant, professional, cozy) but always helpful and inspiring.
 - Keyword Integration: Naturally weave primary and secondary keywords (including inferred synonyms like 'artwork', 'gift idea', 'home accessory', 'craft supply', 'clothing item', 'digital asset') throughout the description, mirroring conversational language and reflecting the image content.
-Tags (Exactly 13):
-- Format: Provide as a comma-separated list. Each tag must be under 20 characters.
+Tags (EXACTLY 13 - NO MORE, NO LESS):
+- CRITICAL: You MUST provide EXACTLY 13 unique tags. Not 12, not 14, but EXACTLY 13.
+- Format: Provide as a comma-separated list. Each tag MUST be under 20 characters.
+- NO DUPLICATES: Do not repeat the same tag or variations of the same tag.
 - Longtail & Specific: Prioritize multi-word phrases (2-3+ words often best) that are highly relevant to the specific product's style, subject, type, and likely uses as seen in the image.
 - Diverse Angles: Cover various search approaches based on the visual analysis:
     - Style/Aesthetic (e.g., Boho Wall Art, Minimalist Jewelry)
@@ -39,10 +41,11 @@ Tags (Exactly 13):
     - Use Case/Occasion (e.g., Nursery Decor, Birthday Gift Idea, Office Accessory)
     - Target Audience (e.g., Gifts for Her, Teacher Present, Crafter Supply)
     - Problem/Solution/Benefit (e.g., Unique Home Decor, Easy Craft Project)
-- Avoid Redundancy (where possible): While some overlap with the title is okay, try to introduce new relevant terms or variations drawn from the image. Try not to repeat words across tags.
+- Avoid Redundancy: While some overlap with the title is okay, try to introduce new relevant terms or variations drawn from the image. Try not to repeat words across tags.
 - No Single Words: Avoid highly competitive single-word tags (e.g., "art", "gift", "mug", "shirt", "digital").
 - Natural Language: Use phrases buyers actually type. Use singular/plural based on common searches for that product.
 - Image-Derived: All tags MUST be directly relevant to the product depicted in the provided image.
+- COUNT CAREFULLY: Double-check that you have provided EXACTLY 13 tags, no more and no less.
 Core SEO Philosophy (Internal Checklist for You):
 - Emulate Modern Etsy Search: Focus on semantic understanding, user intent signals, and overall listing quality derived from visual appeal and accurate description.
 - Outrank Competitors: Actively use insights from popular listings to improve keyword targeting, clarity, and appeal.
@@ -53,4 +56,10 @@ Core SEO Philosophy (Internal Checklist for You):
 Required Output Format (PLAIN TEXT ONLY, NO MARKDOWN):
 Title: [Generated Title following guidelines]
 Description: [Generated Description following guidelines and structure]
-Tags: [tag1, tag2, tag3, tag4, tag5, tag6, tag7, tag8, tag9, tag10, tag11, tag12, tag13]"""
+Tags: [tag1, tag2, tag3, tag4, tag5, tag6, tag7, tag8, tag9, tag10, tag11, tag12, tag13]
+
+IMPORTANT FINAL CHECK:
+1. Verify you have EXACTLY 13 tags, no more and no less
+2. Ensure each tag is under 20 characters
+3. Confirm there are no duplicate tags or variations of the same tag
+4. Make sure all tags are relevant to the product in the image"""

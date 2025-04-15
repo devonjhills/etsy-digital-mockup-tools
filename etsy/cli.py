@@ -10,6 +10,7 @@ from utils.common import setup_logging
 from utils.env_loader import load_env_from_file
 from etsy.main import EtsyIntegration
 from etsy.constants import DEFAULT_ETSY_INSTRUCTIONS
+from folder_renamer import process_input_directory
 
 # Set up logging
 logger = setup_logging(__name__)
@@ -100,6 +101,11 @@ def main():
         default="prepared_listings.json",
         help="Output file to save prepared listings data (default: prepared_listings.json)",
     )
+    bulk_prepare_parser.add_argument(
+        "--provider",
+        choices=["gemini", "openrouter"],
+        help="AI provider to use for content generation (overrides environment variable)",
+    )
 
     # Generate content command
     generate_parser = etsy_subparsers.add_parser(
@@ -131,8 +137,42 @@ def main():
     # Get API keys from environment variables
     etsy_api_key = os.environ.get("ETSY_API_KEY")
     etsy_api_secret = os.environ.get("ETSY_API_SECRET")
-    gemini_api_key = os.environ.get("GEMINI_API_KEY")
-    gemini_model = os.environ.get("GEMINI_MODEL", "gemini-2.5-pro-exp-03-25")
+
+    # Get AI provider settings
+    provider_type = os.environ.get("AI_PROVIDER")
+    api_key = None
+    model_name = None
+
+    # If provider is specified, get the corresponding API key and model
+    if provider_type == "gemini":
+        api_key = os.environ.get("GEMINI_API_KEY")
+        model_name = os.environ.get("GEMINI_MODEL")
+        if api_key:
+            logger.info(f"Using Gemini model: {model_name}")
+    elif provider_type == "openrouter":
+        api_key = os.environ.get("OPEN_ROUTER_API_KEY")
+        model_name = os.environ.get("OPEN_ROUTER_MODEL")
+        if api_key:
+            logger.info(f"Using OpenRouter model: {model_name}")
+    else:
+        # Try to get API keys for available providers
+        gemini_api_key = os.environ.get("GEMINI_API_KEY")
+        openrouter_api_key = os.environ.get("OPEN_ROUTER_API_KEY")
+
+        if gemini_api_key:
+            provider_type = "gemini"
+            api_key = gemini_api_key
+            model_name = os.environ.get("GEMINI_MODEL")
+            logger.info(f"Using Gemini model: {model_name}")
+        elif openrouter_api_key:
+            provider_type = "openrouter"
+            api_key = openrouter_api_key
+            model_name = os.environ.get("OPEN_ROUTER_MODEL")
+            logger.info(f"Using OpenRouter model: {model_name}")
+        else:
+            logger.warning(
+                "No AI provider API keys found in environment. Some features may not work."
+            )
 
     # Log API key status (without revealing the full key)
     if etsy_api_key:
@@ -147,19 +187,13 @@ def main():
         )
         sys.exit(1)
 
-    if gemini_api_key:
-        logger.info(f"Using Gemini model: {gemini_model}")
-    else:
-        logger.warning(
-            "GEMINI_API_KEY not found in environment. Some features may not work."
-        )
-
     # Initialize Etsy integration
     etsy = EtsyIntegration(
         etsy_api_key=etsy_api_key,
         etsy_api_secret=etsy_api_secret,
-        gemini_api_key=gemini_api_key,
-        gemini_model=gemini_model,
+        api_key=api_key,
+        model_name=model_name,
+        provider_type=provider_type,
     )
 
     if args.command == "etsy":
@@ -214,6 +248,20 @@ def main():
                 logger.error(f"Input directory not found: {args.input_dir}")
                 sys.exit(1)
 
+            # Step 0: Rename folders based on AI image analysis
+            logger.info("Step 0: Renaming folders based on AI image analysis...")
+            if api_key:
+                process_input_directory(
+                    input_dir=args.input_dir,
+                    provider_type=provider_type,
+                    api_key=api_key,
+                    model_name=model_name,
+                )
+            else:
+                logger.warning(
+                    "No AI provider API key found in environment variables. Skipping folder renaming."
+                )
+
             # Create listings in bulk
             logger.info(
                 f"Starting bulk creation of listings for {args.product_type} in {args.input_dir}"
@@ -241,10 +289,57 @@ def main():
                 logger.error(f"Input directory not found: {args.input_dir}")
                 sys.exit(1)
 
+            # Override provider if specified in command line
+            command_provider_type = provider_type
+            command_api_key = api_key
+            command_model_name = model_name
+
+            if hasattr(args, "provider") and args.provider:
+                command_provider_type = args.provider
+                if args.provider == "gemini":
+                    command_api_key = os.environ.get("GEMINI_API_KEY")
+                    command_model_name = os.environ.get("GEMINI_MODEL")
+                    if command_api_key:
+                        logger.info(f"Using Gemini model: {command_model_name}")
+                elif args.provider == "openrouter":
+                    command_api_key = os.environ.get("OPEN_ROUTER_API_KEY")
+                    command_model_name = os.environ.get("OPEN_ROUTER_MODEL")
+                    if command_api_key:
+                        logger.info(f"Using OpenRouter model: {command_model_name}")
+
+            # Step 0: Rename folders based on AI image analysis
+            logger.info("Step 0: Renaming folders based on AI image analysis...")
+            if command_api_key:
+                process_input_directory(
+                    input_dir=args.input_dir,
+                    provider_type=command_provider_type,
+                    api_key=command_api_key,
+                    model_name=command_model_name,
+                )
+            else:
+                logger.warning(
+                    "No AI provider API key found in environment variables. Skipping folder renaming."
+                )
+
             # Prepare listings in bulk
             logger.info(
                 f"Starting bulk preparation of listings for {args.product_type} in {args.input_dir}"
             )
+
+            # Update the EtsyIntegration instance with the new provider if specified
+            if hasattr(args, "provider") and args.provider:
+                # Create a new EtsyIntegration instance with the specified provider
+                etsy = EtsyIntegration(
+                    etsy_api_key=etsy_api_key,
+                    etsy_api_secret=etsy_api_secret,
+                    api_key=command_api_key,
+                    model_name=command_model_name,
+                    provider_type=command_provider_type,
+                )
+                logger.info(
+                    f"Updated EtsyIntegration to use provider: {command_provider_type}"
+                )
+
             prepared_listings = etsy.prepare_bulk_listings(
                 input_dir=args.input_dir,
                 product_type=args.product_type,

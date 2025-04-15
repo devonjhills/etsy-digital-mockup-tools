@@ -4,7 +4,7 @@ Module for managing listing templates.
 
 import os
 import json
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional
 import re
 
 from utils.common import setup_logging
@@ -244,48 +244,10 @@ class ListingTemplate:
                 "quantity": 999,
             }
 
-            # Brush strokes template
-            brush_strokes_template = {
-                "product_type": "brush_strokes",
-                "title_template": "{brush_name} | Digital Brushes | Procreate Brushes | Photoshop Brushes | {style} | {theme}",
-                "description_template": "# {brush_name} Digital Brushes\n\n## INSTANT DOWNLOAD\n\nThis listing is for a digital download of brushes that you can use with Procreate, Photoshop, or other compatible software.\n\n## FEATURES\n\n- High-quality digital brushes\n- Compatible with {software_compatibility}\n- {num_brushes} unique brushes\n\n## WHAT YOU'LL RECEIVE\n\n- {num_files} brush file(s)\n- Installation instructions\n\n## HOW TO USE\n\nAfter purchase, you'll receive an instant download link. Follow the included instructions to install the brushes in your software.\n\n## TERMS OF USE\n\n- Commercial use allowed\n- No redistribution of the original files\n- No reselling of the original files\n\nThank you for visiting my shop! If you have any questions, feel free to contact me.",
-                "tags": [
-                    "digital brushes",
-                    "procreate brushes",
-                    "photoshop brushes",
-                    "brush set",
-                    "digital art",
-                    "digital download",
-                    "commercial use",
-                    "digital painting",
-                    "illustration",
-                    "graphic design",
-                    "art supply",
-                    "digital tool",
-                    "creative resource",
-                ],
-                "materials": [
-                    "digital file",
-                    "digital download",
-                    "digital brushes",
-                    "digital tool",
-                ],
-                "taxonomy_id": 2430,  # Digital Design Tools
-                "who_made": "i_did",
-                "is_supply": True,
-                "when_made": "made_to_order",
-                "is_digital": True,
-                "is_personalizable": False,
-                "personalization_instructions": "",
-                "price": 6.99,
-                "quantity": 999,
-            }
-
             # Save templates
             self.save_template("pattern", pattern_template)
             self.save_template("clipart", clipart_template)
             self.save_template("wall_art", wall_art_template)
-            self.save_template("brush_strokes", brush_strokes_template)
 
             return True
         except Exception as e:

@@ -400,6 +400,10 @@
         transform: translateY(-2px);
       }
 
+      .prepared-listings-content {
+        margin-top: 20px;
+      }
+
       .prepared-listing h3 {
         margin-top: 0;
         margin-bottom: 16px;
@@ -468,6 +472,101 @@
         color: white;
       }
 
+      /* Bulk tab styling */
+      .bulk-form-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+        align-items: flex-end;
+        margin-bottom: 20px;
+      }
+
+      .bulk-form-row .form-group {
+        flex: 1;
+        min-width: 200px;
+        margin-bottom: 0;
+      }
+
+      .bulk-form-row .checkbox-group {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: auto;
+        flex: 0 0 auto;
+      }
+
+      .bulk-form-row .checkbox-group label {
+        display: inline;
+        margin-bottom: 0;
+      }
+
+      .bulk-actions {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        flex-wrap: wrap;
+      }
+
+      .bulk-info-text {
+        margin: 0;
+        color: var(--text-secondary);
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .bulk-info-text i {
+        color: var(--primary-color);
+        font-size: 16px;
+      }
+
+      /* Etsy header and auth styling */
+      .etsy-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+      }
+
+      .etsy-auth-container {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .auth-button {
+        background-color: #f56400;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        padding: 6px 12px;
+        font-size: 14px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        transition: all 0.2s ease;
+      }
+
+      .auth-button:hover {
+        background-color: #e05800;
+      }
+
+      .auth-button:disabled {
+        background-color: #ccc;
+        cursor: default;
+        opacity: 0.7;
+      }
+
+      .auth-status {
+        color: #4caf50;
+        font-size: 14px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
       .prepared-listing-actions {
         margin-top: var(--spacing-lg);
         display: flex;
@@ -507,31 +606,29 @@
         box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
       }
 
-      .loading {
+      .empty-state {
         text-align: center;
         padding: var(--spacing-lg);
         color: var(--text-secondary);
-        font-style: italic;
         display: flex;
         flex-direction: column;
         align-items: center;
         gap: var(--spacing-md);
+        background-color: rgba(0, 0, 0, 0.1);
+        border-radius: 8px;
+        margin: 20px 0;
       }
 
-      .loading::before {
-        content: "";
-        width: 30px;
-        height: 30px;
-        border: 3px solid var(--border-color);
-        border-top-color: var(--primary-color);
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
+      .empty-state i {
+        font-size: 24px;
+        color: var(--primary-color);
+        opacity: 0.7;
+        margin-bottom: 10px;
       }
 
-      @keyframes spin {
-        to {
-          transform: rotate(360deg);
-        }
+      .empty-state p {
+        margin: 0;
+        line-height: 1.5;
       }
 
       /* Focus styles for accessibility */
@@ -1068,6 +1165,30 @@
         transform: translateY(1px);
         box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
       }
+
+      /* Etsy edit link styling */
+      .etsy-edit-link {
+        display: inline-block;
+        padding: 8px 12px;
+        background-color: #f56400;
+        color: white;
+        text-decoration: none;
+        border-radius: 4px;
+        font-weight: 500;
+        margin: 5px 0;
+        transition: all 0.2s ease;
+      }
+
+      .etsy-edit-link:hover {
+        background-color: #e05800;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+      }
+
+      .etsy-edit-link:active {
+        transform: translateY(1px);
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+      }
     </style>
   </head>
   <body>
@@ -1095,12 +1216,27 @@
             />
           </div>
 
+          <div class="form-group">
+            <label for="ai-provider">AI Provider:</label>
+            <select id="ai-provider" name="ai-provider" class="enhanced-select">
+              <option value="">Auto-detect</option>
+              <option value="gemini">Gemini</option>
+              <option value="openrouter">OpenRouter</option>
+            </select>
+          </div>
+
           <div class="actions">
             <button onclick="runPatternWorkflow()">
               Run Complete Workflow
             </button>
             <button onclick="runPatternResize()">Resize Only</button>
             <button onclick="runPatternMockups()">Create Mockups Only</button>
+            <button
+              onclick="runFolderRename('pattern')"
+              class="secondary-button"
+            >
+              <i class="fas fa-tag"></i> Rename Folders
+            </button>
           </div>
         </div>
       </div>
@@ -1120,25 +1256,52 @@
             />
           </div>
 
+          <div class="form-group">
+            <label for="clipart-ai-provider">AI Provider:</label>
+            <select
+              id="clipart-ai-provider"
+              name="clipart-ai-provider"
+              class="enhanced-select"
+            >
+              <option value="">Auto-detect</option>
+              <option value="gemini">Gemini</option>
+              <option value="openrouter">OpenRouter</option>
+            </select>
+          </div>
+
           <div class="actions">
             <button onclick="runClipartWorkflow()">
               Run Complete Workflow
             </button>
             <button onclick="runClipartResize()">Resize Only</button>
             <button onclick="runClipartMockups()">Create Mockups Only</button>
+            <button onclick="runClipartCropMulti()">
+              Extract Multiple Images
+            </button>
+            <button
+              onclick="runFolderRename('clipart')"
+              class="secondary-button"
+            >
+              <i class="fas fa-tag"></i> Rename Folders
+            </button>
           </div>
         </div>
       </div>
 
       <div id="etsy" class="tab-content">
-        <h2>Etsy Integration</h2>
-
-        <div class="section">
-          <h3>Authentication</h3>
-          <button id="auth-button" onclick="authenticateEtsy()">
-            Authenticate with Etsy
-          </button>
-          <div id="auth-status" style="color: green; margin-top: 10px"></div>
+        <div class="etsy-header">
+          <h2>Etsy Integration</h2>
+          <div class="etsy-auth-container">
+            <button
+              id="auth-button"
+              onclick="authenticateEtsy()"
+              class="auth-button"
+              title="Authenticate with Etsy"
+            >
+              <i class="fas fa-key"></i> Connect Etsy
+            </button>
+            <div id="auth-status" class="auth-status"></div>
+          </div>
         </div>
 
         <!-- Etsy sub-tabs -->
@@ -1172,7 +1335,6 @@
                 <option value="pattern">Pattern</option>
                 <option value="clipart">Clipart</option>
                 <option value="wall_art">Wall Art</option>
-                <option value="brush_strokes">Brush Strokes</option>
               </select>
             </div>
 
@@ -1248,44 +1410,54 @@
           </div>
 
           <div class="bulk-form-container">
-            <div class="form-group">
-              <label for="etsy-bulk-product-type">Product Type:</label>
-              <select
-                id="etsy-bulk-product-type"
-                name="etsy-bulk-product-type"
-                class="enhanced-select"
-              >
-                <option value="pattern">Pattern</option>
-                <option value="clipart">Clipart</option>
-                <option value="wall_art">Wall Art</option>
-                <option value="brush_strokes">Brush Strokes</option>
-              </select>
-            </div>
+            <div class="bulk-form-row">
+              <div class="form-group">
+                <label for="etsy-bulk-product-type">Product Type:</label>
+                <select
+                  id="etsy-bulk-product-type"
+                  name="etsy-bulk-product-type"
+                  class="enhanced-select"
+                >
+                  <option value="pattern">Pattern</option>
+                  <option value="clipart">Clipart</option>
+                  <option value="wall_art">Wall Art</option>
+                </select>
+              </div>
 
-            <div class="form-group checkbox-group">
-              <input
-                type="checkbox"
-                id="etsy-bulk-draft"
-                name="etsy-bulk-draft"
-                checked
-              />
-              <label for="etsy-bulk-draft">Create as Draft</label>
+              <div class="form-group">
+                <label for="bulk-ai-provider">AI Provider:</label>
+                <select
+                  id="bulk-ai-provider"
+                  name="bulk-ai-provider"
+                  class="enhanced-select"
+                >
+                  <option value="">Default</option>
+                  <option value="gemini">Gemini</option>
+                  <option value="openrouter">OpenRouter</option>
+                </select>
+              </div>
+
+              <div class="form-group checkbox-group">
+                <input
+                  type="checkbox"
+                  id="etsy-bulk-draft"
+                  name="etsy-bulk-draft"
+                  checked
+                />
+                <label for="etsy-bulk-draft">Create as Draft</label>
+              </div>
             </div>
 
             <div class="actions bulk-actions">
               <button onclick="prepareBulkListings()" class="primary-button">
                 <i class="fas fa-cogs"></i> Prepare Bulk Listings
               </button>
+              <p class="bulk-info-text">
+                <i class="fas fa-info-circle"></i>
+                Generates mockups, zip files, and listing content for all
+                subfolders in the input directory.
+              </p>
             </div>
-          </div>
-
-          <div class="info-box">
-            <i class="fas fa-info-circle"></i>
-            <p>
-              <strong>Prepare Bulk Listings:</strong> Generates mockups, zip
-              files, and listing content for all subfolders in the input
-              directory without uploading.
-            </p>
           </div>
         </div>
 
@@ -1313,7 +1485,7 @@
             id="prepared-listings-container"
             class="prepared-listings-content"
           >
-            <div class="loading">
+            <div class="empty-state">
               <i class="fas fa-layer-group"></i>
               <p>
                 No prepared listings yet. Click "Prepare Bulk Listings" to
@@ -1527,7 +1699,35 @@
       // Log message
       function log(message) {
         const logArea = document.getElementById("log");
-        logArea.innerHTML += formatLogMessage(message);
+
+        // Format the message
+        let formattedMessage = message;
+
+        // If the message contains HTML (like links), don't escape it
+        if (message.includes("<a ") || message.includes("<button ")) {
+          const timestamp = new Date().toLocaleTimeString();
+          let cssClass = "log-entry";
+
+          // Add specific styling based on message content
+          if (
+            message.includes("Command submitted:") ||
+            message.includes("Running command:")
+          ) {
+            cssClass += " command";
+          } else if (message.includes("Error") || message.includes("failed")) {
+            cssClass += " error";
+          } else if (
+            message.includes("successfully") ||
+            message.includes("Authentication successful")
+          ) {
+            cssClass += " success";
+          }
+
+          logArea.innerHTML += `<div class="${cssClass}">[${timestamp}] ${message}</div>`;
+        } else {
+          // Use the regular formatter for non-HTML messages
+          logArea.innerHTML += formatLogMessage(message);
+        }
 
         // Only auto-scroll if enabled
         if (autoScroll) {
@@ -1577,7 +1777,8 @@
           logText.includes("Authentication successful")
         ) {
           // Show success message and disable button
-          authStatusDiv.innerHTML = "✓ Already authenticated with Etsy";
+          authStatusDiv.innerHTML =
+            "<i class='fas fa-check-circle'></i> Connected";
           authButton.disabled = true;
         } else {
           // Clear success message and enable button
@@ -1696,6 +1897,73 @@
           .then((response) => response.json())
           .then((data) => {
             log("Command submitted: " + data.command);
+          });
+      }
+
+      function runClipartCropMulti() {
+        fetch("/run", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            command: "clipart-crop-multi",
+            inputDir: document.getElementById("clipart-input-dir").value,
+          }),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            log("Command submitted: " + data.command);
+          });
+      }
+
+      // Folder renaming function
+      function runFolderRename(type) {
+        // Get the input directory based on the type
+        const inputDir =
+          type === "pattern"
+            ? document.getElementById("pattern-input-dir").value
+            : document.getElementById("clipart-input-dir").value;
+
+        // Default parameters
+        const params = {
+          command: "folder-rename",
+          inputDir: inputDir,
+          maxRetries: 2, // Default to 2 retries
+        };
+
+        // Get the selected provider if any
+        const providerSelect =
+          type === "pattern"
+            ? document.getElementById("ai-provider")
+            : document.getElementById("clipart-ai-provider");
+        if (providerSelect && providerSelect.value) {
+          params.provider = providerSelect.value;
+        }
+
+        // Show a loading message
+        log("Starting folder renaming process...");
+        log("This may take a moment as we analyze your images.");
+
+        fetch("/run", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(params),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            log("Command submitted: " + data.command);
+            log("Renaming folders based on image analysis...");
+            // Refresh subfolders after a delay to allow the command to complete
+            setTimeout(() => {
+              log("Refreshing folder list...");
+              refreshSubfolders();
+            }, 5000);
+          })
+          .catch((error) => {
+            log("Error: " + error);
           });
       }
 
@@ -1823,8 +2091,16 @@
               // Update the form fields
               document.getElementById("etsy-title").value =
                 data.content.title || "";
-              document.getElementById("etsy-description").value =
-                data.content.description || "";
+
+              // Format description with proper spacing between emoji sections
+              let description = data.content.description || "";
+              // Add extra line breaks before emoji sections for better readability
+              description = description.replace(
+                /([^\n])(\n*[\u{1F300}-\u{1F6FF}\u{2600}-\u{26FF}])/gu,
+                "$1\n\n$2"
+              );
+              document.getElementById("etsy-description").value = description;
+
               document.getElementById("etsy-tags").value = (
                 data.content.tags || []
               ).join(", ");
@@ -1951,6 +2227,7 @@
         const productType = document.getElementById(
           "etsy-bulk-product-type"
         ).value;
+        const provider = document.getElementById("bulk-ai-provider").value;
 
         // Confirm with the user
         if (
@@ -1966,6 +2243,13 @@
           `Starting bulk preparation of ${productType} listings from input directory...`
         );
 
+        // Log the AI provider being used
+        if (provider) {
+          log(`Using AI provider: ${provider}`);
+        } else {
+          log("Using default AI provider");
+        }
+
         // Disable the button and show loading state
         const prepareButton = document.querySelector(
           "button[onclick='prepareBulkListings()'"
@@ -1974,16 +2258,24 @@
         prepareButton.disabled = true;
         prepareButton.textContent = "Processing...";
 
+        // Prepare the request parameters
+        const requestParams = {
+          command: "etsy-bulk-prepare",
+          productType: productType,
+        };
+
+        // Add provider if specified
+        if (provider) {
+          requestParams.provider = provider;
+        }
+
         // Call the API to prepare listings in bulk
         fetch("/run", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            command: "etsy-bulk-prepare",
-            productType: productType,
-          }),
+          body: JSON.stringify(requestParams),
         })
           .then((response) => {
             if (!response.ok) {
@@ -2050,7 +2342,7 @@
                 "prepared-listings-container"
               );
               container.innerHTML =
-                '<div class="loading">No prepared listings. Click "Prepare Bulk Listings" to get started.</div>';
+                '<div class="empty-state"><i class="fas fa-layer-group"></i><p>No prepared listings. Click "Prepare Bulk Listings" to get started.</p></div>';
             } else {
               log("Error: " + (data.error || "Unknown error"));
             }
@@ -2079,9 +2371,9 @@
 
         // Show loading state
         container.innerHTML =
-          '<div class="loading">Loading prepared listings' +
+          '<div class="empty-state"><i class="fas fa-sync-alt fa-spin"></i><p>Loading prepared listings' +
           (retryCount > 0 ? ` (retry ${retryCount}/3)` : "") +
-          "...</div>";
+          "...</p></div>";
 
         // Fetch prepared listings
         fetch("/run", {
@@ -2105,7 +2397,7 @@
           .then((data) => {
             if (data.count === 0) {
               container.innerHTML =
-                '<div class="loading">No prepared listings found. Please prepare listings first.</div>';
+                '<div class="empty-state"><i class="fas fa-info-circle"></i><p>No prepared listings found. Please prepare listings first.</p></div>';
               return;
             }
 
@@ -2124,7 +2416,7 @@
                 showPreparedListings(retryCount + 1);
               }, 2000);
             } else {
-              container.innerHTML = `<div class="loading">Error: ${error.message}</div>`;
+              container.innerHTML = `<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><p>Error: ${error.message}</p></div>`;
               log("Error: " + error.message);
             }
           });
@@ -2179,7 +2471,11 @@
                   <div class="form-group">
                     <label><strong>Description:</strong></label>
                     <textarea class="description-input" data-index="${index}" rows="10" style="width: 100%;">${
-            listing.description
+            // Format description with proper spacing between emoji sections
+            listing.description.replace(
+              /([^\n])(\n*[\u{1F300}-\u{1F6FF}\u{2600}-\u{26FF}])/gu,
+              "$1\n\n$2"
+            )
           }</textarea>
                   </div>
 
@@ -2422,9 +2718,24 @@
             return response.json();
           })
           .then((result) => {
-            log(
-              `Successfully uploaded listing to Etsy. Check the logs for details.`
+            // Check if the log contains the listing ID
+            const listingIdMatch = /Listing created: (\d+)/.exec(
+              document.getElementById("log").innerHTML
             );
+            if (listingIdMatch && listingIdMatch[1]) {
+              const listingId = listingIdMatch[1];
+              const editUrl = `https://www.etsy.com/your/shops/me/listing-editor/edit/${listingId}`;
+              log(
+                `Successfully uploaded listing to Etsy. Listing ID: ${listingId}`
+              );
+              log(
+                `<a href="${editUrl}" target="_blank" class="etsy-edit-link">Edit listing on Etsy</a>`
+              );
+            } else {
+              log(
+                `Successfully uploaded listing to Etsy. Check the logs for details.`
+              );
+            }
             log(`Updating prepared listings...`);
 
             // Wait a moment to ensure the upload is complete before removing from UI

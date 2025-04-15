@@ -1,0 +1,1 @@
+"""Wall art processing package."""

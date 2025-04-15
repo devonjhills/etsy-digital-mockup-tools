@@ -1,84 +1,181 @@
+"""Module for creating seamless pattern mockups."""
+
 import os
-from PIL import Image
+import glob
+from typing import Optional, Tuple
+from PIL import Image, ImageDraw, ImageFont
 
-input_folder = "input"  # Parent directory containing subfolders with images
+from utils.common import (
+    setup_logging,
+    get_resampling_filter,
+    get_asset_path,
+    ensure_dir_exists,
+    get_font,
+)
 
-
-def create_single_image_grid():
-    # Process each subfolder in the input directory
-    for subfolder in os.listdir(input_folder):
-        subfolder_path = os.path.join(input_folder, subfolder)
-
-        if not os.path.isdir(subfolder_path):
-            continue
-
-        print(f"Processing subfolder: {subfolder}")
-
-        # Process all image files in the subfolder
-        processed_files = []
-        valid_extensions = (".png", ".jpg", ".jpeg", ".webp", ".bmp")
-
-        for file in os.listdir(subfolder_path):
-            file_path = os.path.join(subfolder_path, file)
-
-            if not file.lower().endswith(valid_extensions):
-                continue
-
-            if not os.path.isfile(file_path):
-                continue
-
-            try:
-                # Open and validate image
-                with Image.open(file_path) as img:
-                    if img.size != (1024, 1024):
-                        print(f"  Skipping {file} - incorrect dimensions")
-                        continue
-
-                    # Create 4x4 grid
-                    grid_image = Image.new("RGB", (4096, 4096))
-                    img_rgb = img.convert("RGB")
-
-                    # Paste image 16 times in grid pattern
-                    for i in range(16):
-                        row = i // 4
-                        col = i % 4
-                        x = col * 1024
-                        y = row * 1024
-                        grid_image.paste(img_rgb, (x, y))
-
-                    # Save new grid image
-                    base_name = os.path.splitext(file)[0]
-                    output_path = os.path.join(subfolder_path, f"{base_name}_grid.png")
-                    grid_image.save(output_path, "PNG")
-                    print(f"  Created grid: {output_path}")
-
-                    # Mark original for deletion
-                    processed_files.append(file_path)
-
-            except Exception as e:
-                print(f"  Error processing {file}: {str(e)}")
-
-        # Delete successfully processed originals
-        deleted_count = 0
-        for file_path in processed_files:
-            try:
-                os.remove(file_path)
-                deleted_count += 1
-            except Exception as e:
-                print(f"  Error deleting {file_path}: {str(e)}")
-
-        print(f"  Deleted {deleted_count} original images\n")
+# Set up logging
+logger = setup_logging(__name__)
 
 
-if __name__ == "__main__":
-    # Import the clean_identifier_files function from utils.common
+def create_pattern(input_folder: str) -> Optional[str]:
+    """
+    Creates a simple 2x2 tiled seamless pattern image.
+
+    Args:
+        input_folder: Path to the input folder containing images
+
+    Returns:
+        Path to the created seamless pattern file, or None if creation failed
+    """
+    logger.info("Creating seamless pattern image...")
+    output_folder = os.path.join(input_folder, "mocks")
+    ensure_dir_exists(output_folder)
+
+    # Find JPG images in the input folder
+    images = sorted(glob.glob(os.path.join(input_folder, "*.jpg")))[:1]
+    if not images:
+        logger.warning("No JPG images found for seamless pattern.")
+        return None
+
+    image_path = images[0]
+    IMAGE_SIZE = 2048
+    GRID_SIZE = 2
+
     try:
-        from utils.common import clean_identifier_files
+        output_image = Image.new("RGBA", (IMAGE_SIZE, IMAGE_SIZE))
+        source_image = Image.open(image_path).convert("RGBA")
 
-        num_removed = clean_identifier_files(input_folder)
-        print(f"Deleted {num_removed} identifier/system files")
-    except ImportError:
-        print("Could not import clean_identifier_files from utils.common")
-        print("Skipping identifier file cleanup")
+        cell_size = IMAGE_SIZE // GRID_SIZE
+        source_image = source_image.resize(
+            (cell_size, cell_size), get_resampling_filter()
+        )
 
-    create_single_image_grid()
+        # Create 2x2 grid
+        for row in range(GRID_SIZE):
+            for col in range(GRID_SIZE):
+                output_image.paste(
+                    source_image, (col * cell_size, row * cell_size), source_image
+                )
+
+        # Add text overlay
+        txt_layer = Image.new("RGBA", output_image.size, (255, 255, 255, 0))
+        draw = ImageDraw.Draw(txt_layer)
+
+        # Get font
+        font = get_font("Clattering.ttf", 185)
+
+        text = "Seamless Patterns"
+        text_position = (IMAGE_SIZE // 2, IMAGE_SIZE // 2)
+
+        # Draw text outline
+        offsets = [(x, y) for x in (-3, 3) for y in (-3, 3)]
+        for offset_x, offset_y in offsets:
+            draw.text(
+                (text_position[0] + offset_x, text_position[1] + offset_y),
+                text,
+                font=font,
+                fill=(255, 255, 255, 192),
+                anchor="mm",
+                align="center",
+            )
+
+        # Draw main text
+        draw.text(
+            text_position,
+            text,
+            font=font,
+            fill=(0, 0, 0, 192),
+            anchor="mm",
+            align="center",
+        )
+
+        combined = Image.alpha_composite(output_image, txt_layer)
+
+        # Save the result
+        filename = "seamless_1.jpg"
+        save_path = os.path.join(output_folder, filename)
+        combined.convert("RGB").save(
+            save_path,
+            "JPEG",
+            quality=85,
+            optimize=True,
+            subsampling="4:2:0",
+        )
+
+        logger.info(f"Seamless pattern saved: {save_path}")
+        return save_path
+
+    except Exception as e:
+        logger.error(f"Error creating seamless pattern for {image_path}: {e}")
+        return None
+
+
+def create_seamless_mockup(input_folder: str) -> Optional[str]:
+    """
+    Creates a mockup showing a single tile next to a 2x2 seamless representation.
+
+    Args:
+        input_folder: Path to the input folder containing images
+
+    Returns:
+        Path to the created mockup file, or None if creation failed
+    """
+    logger.info("Creating original seamless comparison mockup...")
+    output_folder = os.path.join(input_folder, "mocks")
+    ensure_dir_exists(output_folder)
+
+    input_files = sorted(glob.glob(os.path.join(input_folder, "*.[jp][pn][g]")))
+    if not input_files:
+        logger.warning("No image files found in input folder for seamless mockup.")
+        return None
+
+    input_image_path = input_files[0]
+
+    try:
+        input_img = Image.open(input_image_path)
+        if input_img.mode != "RGBA":
+            input_img = input_img.convert("RGBA")
+
+        cell_max_size = (550, 550)
+        scaled_img = input_img.copy()
+        scaled_img.thumbnail(cell_max_size, get_resampling_filter())
+        cell_width, cell_height = scaled_img.size
+
+        # Load or create canvas
+        canvas_path = get_asset_path("canvas2.png")
+        if canvas_path:
+            canvas = Image.open(canvas_path).convert("RGBA")
+            canvas_target_size = (2000, 2000)
+            canvas = canvas.resize(canvas_target_size, get_resampling_filter())
+        else:
+            logger.warning("Canvas background 'canvas2.png' not found. Using white.")
+            canvas_target_size = (2000, 2000)
+            canvas = Image.new("RGBA", canvas_target_size, (255, 255, 255, 255))
+
+        canvas_width, canvas_height = canvas.size
+        margin, arrow_gap = 100, 100
+
+        # Paste single tile on the left
+        left_x, left_y = margin, (canvas_height - cell_height) // 2
+        canvas.paste(scaled_img, (left_x, left_y), scaled_img)
+
+        # Paste 2x2 grid on the right
+        grid_x = left_x + cell_width + arrow_gap
+        grid_y = (canvas_height - (2 * cell_height)) // 2
+        for i in range(2):
+            for j in range(2):
+                pos = (grid_x + j * cell_width, grid_y + i * cell_height)
+                canvas.paste(scaled_img, pos, scaled_img)
+
+        # Save the result
+        output_image_path = os.path.join(output_folder, "output_mockup.png")
+        canvas.save(output_image_path, "PNG")
+
+        logger.info(f"Original seamless comparison mockup saved: {output_image_path}")
+        return output_image_path
+
+    except Exception as e:
+        logger.error(
+            f"Error creating original seamless comparison mockup for {input_image_path}: {e}"
+        )
+        return None

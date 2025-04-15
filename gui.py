@@ -183,6 +183,31 @@ def run_command():
             "--input_dir",
             data.get("inputDir"),
         ]
+    elif command_type == "clipart-crop-multi":
+        command = [
+            "python",
+            "-m",
+            "clipart.crop_multi",
+        ]
+    elif command_type == "folder-rename":
+        # Use the folder_renamer module directly instead of cli.py
+        command = [
+            "python",
+            "-m",
+            "folder_renamer",
+            "--input_dir",
+            data.get("inputDir"),
+        ]
+
+        # Add provider if specified
+        if data.get("provider"):
+            command.extend(["--provider", data.get("provider")])
+
+        if data.get("maxRetries") is not None:
+            command.extend(["--max-retries", str(data.get("maxRetries"))])
+
+        if data.get("model"):
+            command.extend(["--model", data.get("model")])
     elif command_type == "etsy-auth":
         command = ["python", "-m", "etsy.cli", "etsy", "auth"]
     elif command_type == "etsy-generate":
@@ -199,31 +224,30 @@ def run_command():
             data.get("productType"),
         ]
 
-        # Check if GEMINI_API_KEY is set
+        # Check if we have at least one AI provider API key
         gemini_api_key = os.environ.get("GEMINI_API_KEY")
-        if not gemini_api_key:
-            error_msg = "GEMINI_API_KEY not found in environment variables. Please set it in .env file."
+        openrouter_api_key = os.environ.get("OPEN_ROUTER_API_KEY")
+
+        if not gemini_api_key and not openrouter_api_key:
+            error_msg = "No AI provider API keys found in environment variables. Please set GEMINI_API_KEY or OPEN_ROUTER_API_KEY in .env file."
             log_messages.append(error_msg)
             return jsonify({"command": " ".join(command), "error": error_msg}), 400
 
-        # Ensure the Gemini API is properly configured
-        try:
-            import google.generativeai as genai
-
-            genai.configure(api_key=gemini_api_key)
-            model_name = os.environ.get("GEMINI_MODEL", "gemini-2.5-pro-exp-03-25")
-            log_messages.append(f"Using Gemini model: {model_name}")
-        except Exception as e:
-            error_msg = f"Error configuring Gemini API: {e}"
-            log_messages.append(error_msg)
-            return jsonify({"command": " ".join(command), "error": error_msg}), 500
+        # Add provider parameter if specified in environment
+        provider_type = os.environ.get("AI_PROVIDER")
+        if provider_type:
+            log_messages.append(f"Using AI provider: {provider_type}")
+            command.extend(["--provider", provider_type])
+        else:
+            # Default to Gemini if available
+            if gemini_api_key:
+                log_messages.append("Using default Gemini provider")
+            elif openrouter_api_key:
+                log_messages.append("Using default OpenRouter provider")
 
         # Create a process to capture output
         try:
             log_messages.append(f"Running command: {' '.join(command)}")
-            log_messages.append(
-                f"Using Gemini model: {os.environ.get('GEMINI_MODEL', 'gemini-2.5-pro-exp-03-25')}"
-            )
 
             # Run the command directly to capture all output
             try:
@@ -571,6 +595,11 @@ def run_command():
             "prepared_listings.json",
         ]
 
+        # Add provider if specified
+        if data.get("provider"):
+            command.extend(["--provider", data.get("provider")])
+            log_messages.append(f"Using AI provider: {data.get('provider')}")
+
         log_messages.append(
             f"Starting bulk preparation of {data.get('productType')} listings from input directory..."
         )
@@ -604,12 +633,31 @@ def run_command():
 
         prepared_file = data.get("file", "prepared_listings.json")
         if not os.path.exists(prepared_file):
-            return (
-                jsonify(
-                    {"error": f"Prepared listings file not found: {prepared_file}"}
-                ),
-                404,
-            )
+            # Create an empty prepared_listings.json file if it doesn't exist
+            try:
+                log_messages.append(
+                    f"Creating empty prepared listings file: {prepared_file}"
+                )
+                with open(prepared_file, "w") as f:
+                    json.dump([], f)
+                log_messages.append(
+                    f"Created empty prepared listings file: {prepared_file}"
+                )
+                # Return a message indicating no listings are available
+                return (
+                    jsonify(
+                        {
+                            "error": "No prepared listings available. Please prepare listings first."
+                        }
+                    ),
+                    400,
+                )
+            except Exception as e:
+                log_messages.append(f"Error creating prepared listings file: {e}")
+                return (
+                    jsonify({"error": f"Error creating prepared listings file: {e}"}),
+                    500,
+                )
 
         try:
             with open(prepared_file, "r") as f:
@@ -675,12 +723,22 @@ def run_command():
 
         prepared_file = data.get("file", "prepared_listings.json")
         if not os.path.exists(prepared_file):
-            return (
-                jsonify(
-                    {"error": f"Prepared listings file not found: {prepared_file}"}
-                ),
-                404,
-            )
+            # Create an empty prepared_listings.json file if it doesn't exist
+            try:
+                log_messages.append(
+                    f"Creating empty prepared listings file: {prepared_file}"
+                )
+                with open(prepared_file, "w") as f:
+                    json.dump([], f)
+                log_messages.append(
+                    f"Created empty prepared listings file: {prepared_file}"
+                )
+            except Exception as e:
+                log_messages.append(f"Error creating prepared listings file: {e}")
+                return (
+                    jsonify({"error": f"Error creating prepared listings file: {e}"}),
+                    500,
+                )
 
         try:
             with open(prepared_file, "r") as f:
@@ -724,12 +782,31 @@ def run_command():
 
         prepared_file = data.get("file", "prepared_listings.json")
         if not os.path.exists(prepared_file):
-            return (
-                jsonify(
-                    {"error": f"Prepared listings file not found: {prepared_file}"}
-                ),
-                404,
-            )
+            # Create an empty prepared_listings.json file if it doesn't exist
+            try:
+                log_messages.append(
+                    f"Creating empty prepared listings file: {prepared_file}"
+                )
+                with open(prepared_file, "w") as f:
+                    json.dump([], f)
+                log_messages.append(
+                    f"Created empty prepared listings file: {prepared_file}"
+                )
+                # Return a message indicating no listings are available
+                return (
+                    jsonify(
+                        {
+                            "error": "No prepared listings available. Please prepare listings first."
+                        }
+                    ),
+                    400,
+                )
+            except Exception as e:
+                log_messages.append(f"Error creating prepared listings file: {e}")
+                return (
+                    jsonify({"error": f"Error creating prepared listings file: {e}"}),
+                    500,
+                )
 
         try:
             with open(prepared_file, "r") as f:
@@ -788,12 +865,29 @@ def run_command():
 
         prepared_file = data.get("file", "prepared_listings.json")
         if not os.path.exists(prepared_file):
-            return (
-                jsonify(
-                    {"error": f"Prepared listings file not found: {prepared_file}"}
-                ),
-                404,
-            )
+            # Create an empty prepared_listings.json file if it doesn't exist
+            try:
+                log_messages.append(
+                    f"Creating empty prepared listings file: {prepared_file}"
+                )
+                with open(prepared_file, "w") as f:
+                    json.dump([], f)
+                log_messages.append(
+                    f"Created empty prepared listings file: {prepared_file}"
+                )
+                # Return a message indicating no listings are available
+                return (
+                    jsonify(
+                        {"error": "No prepared listings available. Nothing to remove."}
+                    ),
+                    400,
+                )
+            except Exception as e:
+                log_messages.append(f"Error creating prepared listings file: {e}")
+                return (
+                    jsonify({"error": f"Error creating prepared listings file: {e}"}),
+                    500,
+                )
 
         try:
             # Get the listing index to remove
@@ -815,7 +909,7 @@ def run_command():
             folder_name = listing_data["folder_name"]
 
             # Remove the listing
-            removed_listing = prepared_listings.pop(listing_index)
+            prepared_listings.pop(listing_index)
 
             # Save the updated listings
             with open(prepared_file, "w") as f:

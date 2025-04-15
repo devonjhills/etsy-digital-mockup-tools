@@ -44,6 +44,7 @@ The toolkit streamlines the entire workflow from product creation to Etsy listin
 - **SEO Optimization**: Generate listing titles, descriptions, and tags
 - **Image Analysis**: Extract product details from mockup images
 - **Content Generation**: Create compelling marketing copy
+- **Multiple AI Providers**: Support for Google Gemini and OpenRouter (Llama, GPT, etc.)
 
 ### 🖥️ User Interface
 
@@ -75,7 +76,7 @@ mockup-tools/
 - **Flask**: Web framework for the GUI
 - **Pillow (PIL)**: Image processing and manipulation
 - **OpenCV**: Advanced image processing and video creation
-- **Google Gemini API**: AI-powered content generation
+- **AI Integration**: Modular system supporting Google Gemini and OpenRouter (Meta Llama, etc.)
 - **Etsy API v3**: E-commerce platform integration
 - **OAuth 2.0**: Secure authentication with PKCE flow
 - **JavaScript/CSS**: Frontend enhancements
@@ -105,9 +106,10 @@ mockup-tools/
 
 ### AI Integration
 
-- **LLM Implementation**: Integration with Google's Gemini API
+- **Modular LLM Architecture**: Pluggable system supporting multiple AI providers
 - **Prompt Engineering**: Crafting effective AI prompts
 - **Content Generation**: AI-powered SEO optimization
+- **Provider Abstraction**: Unified interface for different AI models
 
 ### Image Processing
 
@@ -185,6 +187,13 @@ ETSY_SHOP_ID="your_etsy_shop_id_here"
 # Google Gemini API credentials
 GEMINI_API_KEY="your_gemini_api_key_here"
 GEMINI_MODEL="gemini-2.5-pro-exp-03-25"
+
+# OpenRouter API credentials (alternative AI provider)
+OPEN_ROUTER_API_KEY="your_openrouter_api_key_here"
+OPEN_ROUTER_MODEL="qwen/qwen2.5-vl-3b-instruct:free"
+
+# Default AI provider (gemini or openrouter)
+# AI_PROVIDER="gemini"
 ```
 
 ### API Setup
@@ -196,8 +205,14 @@ GEMINI_MODEL="gemini-2.5-pro-exp-03-25"
    - Set the OAuth redirect URI to `http://localhost:3003/oauth/redirect`
 
 2. **Google Gemini API**:
+
    - Visit https://ai.google.dev/ to get an API key
    - Enable the Gemini API for your project
+
+3. **OpenRouter API** (Alternative):
+   - Visit https://openrouter.ai/ to create an account
+   - Generate an API key in your dashboard
+   - Free models are available for testing
 
 ### Running the Application
 

@@ -157,27 +157,26 @@ def main():
         "mockup", help="Create wall art mockups"
     )
 
-    # Brush strokes command
-    brush_strokes_parser = subparsers.add_parser(
-        "brush-strokes", help="Brush strokes processing tools"
+    # Folder renamer command
+    rename_parser = subparsers.add_parser(
+        "rename", help="Rename input subfolders based on Gemini API image analysis"
     )
-    brush_strokes_subparsers = brush_strokes_parser.add_subparsers(
-        dest="brush_strokes_command", help="Brush strokes command to run"
+    rename_parser.add_argument(
+        "--input_dir",
+        default="input",
+        help="Path to the input directory containing subfolders to rename",
     )
-
-    # Brush strokes all command
-    brush_strokes_all_parser = brush_strokes_subparsers.add_parser(
-        "all", help="Run the complete brush strokes workflow"
+    # Fallback option removed
+    rename_parser.add_argument(
+        "--model",
+        default="gemini-2.5-pro-exp-03-25",
+        help="Gemini model to use (default: gemini-2.5-pro-exp-03-25)",
     )
-
-    # Brush strokes process command
-    brush_strokes_process_parser = brush_strokes_subparsers.add_parser(
-        "process", help="Process brush strokes images"
-    )
-
-    # Brush strokes mask command
-    brush_strokes_mask_parser = brush_strokes_subparsers.add_parser(
-        "mask", help="Apply mask to brush strokes images"
+    rename_parser.add_argument(
+        "--max-retries",
+        type=int,
+        default=2,
+        help="Maximum number of retries for API calls (default: 2)",
     )
 
     # Etsy command
@@ -318,22 +317,27 @@ def main():
             )
             sys.exit(1)
 
-    elif args.command == "brush-strokes":
-        # Import brush strokes CLI module
+    elif args.command == "rename":
+        # Import folder renamer module
         try:
-            from brush_strokes.cli import main as brush_strokes_main
+            from folder_renamer import main as rename_main
 
-            # Prepare sys.argv for brush strokes CLI
+            # Prepare sys.argv for folder renamer CLI
             sys.argv = [sys.argv[0]]
-            if args.brush_strokes_command:
-                sys.argv.append(args.brush_strokes_command)
+            sys.argv.extend(["--input_dir", args.input_dir])
 
-            # Run brush strokes CLI
-            brush_strokes_main()
+            # Fallback option removed
+
+            if args.model:
+                sys.argv.extend(["--model", args.model])
+
+            if args.max_retries is not None:
+                sys.argv.extend(["--max-retries", str(args.max_retries)])
+
+            # Run folder renamer CLI
+            rename_main()
         except ImportError:
-            logger.error(
-                "Brush strokes module not found. Please implement the brush strokes CLI module."
-            )
+            logger.error("Folder renamer module not found.")
             sys.exit(1)
 
     elif args.command == "etsy":

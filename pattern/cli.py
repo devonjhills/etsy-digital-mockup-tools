@@ -9,6 +9,7 @@ import argparse
 from utils.common import setup_logging, run_script
 from pattern.main import process_all_patterns
 from pattern.resize import process_images
+from folder_renamer import process_input_directory
 
 # Set up logging
 logger = setup_logging(__name__)
@@ -83,6 +84,17 @@ def main():
     args = parser.parse_args()
 
     if args.command == "all":
+        # Step 0: Rename folders based on Gemini API analysis
+        logger.info("Step 0: Renaming folders based on Gemini API analysis...")
+        # Get Gemini API key from environment
+        gemini_api_key = os.environ.get("GEMINI_API_KEY")
+        if gemini_api_key:
+            process_input_directory(args.input_dir, gemini_api_key)
+        else:
+            logger.warning(
+                "GEMINI_API_KEY not found in environment variables. Skipping folder renaming."
+            )
+
         # Step 1: Resize images
         logger.info("Step 1: Resizing pattern images...")
         process_images(args.input_dir)

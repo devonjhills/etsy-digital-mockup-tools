@@ -7,7 +7,7 @@ import sys
 
 from utils.common import setup_logging, ensure_dir_exists
 from pattern.resize import process_images
-from pattern.mockups.seamless import create_pattern, create_seamless_mockup
+from pattern.seamless import create_pattern, create_seamless_mockup
 from pattern.mockups.grid import create_grid_mockup_with_borders
 
 # Import the new dynamic main mockup instead of the old one

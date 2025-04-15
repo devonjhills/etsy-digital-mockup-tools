@@ -23,8 +23,9 @@ class EtsyIntegration:
         self,
         etsy_api_key: str,
         etsy_api_secret: str,
-        gemini_api_key: Optional[str] = None,
-        gemini_model: str = "gemini-2.5-pro-exp-03-25",
+        api_key: Optional[str] = None,
+        model_name: Optional[str] = None,
+        provider_type: Optional[str] = None,
         templates_dir: str = "templates",
     ):
         """
@@ -33,18 +34,17 @@ class EtsyIntegration:
         Args:
             etsy_api_key: Etsy API key
             etsy_api_secret: Etsy API secret
-            gemini_api_key: Gemini API key (optional)
-            gemini_model: Gemini model name to use
+            api_key: API key for the AI provider (optional)
+            model_name: Model name to use (optional)
+            provider_type: Type of AI provider to use ('gemini', 'openrouter', or None for default)
             templates_dir: Directory to store templates
         """
         self.auth = EtsyAuth(etsy_api_key, etsy_api_secret)
         self.listings = EtsyListings(self.auth)
         self.templates = ListingTemplate(templates_dir)
 
-        # Initialize content generator if API key is provided
-        self.content_generator = None
-        if gemini_api_key:
-            self.content_generator = ContentGenerator(gemini_api_key, gemini_model)
+        # Initialize content generator
+        self.content_generator = ContentGenerator(api_key, model_name, provider_type)
 
     def authenticate(self) -> bool:
         """
@@ -799,7 +799,7 @@ class EtsyIntegration:
                 dynamic_main_mockup = importlib.import_module(
                     "pattern.mockups.dynamic_main_mockup"
                 )
-                seamless = importlib.import_module("pattern.mockups.seamless")
+                seamless = importlib.import_module("pattern.seamless")
                 layered = importlib.import_module("pattern.mockups.layered")
                 grid = importlib.import_module("pattern.mockups.grid")
                 pattern_video = importlib.import_module("pattern.video")
@@ -1002,23 +1002,28 @@ class EtsyIntegration:
             raise
 
     def generate_content_from_mockup(
-        self, folder_path: str, product_type: str, instructions: str
+        self,
+        folder_path: str,
+        product_type: str,
+        instructions: str,
+        max_retries: int = 2,
     ) -> Dict[str, str]:
         # product_type parameter is kept for future use when we might customize prompts by product type
         """
-        Generate listing content from a mockup image using Gemini API.
+        Generate listing content from a mockup image using AI.
 
         Args:
             folder_path: Path to the product folder
             product_type: Product type
             instructions: Instructions for the LLM
+            max_retries: Maximum number of retries with different providers
 
         Returns:
             Dictionary with title, description, and tags
         """
         # Check if content generator is available
         if not self.content_generator:
-            error_msg = "Content generator not available. Check if GEMINI_API_KEY is set in environment."
+            error_msg = "Content generator not available. Check if API keys are set in environment."
             logger.error(error_msg)
             # Print to stderr to ensure it's captured
             import sys
@@ -1069,12 +1074,103 @@ class EtsyIntegration:
         else:
             logger.info(f"Using mockup image: {main_mockup}")
 
-        # Generate content from the image
+        # Log that we're using the DEFAULT_ETSY_INSTRUCTIONS for Etsy listings
+        if instructions == DEFAULT_ETSY_INSTRUCTIONS:
+            logger.info("Using DEFAULT_ETSY_INSTRUCTIONS for Etsy listing generation")
+        else:
+            logger.info("Using custom instructions for Etsy listing generation")
+
+        # Try with the current provider first
         content = self.content_generator.generate_content_from_image(
             main_mockup, instructions
         )
-        logger.info(f"Generated content from mockup: {content['title']}")
 
+        # Check if we got valid content
+        if content and content["title"] and content["description"] and content["tags"]:
+            logger.info(
+                f"Successfully generated content from mockup: {content['title']}"
+            )
+            return content
+
+        # If we didn't get valid content, try with alternative providers
+        logger.warning(
+            "Failed to generate content with primary provider. Trying alternatives..."
+        )
+
+        # Import the factory to create alternative providers
+        from ai_providers.factory import AIProviderFactory
+
+        # Try alternative providers
+        alternative_providers = ["gemini", "openrouter"]
+        current_provider_type = (
+            self.content_generator.provider.__class__.__name__.lower()
+        )
+        if "gemini" in current_provider_type:
+            # If current is Gemini, try OpenRouter first
+            alternative_providers = ["openrouter", "gemini"]
+
+        for attempt in range(max_retries):
+            for provider_type in alternative_providers:
+                # Skip the current provider type
+                if provider_type in current_provider_type and attempt == 0:
+                    continue
+
+                logger.info(
+                    f"Attempt {attempt + 1}/{max_retries} with provider: {provider_type}"
+                )
+
+                try:
+                    # Create a new provider
+                    alternative_provider = AIProviderFactory.create_provider(
+                        provider_type
+                    )
+
+                    if alternative_provider:
+                        # Try generating content with this provider
+                        from etsy.content import ContentGenerator
+
+                        temp_generator = ContentGenerator(provider_type=provider_type)
+
+                        if temp_generator and temp_generator.provider:
+                            logger.info(
+                                f"Trying with alternative provider: {provider_type}"
+                            )
+                            alt_content = temp_generator.generate_content_from_image(
+                                main_mockup, instructions
+                            )
+
+                            # Check if we got valid content
+                            if (
+                                alt_content
+                                and alt_content["title"]
+                                and alt_content["description"]
+                                and alt_content["tags"]
+                            ):
+                                logger.info(
+                                    f"Successfully generated content with alternative provider {provider_type}: {alt_content['title']}"
+                                )
+                                return alt_content
+                            else:
+                                logger.warning(
+                                    f"Alternative provider {provider_type} also failed to generate valid content"
+                                )
+                        else:
+                            logger.warning(
+                                f"Failed to initialize alternative provider: {provider_type}"
+                            )
+                    else:
+                        logger.warning(
+                            f"Failed to create alternative provider: {provider_type}"
+                        )
+                except Exception as e:
+                    logger.error(
+                        f"Error with alternative provider {provider_type}: {e}"
+                    )
+
+        # If we get here, all attempts failed
+        logger.error("All content generation attempts failed")
+
+        # Return whatever we got from the primary provider, even if incomplete
         return content
 
     def _extract_product_info(self, folder_path: str, product_type: str) -> Dict:
