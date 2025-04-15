@@ -9,7 +9,6 @@ from utils.common import (
     setup_logging,
     get_resampling_filter,
     safe_load_image,
-    apply_watermark,
 )
 from clipart.config import WATERMARK_TEXT_SPACING_FACTOR
 
@@ -137,8 +136,11 @@ def apply_watermark(
     Returns:
         The watermarked image
     """
+    # Import the utils.common apply_watermark function with a different name to avoid recursion
+    from utils.common import apply_watermark as common_apply_watermark
+
     # Use the consolidated watermarking function from utils.common
-    return apply_watermark(
+    return common_apply_watermark(
         image=image,
         watermark_type="text",
         text=text,

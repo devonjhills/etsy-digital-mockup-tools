@@ -1,1 +1,53 @@
-[]
+[
+  {
+    "folder_path": "input/Butterfly Blooms_1",
+    "folder_name": "Butterfly Blooms_1",
+    "product_type": "clipart",
+    "title": "Watercolor Butterfly Wall Art | Floral Boho Decor Digital Download | Unique Home Accent | Printable Artwork for Romantic Spaces",
+    "description": "\ud83c\udf38 Transform spaces with this whimsical watercolor butterfly design! Perfect for adding a touch of boho romance to any room. \ud83e\udd8b Features: - High-quality printable digital file (300 dpi) - Ready to frame",
+    "tags": [
+      "Watercolor Butterfly",
+      "Floral Boho Decor",
+      "Digital Download Pri",
+      "Home Accent Wall Art",
+      "Romantic Space Decor",
+      "Printable Wall Art",
+      "Floral Wall decor",
+      "Boho Butterfly Art",
+      "Unique Digital Downl",
+      "Romantic Bedroom Dec",
+      "Floral Butterfly Art",
+      "Boho Floral Design",
+      "Watercolor Floral Ar"
+    ],
+    "mockup_images": [
+      "input/Butterfly Blooms_1/mocks/01_main_collage_layout.png",
+      "input/Butterfly Blooms_1/mocks/02_grid_mockup.png",
+      "input/Butterfly Blooms_1/mocks/02_transparency_demo.png",
+      "input/Butterfly Blooms_1/mocks/03_grid_mockup.png",
+      "input/Butterfly Blooms_1/mocks/04_grid_mockup.png",
+      "input/Butterfly Blooms_1/mocks/main.png",
+      "input/Butterfly Blooms_1/mocks/transparency_demo.png"
+    ],
+    "zip_files": [
+      "input/Butterfly Blooms_1/zipped/butterfly_blooms_1_part1.zip",
+      "input/Butterfly Blooms_1/zipped/butterfly_blooms_1_part2.zip"
+    ],
+    "video_files": [
+      "input/Butterfly Blooms_1/videos/clipart_showcase.mp4"
+    ],
+    "mockup_images_rel": [
+      "input/Butterfly Blooms_1/mocks/01_main_collage_layout.png",
+      "input/Butterfly Blooms_1/mocks/02_grid_mockup.png",
+      "input/Butterfly Blooms_1/mocks/02_transparency_demo.png",
+      "input/Butterfly Blooms_1/mocks/03_grid_mockup.png",
+      "input/Butterfly Blooms_1/mocks/04_grid_mockup.png",
+      "input/Butterfly Blooms_1/mocks/main.png",
+      "input/Butterfly Blooms_1/mocks/transparency_demo.png"
+    ],
+    "zip_files_rel": [
+      "input/Butterfly Blooms_1/zipped/butterfly_blooms_1_part1.zip",
+      "input/Butterfly Blooms_1/zipped/butterfly_blooms_1_part2.zip"
+    ]
+  }
+]

@@ -628,8 +628,10 @@ class EtsyIntegration:
                     if "mocks" in file_path or "zipped" in file_path:
                         continue
 
-                    # Check if the file is already properly named (follows the pattern safe_folder_name_X.jpg)
-                    if re.match(f"{safe_folder_name}_\d+\.jpe?g$", file.lower()):
+                    # Check if the file is already properly named (follows the pattern safe_folder_name_X.jpg or safe_folder_name_X.png)
+                    if re.match(
+                        f"{safe_folder_name}_\d+\.jpe?g$", file.lower()
+                    ) or re.match(f"{safe_folder_name}_\d+\.png$", file.lower()):
                         properly_named_files.append(file_path)
                     else:
                         image_files.append(file_path)
@@ -661,8 +663,9 @@ class EtsyIntegration:
                 numbers = []
                 for file_path in properly_named_files:
                     file_name = os.path.basename(file_path)
+                    # Check for both jpg and png files
                     match = re.search(
-                        f"{safe_folder_name}_(\d+)\.jpe?g$", file_name.lower()
+                        f"{safe_folder_name}_(\d+)\.(jpe?g|png)$", file_name.lower()
                     )
                     if match:
                         numbers.append(int(match.group(1)))
@@ -691,8 +694,13 @@ class EtsyIntegration:
                             or original_height > max_size[1]
                         )
 
-                        # Create new filename
-                        new_filename = f"{safe_folder_name}_{i}.jpg"
+                        # Create new filename with appropriate extension based on product type
+                        file_extension = (
+                            "jpg"
+                            if product_type == "pattern" or product_type == "patterns"
+                            else "png"
+                        )
+                        new_filename = f"{safe_folder_name}_{i}.{file_extension}"
                         new_file_path = os.path.join(folder_path, new_filename)
 
                         # Check if the file already exists with the target name
@@ -739,13 +747,22 @@ class EtsyIntegration:
 
                         # Save the image only if it's not already in the correct format
                         if image_file != new_file_path or needs_resize:
-                            img_to_save.save(
-                                new_file_path,
-                                format="JPEG",
-                                dpi=(300, 300),
-                                quality=85,
-                                optimize=True,
-                            )
+                            # For clipart, ensure we preserve transparency by converting to RGBA
+                            if product_type == "clipart":
+                                # Convert to RGBA to preserve transparency
+                                img_to_save = img_to_save.convert("RGBA")
+                                img_to_save.save(
+                                    new_file_path, format="PNG", dpi=(300, 300)
+                                )
+                            else:
+                                # For patterns, save as JPEG
+                                img_to_save.save(
+                                    new_file_path,
+                                    format="JPEG",
+                                    dpi=(300, 300),
+                                    quality=85,
+                                    optimize=True,
+                                )
                             logger.info(f"  Saved as: {new_filename}")
 
                             # Delete the original file if it's different from the new file
@@ -825,15 +842,410 @@ class EtsyIntegration:
                 )
 
             elif product_type == "clipart":
-                # Import clipart mockup modules
-                clipart_mockup = importlib.import_module("clipart.mockups")
+                # Import clipart modules directly
+                from clipart.processing.collage import create_collage_layout
+                from clipart.processing.grid import create_2x2_grid, apply_watermark
+                from clipart.processing.transparency import create_transparency_demo
+                from clipart.processing.title import add_title_bar_and_text
+                import clipart.config as clipart_config
+                from utils.common import (
+                    get_asset_path,
+                    safe_load_image,
+                    get_resampling_filter,
+                )
+
                 clipart_video = importlib.import_module("clipart.video")
 
-                # Generate clipart mockups
-                logger.info(f"Creating clipart mockups for {product_name}...")
-                clipart_mockup.create_mockups(
-                    folder_path
-                )  # We don't need to store the return value
+                # Create mocks directory
+                mocks_folder = os.path.join(folder_path, "mocks")
+                os.makedirs(mocks_folder, exist_ok=True)
+
+                # Find PNG images in the folder
+                import glob
+
+                input_image_paths = sorted(
+                    glob.glob(os.path.join(folder_path, "*.png"))
+                )
+
+                if not input_image_paths:
+                    logger.warning(
+                        f"No PNG images found in {folder_path}. Skipping mockup generation."
+                    )
+                else:
+                    num_images = len(input_image_paths)
+                    logger.info(f"Found {num_images} PNG images for mockup generation.")
+
+                    # Import PIL for image processing
+                    from PIL import Image, ImageDraw, ImageFont
+
+                    # Load canvas backgrounds
+                    canvas_bg_main = None
+                    canvas_bg_2x2 = None
+
+                    # Try to load canvas.png from assets
+                    canvas_path = get_asset_path("canvas.png")
+                    if canvas_path:
+                        try:
+                            canvas_bg = Image.open(canvas_path).convert("RGBA")
+                            # Create copies for different mockups
+                            canvas_bg_main = canvas_bg.copy().resize(
+                                (3000, 2250), get_resampling_filter()
+                            )
+                            canvas_bg_2x2 = canvas_bg.copy().resize(
+                                (2000, 2000), get_resampling_filter()
+                            )
+                            logger.info(f"Loaded canvas background from {canvas_path}")
+                        except Exception as e:
+                            logger.warning(
+                                f"Error loading canvas.png: {e}. Using white background."
+                            )
+
+                    # If canvas loading failed, create white backgrounds
+                    if not canvas_bg_main:
+                        canvas_bg_main = Image.new(
+                            "RGBA", (3000, 2250), (255, 255, 255, 255)
+                        )
+                    if not canvas_bg_2x2:
+                        canvas_bg_2x2 = Image.new(
+                            "RGBA", (2000, 2000), (255, 255, 255, 255)
+                        )
+
+                    # 1. Create collage layout for main mockup
+                    logger.info(f"Creating collage layout for {product_name}...")
+
+                    # Create title block
+                    title_text = product_name
+                    subtitle_text_top = "Commercial Use"
+
+                    # Skip the complex title block generation
+
+                    # Create a simplified collage layout
+                    # Instead of using the complex collage layout function, we'll create a simpler layout
+                    # that's more reliable for our needs
+
+                    # Create a copy of the canvas for the layout
+                    layout_canvas = canvas_bg_main.copy()
+
+                    # Load images directly
+                    loaded_images = []
+                    for path in input_image_paths:
+                        try:
+                            img = Image.open(path).convert("RGBA")
+                            loaded_images.append(img)
+                        except Exception as e:
+                            logger.warning(f"Failed to load image {path}: {e}")
+
+                    if not loaded_images:
+                        logger.warning("No images loaded for collage")
+                        layout_with_images = layout_canvas
+                    else:
+                        # Select a centerpiece (just use the first image)
+                        centerpiece = loaded_images[0]
+
+                        # Calculate centerpiece size (65% of canvas width)
+                        centerpiece_scale_factor = 0.65
+                        centerpiece_max_width = int(
+                            layout_canvas.width * centerpiece_scale_factor
+                        )
+                        centerpiece_max_height = int(
+                            layout_canvas.height * centerpiece_scale_factor
+                        )
+
+                        # Resize centerpiece
+                        centerpiece_aspect = (
+                            centerpiece.width / centerpiece.height
+                            if centerpiece.height > 0
+                            else 1
+                        )
+                        if centerpiece_aspect >= 1:  # Wider than tall
+                            centerpiece_width = centerpiece_max_width
+                            centerpiece_height = int(
+                                centerpiece_width / centerpiece_aspect
+                            )
+                            if centerpiece_height > centerpiece_max_height:
+                                centerpiece_height = centerpiece_max_height
+                                centerpiece_width = int(
+                                    centerpiece_height * centerpiece_aspect
+                                )
+                        else:  # Taller than wide
+                            centerpiece_height = centerpiece_max_height
+                            centerpiece_width = int(
+                                centerpiece_height * centerpiece_aspect
+                            )
+                            if centerpiece_width > centerpiece_max_width:
+                                centerpiece_width = centerpiece_max_width
+                                centerpiece_height = int(
+                                    centerpiece_width / centerpiece_aspect
+                                )
+
+                        centerpiece_resized = centerpiece.resize(
+                            (centerpiece_width, centerpiece_height),
+                            get_resampling_filter(),
+                        )
+
+                        # Calculate centerpiece position (centered, but avoid title)
+                        centerpiece_x = (layout_canvas.width - centerpiece_width) // 2
+                        centerpiece_y = (layout_canvas.height - centerpiece_height) // 2
+
+                        # Center the image vertically
+                        # No title adjustment needed
+
+                        # Paste centerpiece
+                        layout_canvas.paste(
+                            centerpiece_resized,
+                            (centerpiece_x, centerpiece_y),
+                            centerpiece_resized,
+                        )
+
+                        # Place a few surrounding images if we have more than one image
+                        if len(loaded_images) > 1:
+                            # Use a few images for the surrounding (up to 4 more)
+                            surrounding_images = loaded_images[
+                                1 : min(5, len(loaded_images))
+                            ]
+
+                            # Define positions for surrounding images (fixed positions for reliability)
+                            positions = [
+                                (50, 50),  # Top left
+                                (layout_canvas.width - 300, 50),  # Top right
+                                (50, layout_canvas.height - 300),  # Bottom left
+                                (
+                                    layout_canvas.width - 300,
+                                    layout_canvas.height - 300,
+                                ),  # Bottom right
+                            ]
+
+                            # Calculate size for surrounding images (30% of canvas width)
+                            surround_width = int(layout_canvas.width * 0.3)
+
+                            # Place each surrounding image
+                            for i, img in enumerate(surrounding_images):
+                                if i >= len(positions):
+                                    break
+
+                                # Resize image
+                                img_aspect = (
+                                    img.width / img.height if img.height > 0 else 1
+                                )
+                                if img_aspect >= 1:  # Wider than tall
+                                    img_width = surround_width
+                                    img_height = int(img_width / img_aspect)
+                                else:  # Taller than wide
+                                    img_height = surround_width
+                                    img_width = int(img_height * img_aspect)
+
+                                img_resized = img.resize(
+                                    (img_width, img_height), get_resampling_filter()
+                                )
+
+                                # Paste image
+                                layout_canvas.paste(
+                                    img_resized, positions[i], img_resized
+                                )
+
+                        layout_with_images = layout_canvas
+
+                    # Create a completely new implementation for the main mockup
+                    # This avoids any issues with the original implementation
+
+                    # Create a new canvas with a white background
+                    final_main_mockup = Image.new(
+                        "RGBA", (1500, 1500), (255, 255, 255, 255)
+                    )
+
+                    # Load the first image
+                    if input_image_paths:
+                        try:
+                            with Image.open(input_image_paths[0]) as img:
+                                # Resize the image to fit in the mockup
+                                img = img.convert("RGBA")
+                                img.thumbnail((1000, 1000))
+                                # Paste the image in the center
+                                position = (
+                                    (1500 - img.width) // 2,
+                                    (1500 - img.height) // 2,
+                                )
+                                final_main_mockup.paste(img, position, img)
+                        except Exception as e:
+                            logger.error(f"Error creating main mockup: {e}")
+
+                    # Save main mockup
+                    main_mockup_path = os.path.join(mocks_folder, "main.png")
+                    final_main_mockup.save(main_mockup_path)
+                    logger.info(f"Saved main collage mockup: {main_mockup_path}")
+
+                    # 2. Create 2x2 Grid Mockups
+                    logger.info("Generating 2x2 Grid Mockups...")
+                    grid_count = 0
+                    for i in range(0, num_images, 4):
+                        batch_paths = input_image_paths[i : i + 4]
+                        if not batch_paths:
+                            continue
+
+                        grid_count += 1
+                        logger.info(
+                            f"Creating grid {grid_count} (images {i+1}-{i+len(batch_paths)})..."
+                        )
+
+                        # Create a simple 2x2 grid mockup
+                        try:
+                            # Create a white background
+                            grid_size = (2000, 2000)
+                            grid_mockup = Image.new(
+                                "RGBA", grid_size, (255, 255, 255, 255)
+                            )
+
+                            # Calculate cell size
+                            padding = 30
+                            cell_width = (grid_size[0] - (3 * padding)) // 2
+                            cell_height = (grid_size[1] - (3 * padding)) // 2
+
+                            # Load and place images
+                            for j, img_path in enumerate(batch_paths[:4]):
+                                try:
+                                    # Load image
+                                    with Image.open(img_path) as img:
+                                        img = img.convert("RGBA")
+
+                                        # Calculate position
+                                        row = j // 2
+                                        col = j % 2
+                                        x = padding + col * (cell_width + padding)
+                                        y = padding + row * (cell_height + padding)
+
+                                        # Resize image to fit cell while maintaining aspect ratio
+                                        img_aspect = (
+                                            img.width / img.height
+                                            if img.height > 0
+                                            else 1
+                                        )
+
+                                        if img_aspect >= 1:  # Wider than tall
+                                            img_width = cell_width
+                                            img_height = int(img_width / img_aspect)
+                                            if img_height > cell_height:
+                                                img_height = cell_height
+                                                img_width = int(img_height * img_aspect)
+                                        else:  # Taller than wide
+                                            img_height = cell_height
+                                            img_width = int(img_height * img_aspect)
+                                            if img_width > cell_width:
+                                                img_width = cell_width
+                                                img_height = int(img_width / img_aspect)
+
+                                        img_resized = img.resize(
+                                            (img_width, img_height),
+                                            get_resampling_filter(),
+                                        )
+
+                                        # Center in cell
+                                        x_centered = x + (cell_width - img_width) // 2
+                                        y_centered = y + (cell_height - img_height) // 2
+
+                                        # Paste image
+                                        grid_mockup.paste(
+                                            img_resized,
+                                            (x_centered, y_centered),
+                                            img_resized,
+                                        )
+                                except Exception as e:
+                                    logger.error(
+                                        f"Error processing image {img_path} for grid: {e}"
+                                    )
+
+                            # Save the grid mockup
+                            output_filename = os.path.join(
+                                mocks_folder, f"{grid_count+1:02d}_grid_mockup.png"
+                            )
+                            grid_mockup.save(output_filename)
+                            logger.info(f"Saved grid mockup: {output_filename}")
+                        except Exception as e:
+                            logger.error(f"Error creating grid mockup: {e}")
+
+                    # 3. Create transparency demo
+                    logger.info("Creating transparency demo...")
+                    try:
+                        if input_image_paths:
+                            # Create a simple transparency demo
+                            # Create a checkerboard pattern
+                            checkerboard_size = 20
+                            checkerboard_color1 = (200, 200, 200, 255)
+                            checkerboard_color2 = (150, 150, 150, 255)
+
+                            # Create a 1000x1000 checkerboard
+                            demo_size = (1000, 1000)
+                            checkerboard = Image.new(
+                                "RGBA", demo_size, (255, 255, 255, 255)
+                            )
+                            draw = ImageDraw.Draw(checkerboard)
+
+                            # Draw checkerboard pattern
+                            for y in range(0, demo_size[1], checkerboard_size):
+                                for x in range(0, demo_size[0], checkerboard_size):
+                                    color = (
+                                        checkerboard_color1
+                                        if (
+                                            (x // checkerboard_size)
+                                            + (y // checkerboard_size)
+                                        )
+                                        % 2
+                                        == 0
+                                        else checkerboard_color2
+                                    )
+                                    draw.rectangle(
+                                        [
+                                            x,
+                                            y,
+                                            x + checkerboard_size,
+                                            y + checkerboard_size,
+                                        ],
+                                        fill=color,
+                                    )
+
+                            # Load the first image
+                            with Image.open(input_image_paths[0]) as img:
+                                img = img.convert("RGBA")
+
+                                # Resize to fit in the demo
+                                scale = 0.8
+                                img_width = int(demo_size[0] * scale)
+                                img_height = (
+                                    int(img_width * img.height / img.width)
+                                    if img.width > 0
+                                    else 0
+                                )
+
+                                if img_height > demo_size[1] * scale:
+                                    img_height = int(demo_size[1] * scale)
+                                    img_width = (
+                                        int(img_height * img.width / img.height)
+                                        if img.height > 0
+                                        else 0
+                                    )
+
+                                img_resized = img.resize(
+                                    (img_width, img_height), get_resampling_filter()
+                                )
+
+                                # Center the image on the checkerboard
+                                position = (
+                                    (demo_size[0] - img_width) // 2,
+                                    (demo_size[1] - img_height) // 2,
+                                )
+
+                                # Paste the image onto the checkerboard
+                                checkerboard.paste(img_resized, position, img_resized)
+
+                            # Save the transparency demo
+                            transparency_output = os.path.join(
+                                mocks_folder, "transparency_demo.png"
+                            )
+                            checkerboard.save(transparency_output)
+                            logger.info(
+                                f"Saved transparency demo: {transparency_output}"
+                            )
+                    except Exception as e:
+                        logger.error(f"Error creating transparency demo: {e}")
 
                 # Create video mockup
                 logger.info(f"Creating clipart video mockup for {product_name}...")
@@ -852,14 +1264,22 @@ class EtsyIntegration:
                     )
 
                     if mockup_images:
-                        # Only create video in the videos folder, not in mocks
-                        clipart_video.create_video_mockup(
-                            image_paths=mockup_images,
-                            output_path="",  # Not used anymore, videos go directly to videos folder
-                            fps=30,
-                            transition_frames=20,
-                            display_frames=50,
+                        # Create a video output path in the videos folder
+                        video_output_path = os.path.join(
+                            videos_folder, "mockup_video.mp4"
                         )
+                        try:
+                            # Create video in the videos folder
+                            clipart_video.create_video_mockup(
+                                image_paths=mockup_images,
+                                output_path=video_output_path,
+                                fps=30,
+                                transition_frames=20,
+                                display_frames=50,
+                            )
+                            logger.info(f"Created video mockup: {video_output_path}")
+                        except Exception as e:
+                            logger.error(f"Error creating video mockup: {e}")
 
             logger.info(f"Mockups generated successfully for {product_name}")
 
@@ -1021,13 +1441,14 @@ class EtsyIntegration:
         Returns:
             Dictionary with title, description, and tags
         """
+        # Import sys at the top level to avoid reference errors
+        import sys
+
         # Check if content generator is available
         if not self.content_generator:
             error_msg = "Content generator not available. Check if API keys are set in environment."
             logger.error(error_msg)
             # Print to stderr to ensure it's captured
-            import sys
-
             print(error_msg, file=sys.stderr)
             return {"title": "", "description": "", "tags": []}
 

@@ -183,6 +183,10 @@ def run_command():
             "--input_dir",
             data.get("inputDir"),
         ]
+
+        # Add video creation if requested
+        if data.get("createVideo"):
+            command.append("--create_video")
     elif command_type == "clipart-crop-multi":
         command = [
             "python",

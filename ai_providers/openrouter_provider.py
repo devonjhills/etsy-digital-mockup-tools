@@ -721,14 +721,34 @@ class OpenRouterProvider(AIProvider):
                     "Failed to extract description from OpenRouter API response"
                 )
 
-            # Extract tags
+            # Extract tags - try multiple patterns to be more flexible
+            # First try the standard format with 'Tags:' header
             tags_match = re.search(
                 r"Tags:\s*(.+?)(?:\n\d{4}-\d{2}-\d{2}|$)", content, re.DOTALL
             )
+
+            # If that fails, try looking for a list of comma-separated items at the end
+            if not tags_match:
+                # Look for a comma-separated list at the end of the content
+                tags_match = re.search(
+                    r"(?:^|\n)([^\n]+(?:,\s*[^\n]+){5,})\s*$", content, re.DOTALL
+                )
+
+            # If we found tags with either method
             if tags_match:
                 tags_text = tags_match.group(1).strip()
                 # Split by comma and clean up
                 raw_tags = [tag.strip() for tag in tags_text.split(",") if tag.strip()]
+
+                # Remove any markdown formatting that might be in the tags
+                raw_tags = [
+                    re.sub(r"\*\*|\*|#|`|\[|\]|\(|\)|_", "", tag) for tag in raw_tags
+                ]
+
+                # If we have a list with bullets or numbers, clean those up
+                raw_tags = [
+                    re.sub(r"^\d+\.\s*|^-\s*|^•\s*", "", tag) for tag in raw_tags
+                ]
 
                 # Deduplicate tags (case-insensitive)
                 unique_tags = []
@@ -788,7 +808,220 @@ class OpenRouterProvider(AIProvider):
 
                 logger.info(f"Extracted {len(tags)} tags: {', '.join(tags)}")
             else:
-                logger.warning("Failed to extract tags from OpenRouter API response")
+                logger.warning(
+                    "Failed to extract tags from processed response, trying raw response"
+                )
+
+                # Try to extract tags from the raw response as a fallback
+                # First, try to find the Tags: section after the thinking section
+                if is_thinking_model and "◁/think▷" in raw_content:
+                    # Extract everything after the thinking section
+                    after_thinking = raw_content.split("◁/think▷", 1)[1].strip()
+                    # Look for Tags: section in the non-thinking part
+                    raw_tags_match = re.search(
+                        r"Tags:\s*(.+?)(?:\n\n|\n#|\n\d{4}-\d{2}-\d{2}|$)",
+                        after_thinking,
+                        re.DOTALL,
+                    )
+                else:
+                    # Try the standard format with 'Tags:' header
+                    raw_tags_match = re.search(
+                        r"Tags:\s*(.+?)(?:\n\n|\n#|\n\d{4}-\d{2}-\d{2}|$)",
+                        raw_content,
+                        re.DOTALL,
+                    )
+
+                if not raw_tags_match:
+                    # Look for a comma-separated list at the end of the content
+                    raw_tags_match = re.search(
+                        r"(?:^|\n)([^\n]+(?:,\s*[^\n]+){5,})\s*$",
+                        raw_content,
+                        re.DOTALL,
+                    )
+
+                if raw_tags_match:
+                    logger.info("Found tags in raw response")
+                    tags_text = raw_tags_match.group(1).strip()
+                    # Split by comma and clean up
+                    raw_tags = [
+                        tag.strip() for tag in tags_text.split(",") if tag.strip()
+                    ]
+
+                    # Remove any markdown formatting that might be in the tags
+                    raw_tags = [
+                        re.sub(r"\*\*|\*|#|`|\[|\]|\(|\)|_", "", tag)
+                        for tag in raw_tags
+                    ]
+
+                    # If we have a list with bullets or numbers, clean those up
+                    raw_tags = [
+                        re.sub(r"^\d+\.\s*|^-\s*|^•\s*", "", tag) for tag in raw_tags
+                    ]
+
+                    # Deduplicate tags (case-insensitive)
+                    unique_tags = []
+                    seen_tags = set()
+                    for tag in raw_tags:
+                        tag_lower = tag.lower()
+                        if tag_lower not in seen_tags:
+                            unique_tags.append(tag)
+                            seen_tags.add(tag_lower)
+
+                    # Limit to exactly 13 tags
+                    if len(unique_tags) > 13:
+                        logger.warning(
+                            f"Too many tags ({len(unique_tags)}), limiting to 13"
+                        )
+                        tags = unique_tags[:13]
+                    elif len(unique_tags) < 13:
+                        logger.warning(
+                            f"Too few tags ({len(unique_tags)}), supplementing with generic tags"
+                        )
+                        tags = unique_tags
+                        # Add generic tags to reach 13 (reusing the generic tags logic from above)
+                        generic_tags = [
+                            "digital download",
+                            "printable",
+                            "instant download",
+                            "digital art",
+                            "digital design",
+                            "commercial use",
+                            "digital paper",
+                            "scrapbooking",
+                            "craft supply",
+                            "digital clipart",
+                            "digital pattern",
+                            "digital background",
+                            "etsy digital",
+                            "digital print",
+                            "digital file",
+                        ]
+
+                        # Only add tags that aren't already in our list (case-insensitive)
+                        existing_tags_lower = {tag.lower() for tag in tags}
+                        for tag in generic_tags:
+                            if len(tags) >= 13:
+                                break
+                            if tag.lower() not in existing_tags_lower:
+                                tags.append(tag)
+                                existing_tags_lower.add(tag.lower())
+                    else:
+                        tags = unique_tags
+
+                    # Validate tag length (Etsy has a 20 character limit)
+                    for i, tag in enumerate(tags):
+                        if len(tag) > 20:
+                            logger.warning(
+                                f"Tag '{tag}' exceeds 20 characters, truncating"
+                            )
+                            tags[i] = tag[:20]
+
+                    logger.info(
+                        f"Extracted {len(tags)} tags from raw response: {', '.join(tags)}"
+                    )
+                else:
+                    # Last resort: try to find tags in the thinking section if this is a thinking model
+                    if is_thinking_model and "◁think▷" in raw_content:
+                        logger.info("Trying to extract tags from thinking section")
+                        # Extract the thinking section
+                        thinking_match = re.search(
+                            r"◁think▷(.+?)◁/think▷", raw_content, re.DOTALL
+                        )
+                        if thinking_match:
+                            thinking_text = thinking_match.group(1).strip()
+
+                            # Look for a section that might contain tags
+                            tags_section_match = re.search(
+                                r"(?:tags|keywords|tag list).*?:\s*(.+?)(?:\n\n|$)",
+                                thinking_text,
+                                re.IGNORECASE | re.DOTALL,
+                            )
+
+                            if tags_section_match:
+                                tags_text = tags_section_match.group(1).strip()
+                                # Split by comma and clean up
+                                raw_tags = [
+                                    tag.strip()
+                                    for tag in tags_text.split(",")
+                                    if tag.strip()
+                                ]
+
+                                if raw_tags:
+                                    # Process tags as before
+                                    # Remove any markdown formatting
+                                    raw_tags = [
+                                        re.sub(r"\*\*|\*|#|`|\[|\]|\(|\)|_", "", tag)
+                                        for tag in raw_tags
+                                    ]
+
+                                    # Clean up bullets or numbers
+                                    raw_tags = [
+                                        re.sub(r"^\d+\.\s*|^-\s*|^•\s*", "", tag)
+                                        for tag in raw_tags
+                                    ]
+
+                                    # Deduplicate tags
+                                    unique_tags = []
+                                    seen_tags = set()
+                                    for tag in raw_tags:
+                                        tag_lower = tag.lower()
+                                        if tag_lower not in seen_tags:
+                                            unique_tags.append(tag)
+                                            seen_tags.add(tag_lower)
+
+                                    # Process tags as before
+                                    if len(unique_tags) > 13:
+                                        tags = unique_tags[:13]
+                                    elif len(unique_tags) < 13:
+                                        tags = unique_tags
+                                        # Add generic tags to reach 13
+                                        generic_tags = [
+                                            "digital download",
+                                            "printable",
+                                            "instant download",
+                                            "digital art",
+                                            "digital design",
+                                            "commercial use",
+                                            "digital paper",
+                                            "scrapbooking",
+                                            "craft supply",
+                                            "digital clipart",
+                                            "digital pattern",
+                                            "digital background",
+                                            "etsy digital",
+                                            "digital print",
+                                            "digital file",
+                                        ]
+
+                                        existing_tags_lower = {
+                                            tag.lower() for tag in tags
+                                        }
+                                        for tag in generic_tags:
+                                            if len(tags) >= 13:
+                                                break
+                                            if tag.lower() not in existing_tags_lower:
+                                                tags.append(tag)
+                                                existing_tags_lower.add(tag.lower())
+                                    else:
+                                        tags = unique_tags
+
+                                    # Validate tag length
+                                    for i, tag in enumerate(tags):
+                                        if len(tag) > 20:
+                                            tags[i] = tag[:20]
+
+                                    logger.info(
+                                        f"Extracted {len(tags)} tags from thinking section: {', '.join(tags)}"
+                                    )
+                                    return {
+                                        "title": title,
+                                        "description": description,
+                                        "tags": tags,
+                                    }
+
+                    logger.warning(
+                        "Failed to extract tags from OpenRouter API response"
+                    )
 
             return {
                 "title": title,

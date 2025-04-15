@@ -1892,6 +1892,7 @@
           body: JSON.stringify({
             command: "clipart-mockups",
             inputDir: document.getElementById("clipart-input-dir").value,
+            createVideo: true, // Always create video for consistency with bulk process
           }),
         })
           .then((response) => response.json())
