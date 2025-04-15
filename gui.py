@@ -193,15 +193,6 @@ def run_command():
             "-m",
             "clipart.crop_multi",
         ]
-    elif command_type == "folder-rename":
-        # Use the folder_renamer module directly instead of cli.py
-        command = [
-            "python",
-            "-m",
-            "folder_renamer",
-            "--input_dir",
-            data.get("inputDir"),
-        ]
 
         # Add provider if specified
         if data.get("provider"):
@@ -227,18 +218,6 @@ def run_command():
             "--product_type",
             data.get("productType"),
         ]
-
-        # Check if we have Gemini API key
-        gemini_api_key = os.environ.get("GEMINI_API_KEY")
-
-        if not gemini_api_key:
-            error_msg = "GEMINI_API_KEY not found in environment variables. Please set it in .env file."
-            log_messages.append(error_msg)
-            return jsonify({"command": " ".join(command), "error": error_msg}), 400
-
-        # Always use Gemini provider
-        log_messages.append("Using Gemini provider")
-        command.extend(["--provider", "gemini"])
 
         # Create a process to capture output
         try:

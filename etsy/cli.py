@@ -10,7 +10,6 @@ from utils.common import setup_logging
 from utils.env_loader import load_env_from_file
 from etsy.main import EtsyIntegration
 from etsy.constants import DEFAULT_ETSY_INSTRUCTIONS
-from folder_renamer import process_input_directory
 
 # Set up logging
 logger = setup_logging(__name__)
@@ -228,20 +227,6 @@ def main():
                 logger.error(f"Input directory not found: {args.input_dir}")
                 sys.exit(1)
 
-            # Step 0: Rename folders based on AI image analysis
-            logger.info("Step 0: Renaming folders based on AI image analysis...")
-            if api_key:
-                process_input_directory(
-                    input_dir=args.input_dir,
-                    provider_type=provider_type,
-                    api_key=api_key,
-                    model_name=model_name,
-                )
-            else:
-                logger.warning(
-                    "No AI provider API key found in environment variables. Skipping folder renaming."
-                )
-
             # Create listings in bulk
             logger.info(
                 f"Starting bulk creation of listings for {args.product_type} in {args.input_dir}"
@@ -286,20 +271,6 @@ def main():
                     command_model_name = os.environ.get("OPEN_ROUTER_MODEL")
                     if command_api_key:
                         logger.info(f"Using OpenRouter model: {command_model_name}")
-
-            # Step 0: Rename folders based on AI image analysis
-            logger.info("Step 0: Renaming folders based on AI image analysis...")
-            if command_api_key:
-                process_input_directory(
-                    input_dir=args.input_dir,
-                    provider_type=command_provider_type,
-                    api_key=command_api_key,
-                    model_name=command_model_name,
-                )
-            else:
-                logger.warning(
-                    "No AI provider API key found in environment variables. Skipping folder renaming."
-                )
 
             # Prepare listings in bulk
             logger.info(

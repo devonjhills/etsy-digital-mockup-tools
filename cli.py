@@ -157,28 +157,6 @@ def main():
         "mockup", help="Create wall art mockups"
     )
 
-    # Folder renamer command
-    rename_parser = subparsers.add_parser(
-        "rename", help="Rename input subfolders based on Gemini API image analysis"
-    )
-    rename_parser.add_argument(
-        "--input_dir",
-        default="input",
-        help="Path to the input directory containing subfolders to rename",
-    )
-    # Fallback option removed
-    rename_parser.add_argument(
-        "--model",
-        default="gemini-2.5-pro-exp-03-25",
-        help="Gemini model to use (default: gemini-2.5-pro-exp-03-25)",
-    )
-    rename_parser.add_argument(
-        "--max-retries",
-        type=int,
-        default=2,
-        help="Maximum number of retries for API calls (default: 2)",
-    )
-
     # Etsy command
     etsy_parser = subparsers.add_parser("etsy", help="Etsy integration tools")
     etsy_subparsers = etsy_parser.add_subparsers(
@@ -315,29 +293,6 @@ def main():
             logger.error(
                 "Wall art module not found. Please implement the wall art CLI module."
             )
-            sys.exit(1)
-
-    elif args.command == "rename":
-        # Import folder renamer module
-        try:
-            from folder_renamer import main as rename_main
-
-            # Prepare sys.argv for folder renamer CLI
-            sys.argv = [sys.argv[0]]
-            sys.argv.extend(["--input_dir", args.input_dir])
-
-            # Fallback option removed
-
-            if args.model:
-                sys.argv.extend(["--model", args.model])
-
-            if args.max_retries is not None:
-                sys.argv.extend(["--max-retries", str(args.max_retries)])
-
-            # Run folder renamer CLI
-            rename_main()
-        except ImportError:
-            logger.error("Folder renamer module not found.")
             sys.exit(1)
 
     elif args.command == "etsy":

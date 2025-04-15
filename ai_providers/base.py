@@ -3,7 +3,7 @@ Base class for AI providers.
 """
 
 from abc import ABC, abstractmethod
-from typing import Optional, Dict, Any, List, Tuple
+from typing import Dict, Any
 
 
 class AIProvider(ABC):
@@ -19,20 +19,6 @@ class AIProvider(ABC):
         """
         self.api_key = api_key
         self.model_name = model_name
-
-    @abstractmethod
-    def generate_title_from_image(self, image_path: str, max_retries: int = 2) -> Optional[str]:
-        """
-        Generate a title from an image.
-
-        Args:
-            image_path: Path to the image file
-            max_retries: Maximum number of retries on failure
-
-        Returns:
-            A title or None if generation failed
-        """
-        pass
 
     @abstractmethod
     def generate_content_from_image(

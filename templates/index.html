@@ -18,28 +18,31 @@
       referrerpolicy="no-referrer"
     />
     <style>
+      @import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap");
+
       :root {
-        /* Color palette */
-        --bg-color: #121212;
-        --container-bg: #1e1e1e;
-        --section-bg: #252525;
-        --text-color: #e4e4e4;
-        --text-secondary: #a0a0a0;
-        --primary-color: #6200ee;
-        --primary-hover: #7c4dff;
-        --primary-light: rgba(98, 0, 238, 0.15);
-        --secondary-color: #03dac6;
-        --success-color: #4caf50;
-        --error-color: #cf6679;
-        --warning-color: #f39c12;
-        --border-color: #444;
-        --input-bg: #3d3d3d;
-        --input-text: #e0e0e0;
-        --log-bg: #2a2a2a;
+        /* Soft Dark Mode Color palette */
+        --bg-color: #1a1a2e;
+        --container-bg: #16213e;
+        --section-bg: #1e2a47;
+        --text-color: #e6e6e6;
+        --text-secondary: #a0a0c0;
+        --primary-color: #7f5af0;
+        --primary-hover: #9370db;
+        --primary-light: rgba(127, 90, 240, 0.15);
+        --secondary-color: #2cb67d;
+        --success-color: #2cb67d;
+        --error-color: #e45858;
+        --warning-color: #ff8906;
+        --border-color: #242f4c;
+        --input-bg: #242f4c;
+        --input-text: #e6e6e6;
+        --log-bg: #0f172a;
+        --tag-bg: #242f4c;
 
         /* Component backgrounds */
-        --tab-bg: #3d3d3d;
-        --tab-active-bg: #6200ee;
+        --tab-bg: #242f4c;
+        --tab-active-bg: #7f5af0;
 
         /* Spacing */
         --spacing-xs: 4px;
@@ -49,14 +52,22 @@
         --spacing-xl: 32px;
 
         /* Border radius */
-        --radius-sm: 4px;
-        --radius-md: 8px;
-        --radius-lg: 12px;
+        --radius-sm: 0px;
+        --radius-md: 0px;
+        --radius-lg: 0px;
+
+        /* Border widths */
+        --border-thin: 2px;
+        --border-medium: 3px;
+        --border-thick: 4px;
+
+        /* Shadows */
+        --shadow-offset: 4px;
       }
 
       body {
-        font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
-          Roboto, sans-serif;
+        font-family: "Space Grotesk", -apple-system, BlinkMacSystemFont,
+          "Segoe UI", Roboto, sans-serif;
         margin: 0;
         padding: 0;
         background-color: var(--bg-color);
@@ -66,91 +77,159 @@
       }
 
       .container {
-        max-width: 900px;
+        max-width: 1000px;
         margin: var(--spacing-lg) auto;
         background-color: var(--container-bg);
         padding: var(--spacing-xl);
-        border-radius: var(--radius-lg);
-        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
-        border-top: 4px solid var(--primary-color);
+        border: var(--border-thick) solid var(--border-color);
+        box-shadow: var(--shadow-offset) var(--shadow-offset) 0
+          var(--border-color);
+        position: relative;
       }
 
       h1,
       h2,
       h3 {
-        color: var(--secondary-color);
+        font-family: "Space Grotesk", sans-serif;
+        font-weight: 700;
+        color: var(--text-color);
+        position: relative;
+      }
+
+      h1 {
+        font-size: 2.5rem;
+        margin-bottom: 1.5rem;
+        display: inline-block;
+        color: var(--text-color);
+        padding: 0.5rem 0;
+        position: relative;
+        border-bottom: var(--border-thin) solid var(--primary-color);
+      }
+
+      h1::after {
+        content: "";
+        position: absolute;
+        bottom: -2px;
+        left: 0;
+        width: 60%;
+        height: 4px;
+        background-color: var(--secondary-color);
+      }
+
+      h2 {
+        font-size: 1.8rem;
+        margin-top: 2rem;
+        margin-bottom: 1rem;
+        border-bottom: var(--border-thin) solid var(--border-color);
+        padding-bottom: 0.5rem;
+      }
+
+      h3 {
+        font-size: 1.4rem;
+        margin-top: 1.5rem;
+        margin-bottom: 1rem;
       }
 
       .tabs {
         display: flex;
-        margin-bottom: 20px;
-        border-bottom: 1px solid var(--border-color);
+        margin-bottom: 30px;
+        border-bottom: var(--border-medium) solid var(--border-color);
+        position: relative;
+        z-index: 1;
       }
 
       .tab {
-        padding: 12px 24px;
+        padding: 14px 28px;
         cursor: pointer;
         background-color: var(--tab-bg);
-        margin-right: 5px;
-        border-radius: 8px 8px 0 0;
-        border: none;
+        margin-right: 8px;
+        border: var(--border-thin) solid var(--border-color);
+        border-bottom: none;
         color: var(--text-color);
-        font-weight: 500;
-        transition: background-color 0.2s, color 0.2s;
+        font-weight: 600;
+        font-size: 1rem;
+        transition: all 0.2s ease;
+        position: relative;
+        top: var(--border-medium);
+        box-shadow: var(--shadow-offset) calc(-1 * var(--shadow-offset)) 0
+          rgba(0, 0, 0, 0.1);
       }
 
       .tab:hover {
-        background-color: #4a4a4a;
+        background-color: var(--primary-light);
+        transform: translateY(-3px);
       }
 
       .tab.active {
         background-color: var(--tab-active-bg);
         color: white;
+        border-color: var(--border-color);
+        z-index: 2;
+        transform: translateY(-5px);
       }
 
       .tab-content {
         display: none;
-        padding: 20px;
-        border: 1px solid var(--border-color);
-        border-radius: 0 0 8px 8px;
+        padding: 30px;
+        border: var(--border-medium) solid var(--border-color);
         background-color: var(--section-bg);
+        margin-top: -5px;
+        position: relative;
+        box-shadow: var(--shadow-offset) var(--shadow-offset) 0
+          rgba(0, 0, 0, 0.2);
       }
 
       .tab-content.active {
         display: block;
+        animation: fadeIn 0.3s ease-out;
       }
 
       .form-group {
-        margin-bottom: 24px;
+        margin-bottom: 28px;
       }
 
       label {
         display: block;
-        margin-bottom: 10px;
-        font-weight: 500;
-        color: var(--secondary-color);
-        font-size: 14px;
+        margin-bottom: 12px;
+        font-weight: 600;
+        color: var(--text-color);
+        font-size: 1rem;
+        position: relative;
+      }
+
+      label::after {
+        content: "";
+        position: absolute;
+        bottom: -4px;
+        left: 0;
+        width: 30px;
+        height: 2px;
+        background-color: var(--primary-color);
       }
 
       input[type="text"],
       select,
       textarea {
         width: 100%;
-        padding: 12px 14px;
-        border: 1px solid var(--border-color);
-        border-radius: 8px;
+        padding: 14px 16px;
+        border: var(--border-thin) solid var(--border-color);
         box-sizing: border-box;
         background-color: var(--input-bg);
         color: var(--input-text);
-        font-family: inherit;
-        font-size: 14px;
+        font-family: "Space Grotesk", sans-serif;
+        font-size: 1rem;
         transition: all 0.2s ease;
+        box-shadow: var(--shadow-offset) var(--shadow-offset) 0
+          rgba(0, 0, 0, 0.1);
       }
 
       input[type="text"]:hover,
       select:hover,
       textarea:hover {
         border-color: var(--primary-color);
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-offset) calc(var(--shadow-offset) + 2px) 0
+          rgba(0, 0, 0, 0.1);
       }
 
       input[type="text"]:focus,
@@ -158,53 +237,61 @@
       textarea:focus {
         outline: none;
         border-color: var(--primary-color);
-        box-shadow: 0 0 0 3px rgba(98, 0, 238, 0.15);
+        border-width: var(--border-medium);
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-offset) calc(var(--shadow-offset) + 2px) 0
+          rgba(0, 0, 0, 0.1);
       }
 
       button {
         background-color: var(--primary-color);
         color: white;
-        padding: 12px 18px;
-        border: none;
-        border-radius: 6px;
+        padding: 14px 24px;
+        border: var(--border-thin) solid var(--border-color);
         cursor: pointer;
-        margin-right: 10px;
-        font-weight: 500;
+        margin-right: 12px;
+        font-weight: 600;
+        font-size: 1rem;
+        font-family: "Space Grotesk", sans-serif;
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        gap: 8px;
+        gap: 10px;
         transition: all 0.2s ease;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        box-shadow: var(--shadow-offset) var(--shadow-offset) 0
+          var(--border-color);
+        position: relative;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
       }
 
       button:hover {
         background-color: var(--primary-hover);
-        transform: translateY(-1px);
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        transform: translateY(-3px) translateX(-1px);
+        box-shadow: calc(var(--shadow-offset) + 1px)
+          calc(var(--shadow-offset) + 3px) 0 var(--border-color);
       }
 
       button:active {
-        transform: translateY(1px);
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        transform: translateY(2px) translateX(2px);
+        box-shadow: 0 0 0 var(--border-color);
       }
 
       .secondary-button {
-        background-color: var(--section-bg);
-        border: 1px solid var(--secondary-color);
-        color: var(--secondary-color);
-        box-shadow: none;
+        background-color: var(--container-bg);
+        border: var(--border-thin) solid var(--border-color);
+        color: var(--text-color);
       }
 
       .secondary-button:hover {
         background-color: var(--secondary-color);
-        color: var(--bg-color);
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+        color: white;
       }
 
       .primary-button {
         background-color: var(--primary-color);
-        font-weight: 600;
+        font-weight: 700;
+        border-width: var(--border-medium);
       }
 
       .highlight-update {
@@ -386,18 +473,37 @@
 
       /* Prepared listings styles */
       .prepared-listing {
-        margin-bottom: 24px;
-        padding: 24px;
-        border-radius: 8px;
+        margin-bottom: 32px;
+        padding: 28px;
         background-color: var(--container-bg);
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        border: var(--border-thin) solid var(--border-color);
+        box-shadow: var(--shadow-offset) var(--shadow-offset) 0
+          var(--border-color);
         transition: all 0.2s ease;
-        border-left: 4px solid var(--primary-color);
+        position: relative;
+      }
+
+      .prepared-listing::after {
+        content: "";
+        position: absolute;
+        top: -8px;
+        left: -8px;
+        width: 24px;
+        height: 24px;
+        background: linear-gradient(
+          135deg,
+          var(--primary-color),
+          var(--secondary-color)
+        );
+        border-radius: 50%;
+        opacity: 0.7;
+        z-index: 0;
       }
 
       .prepared-listing:hover {
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-        transform: translateY(-2px);
+        transform: translateY(-4px) translateX(-2px);
+        box-shadow: calc(var(--shadow-offset) + 2px)
+          calc(var(--shadow-offset) + 4px) 0 var(--border-color);
       }
 
       .prepared-listings-content {
@@ -458,18 +564,22 @@
       }
 
       .prepared-listing-tag {
-        background-color: var(--primary-light);
-        color: var(--primary-color);
-        padding: 4px 10px;
-        border-radius: var(--radius-sm);
+        background-color: var(--tag-bg);
+        color: var(--text-color);
+        padding: 6px 12px;
+        border: var(--border-thin) solid var(--border-color);
         font-size: 0.9em;
-        font-weight: 500;
+        font-weight: 600;
         transition: all 0.2s ease;
+        position: relative;
+        box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.1);
       }
 
       .prepared-listing-tag:hover {
         background-color: var(--primary-color);
         color: white;
+        transform: translateY(-2px);
+        box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.2);
       }
 
       /* Bulk tab styling */
@@ -526,45 +636,78 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 20px;
+        margin-bottom: 30px;
+        padding-bottom: 20px;
+        border-bottom: var(--border-thin) solid var(--border-color);
+        position: relative;
+      }
+
+      .etsy-header::after {
+        content: "";
+        position: absolute;
+        bottom: -10px;
+        left: 30px;
+        width: 20px;
+        height: 20px;
+        background: linear-gradient(
+          135deg,
+          var(--primary-color),
+          var(--secondary-color)
+        );
+        border-radius: 50%;
+        opacity: 0.7;
       }
 
       .etsy-auth-container {
         display: flex;
         align-items: center;
-        gap: 10px;
+        gap: 16px;
       }
 
       .auth-button {
         background-color: #f56400;
         color: white;
-        border: none;
-        border-radius: 4px;
-        padding: 6px 12px;
-        font-size: 14px;
+        border: var(--border-thin) solid var(--border-color);
+        padding: 12px 18px;
+        font-size: 0.9rem;
+        font-weight: 600;
         cursor: pointer;
         display: flex;
         align-items: center;
-        gap: 6px;
+        gap: 8px;
         transition: all 0.2s ease;
+        box-shadow: var(--shadow-offset) var(--shadow-offset) 0
+          var(--border-color);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
       }
 
       .auth-button:hover {
-        background-color: #e05800;
+        background-color: #ff7b2e;
+        transform: translateY(-3px) translateX(-1px);
+        box-shadow: calc(var(--shadow-offset) + 1px)
+          calc(var(--shadow-offset) + 3px) 0 var(--border-color);
       }
 
       .auth-button:disabled {
-        background-color: #ccc;
+        background-color: #aaa;
         cursor: default;
-        opacity: 0.7;
+        opacity: 0.8;
+        transform: none;
+        box-shadow: var(--shadow-offset) var(--shadow-offset) 0
+          var(--border-color);
       }
 
       .auth-status {
-        color: #4caf50;
-        font-size: 14px;
+        color: var(--success-color);
+        font-size: 1rem;
+        font-weight: 600;
         display: flex;
         align-items: center;
-        gap: 6px;
+        gap: 8px;
+        background-color: rgba(0, 200, 83, 0.1);
+        padding: 8px 16px;
+        border: var(--border-thin) solid var(--success-color);
       }
 
       .prepared-listing-actions {
@@ -577,58 +720,82 @@
       .upload-button {
         background-color: var(--success-color);
         color: white;
-        border: none;
-        padding: 10px 18px;
-        border-radius: var(--radius-md);
+        border: var(--border-thin) solid var(--border-color);
+        padding: 14px 24px;
         cursor: pointer;
-        font-weight: 500;
-        font-size: 14px;
+        font-weight: 600;
+        font-size: 1rem;
+        font-family: "Space Grotesk", sans-serif;
         display: inline-flex;
         align-items: center;
-        gap: var(--spacing-xs);
+        gap: 10px;
         transition: all 0.2s ease;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        box-shadow: var(--shadow-offset) var(--shadow-offset) 0
+          var(--border-color);
+        position: relative;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
       }
 
       .upload-button::before {
         content: "\2B06\FE0F"; /* Upload emoji */
-        font-size: 14px;
+        font-size: 16px;
       }
 
       .upload-button:hover {
-        background-color: #4cda8e;
-        transform: translateY(-1px);
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        background-color: #00e676;
+        transform: translateY(-3px) translateX(-1px);
+        box-shadow: calc(var(--shadow-offset) + 1px)
+          calc(var(--shadow-offset) + 3px) 0 var(--border-color);
       }
 
       .upload-button:active {
-        transform: translateY(1px);
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        transform: translateY(2px) translateX(2px);
+        box-shadow: 0 0 0 var(--border-color);
       }
 
       .empty-state {
         text-align: center;
-        padding: var(--spacing-lg);
+        padding: var(--spacing-xl);
         color: var(--text-secondary);
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: var(--spacing-md);
-        background-color: rgba(0, 0, 0, 0.1);
-        border-radius: 8px;
-        margin: 20px 0;
+        gap: var(--spacing-lg);
+        background-color: var(--container-bg);
+        border: var(--border-thin) dashed var(--border-color);
+        margin: 28px 0;
+        position: relative;
+      }
+
+      .empty-state::before {
+        content: "";
+        position: absolute;
+        top: -10px;
+        left: -10px;
+        width: 20px;
+        height: 20px;
+        background: linear-gradient(
+          135deg,
+          var(--primary-color),
+          var(--secondary-color)
+        );
+        border-radius: 50%;
+        opacity: 0.7;
+        z-index: 0;
       }
 
       .empty-state i {
-        font-size: 24px;
+        font-size: 32px;
         color: var(--primary-color);
-        opacity: 0.7;
         margin-bottom: 10px;
       }
 
       .empty-state p {
         margin: 0;
         line-height: 1.5;
+        font-size: 1.1rem;
+        max-width: 80%;
       }
 
       /* Focus styles for accessibility */
@@ -658,18 +825,37 @@
       }
 
       .section {
-        margin-bottom: 25px;
-        padding: 20px;
-        border: 1px solid var(--border-color);
-        border-radius: 8px;
+        margin-bottom: 32px;
+        padding: 24px;
+        border: var(--border-medium) solid var(--border-color);
         background-color: var(--section-bg);
+        position: relative;
+        box-shadow: var(--shadow-offset) var(--shadow-offset) 0
+          var(--border-color);
+      }
+
+      .section::before {
+        content: "";
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        width: 20px;
+        height: 20px;
+        background: linear-gradient(
+          135deg,
+          var(--primary-color),
+          var(--secondary-color)
+        );
+        border-radius: 50%;
+        opacity: 0.7;
+        z-index: 0;
       }
 
       .actions {
-        margin-top: 20px;
+        margin-top: 28px;
         display: flex;
         flex-wrap: wrap;
-        gap: 10px;
+        gap: 16px;
       }
 
       /* Success message styling */
@@ -768,16 +954,18 @@
       }
 
       .log-area {
-        padding: 16px;
+        padding: 20px;
         background-color: var(--log-bg);
-        border: 1px solid var(--border-color);
-        border-radius: 8px;
+        border: var(--border-medium) solid var(--border-color);
         height: 300px;
         overflow-y: auto;
-        font-family: "JetBrains Mono", "Fira Code", "SF Mono", "Roboto Mono",
-          monospace;
-        font-size: 14px;
+        font-family: "Space Mono", "JetBrains Mono", "Fira Code", monospace;
+        font-size: 15px;
         line-height: 1.6;
+        color: white;
+        box-shadow: var(--shadow-offset) var(--shadow-offset) 0
+          var(--border-color);
+        position: relative;
       }
 
       /* Bulk tab styling */
@@ -950,9 +1138,19 @@
       }
 
       .log-entry {
-        margin-bottom: 6px;
-        padding-bottom: 6px;
-        border-bottom: 1px dotted rgba(255, 255, 255, 0.1);
+        margin-bottom: 10px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+        font-family: "Space Mono", monospace;
+        position: relative;
+        padding-left: 10px;
+      }
+
+      .log-entry::before {
+        content: ">";
+        position: absolute;
+        left: 0;
+        color: rgba(255, 255, 255, 0.5);
       }
 
       .log-entry.command {
@@ -960,11 +1158,25 @@
         font-weight: bold;
       }
 
+      .log-entry.command::before {
+        color: var(--secondary-color);
+      }
+
       .log-entry.error {
+        color: var(--error-color);
+        font-weight: bold;
+      }
+
+      .log-entry.error::before {
         color: var(--error-color);
       }
 
       .log-entry.success {
+        color: var(--success-color);
+        font-weight: bold;
+      }
+
+      .log-entry.success::before {
         color: var(--success-color);
       }
 
@@ -1097,36 +1309,47 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 20px 24px;
-        background-color: rgba(0, 0, 0, 0.2);
-        border-bottom: 1px solid var(--border-color);
+        padding: 24px 28px;
+        background: linear-gradient(
+          90deg,
+          var(--primary-color),
+          var(--secondary-color)
+        );
+        border-bottom: var(--border-medium) solid var(--border-color);
         position: relative;
+        margin: -24px -24px 24px -24px;
       }
 
       .section-header::after {
         content: "";
         position: absolute;
-        bottom: 0;
-        left: 0;
-        width: 100%;
-        height: 1px;
-        background: linear-gradient(90deg, var(--primary-color), transparent);
-        opacity: 0.5;
+        bottom: -10px;
+        right: 30px;
+        width: 20px;
+        height: 20px;
+        background: linear-gradient(
+          135deg,
+          var(--primary-color),
+          var(--secondary-color)
+        );
+        border-radius: 50%;
+        opacity: 0.7;
       }
 
       .section-header h3 {
         margin: 0;
-        font-size: 18px;
-        font-weight: 600;
+        font-size: 1.3rem;
+        font-weight: 700;
         display: flex;
         align-items: center;
-        gap: 10px;
-        color: var(--primary-color);
+        gap: 12px;
+        color: white;
+        text-transform: uppercase;
+        letter-spacing: 1px;
       }
 
       .section-header h3 i {
-        font-size: 18px;
-        opacity: 0.9;
+        font-size: 20px;
       }
 
       .section-actions {
@@ -1137,57 +1360,70 @@
       .danger-button {
         background-color: var(--error-color);
         color: white;
-        border: none;
-        padding: 10px 16px;
-        border-radius: var(--radius-md);
+        border: var(--border-thin) solid var(--border-color);
+        padding: 14px 24px;
         cursor: pointer;
-        font-size: 14px;
-        font-weight: 500;
+        font-size: 1rem;
+        font-weight: 600;
+        font-family: "Space Grotesk", sans-serif;
         display: inline-flex;
         align-items: center;
-        gap: var(--spacing-xs);
+        gap: 10px;
         transition: all 0.2s ease;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        box-shadow: var(--shadow-offset) var(--shadow-offset) 0
+          var(--border-color);
+        position: relative;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
       }
 
       .danger-button::before {
         content: "\26A0\FE0F"; /* Warning emoji */
-        font-size: 14px;
+        font-size: 16px;
       }
 
       .danger-button:hover {
-        background-color: #ff7070;
-        transform: translateY(-1px);
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        background-color: #ff4081;
+        transform: translateY(-3px) translateX(-1px);
+        box-shadow: calc(var(--shadow-offset) + 1px)
+          calc(var(--shadow-offset) + 3px) 0 var(--border-color);
       }
 
       .danger-button:active {
-        transform: translateY(1px);
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        transform: translateY(2px) translateX(2px);
+        box-shadow: 0 0 0 var(--border-color);
       }
 
       /* Etsy edit link styling */
       .etsy-edit-link {
         display: inline-block;
-        padding: 8px 12px;
+        padding: 12px 20px;
         background-color: #f56400;
         color: white;
         text-decoration: none;
-        border-radius: 4px;
-        font-weight: 500;
-        margin: 5px 0;
+        font-weight: 600;
+        font-family: "Space Grotesk", sans-serif;
+        margin: 10px 0;
         transition: all 0.2s ease;
+        border: var(--border-thin) solid var(--border-color);
+        box-shadow: var(--shadow-offset) var(--shadow-offset) 0
+          var(--border-color);
+        position: relative;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-size: 0.9rem;
       }
 
       .etsy-edit-link:hover {
-        background-color: #e05800;
-        transform: translateY(-1px);
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        background-color: #ff7b2e;
+        transform: translateY(-3px) translateX(-1px);
+        box-shadow: calc(var(--shadow-offset) + 1px)
+          calc(var(--shadow-offset) + 3px) 0 var(--border-color);
       }
 
       .etsy-edit-link:active {
-        transform: translateY(1px);
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        transform: translateY(2px) translateX(2px);
+        box-shadow: 0 0 0 var(--border-color);
       }
     </style>
   </head>
@@ -1229,12 +1465,6 @@
             </button>
             <button onclick="runPatternResize()">Resize Only</button>
             <button onclick="runPatternMockups()">Create Mockups Only</button>
-            <button
-              onclick="runFolderRename('pattern')"
-              class="secondary-button"
-            >
-              <i class="fas fa-tag"></i> Rename Folders
-            </button>
           </div>
         </div>
       </div>
@@ -1274,12 +1504,6 @@
             <button onclick="runClipartCropMulti()">
               Extract Multiple Images
             </button>
-            <button
-              onclick="runFolderRename('clipart')"
-              class="secondary-button"
-            >
-              <i class="fas fa-tag"></i> Rename Folders
-            </button>
           </div>
         </div>
       </div>
@@ -1300,106 +1524,7 @@
           </div>
         </div>
 
-        <!-- Etsy sub-tabs -->
-        <div class="etsy-tabs">
-          <button class="etsy-tab active" id="etsy-single-tab">
-            <i class="fas fa-file"></i> Single Listing
-          </button>
-          <button class="etsy-tab" id="etsy-bulk-tab">
-            <i class="fas fa-layer-group"></i> Bulk Listings
-          </button>
-        </div>
-
-        <!-- Single listing tab content -->
-        <div id="etsy-single" class="etsy-tab-content active">
-          <div class="section">
-            <h3>Create Single Listing</h3>
-            <div class="form-group">
-              <label for="etsy-subfolder">Select Subfolder from 'input':</label>
-              <select id="etsy-subfolder" name="etsy-subfolder">
-                <option value="">-- Select a subfolder --</option>
-                <!-- Will be populated dynamically -->
-              </select>
-              <button onclick="refreshSubfolders()" style="margin-top: 5px">
-                Refresh Subfolders
-              </button>
-            </div>
-
-            <div class="form-group">
-              <label for="etsy-product-type">Product Type:</label>
-              <select id="etsy-product-type" name="etsy-product-type">
-                <option value="pattern">Pattern</option>
-                <option value="clipart">Clipart</option>
-                <option value="wall_art">Wall Art</option>
-              </select>
-            </div>
-
-            <div class="form-group">
-              <label for="etsy-title"
-                >Title:
-                <span id="title-counter" class="counter">0/140</span></label
-              >
-              <input
-                type="text"
-                id="etsy-title"
-                name="etsy-title"
-                placeholder="Enter listing title (max 140 characters)"
-                oninput="updateTitleCounter()"
-              />
-              <div id="title-validation" class="validation-message"></div>
-            </div>
-
-            <div class="form-group">
-              <label for="etsy-description">Description:</label>
-              <textarea
-                id="etsy-description"
-                name="etsy-description"
-                rows="5"
-                style="
-                  width: 100%;
-                  padding: 8px;
-                  border: 1px solid #ddd;
-                  border-radius: 4px;
-                  box-sizing: border-box;
-                "
-                placeholder="Enter listing description"
-              ></textarea>
-            </div>
-
-            <div class="form-group">
-              <label for="etsy-tags"
-                >Tags (comma separated):
-                <span id="tags-counter" class="counter">0/13</span></label
-              >
-              <input
-                type="text"
-                id="etsy-tags"
-                name="etsy-tags"
-                placeholder="tag1, tag2, tag3 (max 13 tags, each max 20 chars)"
-                oninput="updateTagsCounter()"
-              />
-              <div id="tags-validation" class="validation-message"></div>
-            </div>
-          </div>
-
-          <div class="form-group">
-            <input type="checkbox" id="etsy-draft" name="etsy-draft" checked />
-            <label for="etsy-draft" style="display: inline"
-              >Create as Draft</label
-            >
-          </div>
-
-          <div class="actions">
-            <button onclick="generateEtsyListing()" class="secondary-button">
-              Generate Listing Content
-            </button>
-            <button onclick="createEtsyListing()">Create Listing</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Bulk listings tab content -->
-      <div id="etsy-bulk" class="etsy-tab-content">
+        <!-- Bulk listings content -->
         <div class="section bulk-preparation-section">
           <div class="section-header">
             <h3><i class="fas fa-layer-group"></i> Bulk Listing Preparation</h3>
@@ -1512,80 +1637,7 @@
     </div>
 
     <script>
-      // Title counter and validation
-      function updateTitleCounter() {
-        const titleInput = document.getElementById("etsy-title");
-        const titleCounter = document.getElementById("title-counter");
-        const titleValidation = document.getElementById("title-validation");
-        const maxLength = 140;
-        const currentLength = titleInput.value.length;
-
-        // Update counter
-        titleCounter.textContent = `${currentLength}/${maxLength}`;
-
-        // Update counter class
-        titleCounter.className = "counter";
-        if (currentLength > maxLength * 0.8 && currentLength <= maxLength) {
-          titleCounter.classList.add("warning");
-        } else if (currentLength > maxLength) {
-          titleCounter.classList.add("error");
-        }
-
-        // Update validation message
-        titleValidation.textContent = "";
-        titleValidation.className = "validation-message";
-        if (currentLength > maxLength) {
-          titleValidation.textContent = `Title is too long by ${
-            currentLength - maxLength
-          } characters.`;
-          titleValidation.classList.add("error");
-        }
-      }
-
-      // Tags counter and validation
-      function updateTagsCounter() {
-        const tagsInput = document.getElementById("etsy-tags");
-        const tagsCounter = document.getElementById("tags-counter");
-        const tagsValidation = document.getElementById("tags-validation");
-        const maxTags = 13;
-        const maxTagLength = 20;
-
-        // Process tags
-        const tags = tagsInput.value
-          .split(",")
-          .map((tag) => tag.trim())
-          .filter((tag) => tag.length > 0);
-
-        // Update counter
-        tagsCounter.textContent = `${tags.length}/${maxTags}`;
-
-        // Update counter class
-        tagsCounter.className = "counter";
-        if (tags.length > maxTags * 0.8 && tags.length <= maxTags) {
-          tagsCounter.classList.add("warning");
-        } else if (tags.length > maxTags) {
-          tagsCounter.classList.add("error");
-        }
-
-        // Check for long tags
-        const longTags = tags.filter((tag) => tag.length > maxTagLength);
-
-        // Update validation message
-        tagsValidation.textContent = "";
-        tagsValidation.className = "validation-message";
-
-        if (tags.length > maxTags) {
-          tagsValidation.textContent = `Too many tags (${
-            tags.length
-          }/${maxTags}). Please remove ${tags.length - maxTags} tag(s).`;
-          tagsValidation.classList.add("error");
-        } else if (longTags.length > 0) {
-          tagsValidation.textContent = `${
-            longTags.length
-          } tag(s) exceed the 20 character limit: ${longTags.join(", ")}`;
-          tagsValidation.classList.add("error");
-        }
-      }
+      // Placeholder for any validation functions needed for bulk listings
 
       // Add event listeners to tab buttons
       document.addEventListener("DOMContentLoaded", function () {
@@ -1608,22 +1660,15 @@
           .getElementById("etsy-tab")
           .addEventListener("click", function () {
             showTab("etsy");
-            // Refresh subfolders when switching to Etsy tab
-            refreshSubfolders();
-            // Initialize counters
-            updateTitleCounter();
-            updateTagsCounter();
+            // Show prepared listings when switching to Etsy tab
+            showPreparedListings();
           });
 
         // Check for authentication status
         checkLogForAuthStatus();
 
-        // Initial refresh of subfolders
-        refreshSubfolders();
-
-        // Initialize counters
-        updateTitleCounter();
-        updateTagsCounter();
+        // Initial load of prepared listings
+        showPreparedListings();
       });
 
       // Function to show a tab
@@ -1912,50 +1957,6 @@
           });
       }
 
-      // Folder renaming function
-      function runFolderRename(type) {
-        // Get the input directory based on the type
-        const inputDir =
-          type === "pattern"
-            ? document.getElementById("pattern-input-dir").value
-            : document.getElementById("clipart-input-dir").value;
-
-        // Default parameters
-        const params = {
-          command: "folder-rename",
-          inputDir: inputDir,
-          maxRetries: 2, // Default to 2 retries
-        };
-
-        // Always use Gemini provider
-        params.provider = "gemini";
-
-        // Show a loading message
-        log("Starting folder renaming process...");
-        log("This may take a moment as we analyze your images.");
-
-        fetch("/run", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(params),
-        })
-          .then((response) => response.json())
-          .then((data) => {
-            log("Command submitted: " + data.command);
-            log("Renaming folders based on image analysis...");
-            // Refresh subfolders after a delay to allow the command to complete
-            setTimeout(() => {
-              log("Refreshing folder list...");
-              refreshSubfolders();
-            }, 5000);
-          })
-          .catch((error) => {
-            log("Error: " + error);
-          });
-      }
-
       // Etsy actions
       function authenticateEtsy() {
         fetch("/run", {
@@ -2015,202 +2016,7 @@
           });
       }
 
-      function generateEtsyListing() {
-        const subfolder = document.getElementById("etsy-subfolder").value;
-        const productType = document.getElementById("etsy-product-type").value;
-
-        // Validate inputs
-        if (!subfolder) {
-          alert("Please select a subfolder from the input directory.");
-          return;
-        }
-
-        // Construct the full folder path
-        const folder = "input/" + subfolder;
-
-        // Show loading message
-        log("Generating listing content for " + subfolder + "...");
-
-        // Disable the button and show loading state
-        const generateButton = document.querySelector(
-          ".actions button.secondary-button"
-        );
-        const originalText = generateButton.textContent;
-        generateButton.disabled = true;
-        generateButton.textContent = "Generating...";
-
-        // Call the API to generate content
-        fetch("/run", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            command: "etsy-generate",
-            folder: folder,
-            productType: productType,
-          }),
-        })
-          .then((response) => {
-            if (!response.ok) {
-              return response.json().then((data) => {
-                throw new Error(data.error || "An error occurred");
-              });
-            }
-            return response.json();
-          })
-          .then((data) => {
-            log("Content generation completed.");
-
-            // If content is returned directly, update the form fields
-            if (data.content) {
-              // Log the content for debugging
-              console.log("Content received from server:", data.content);
-              log(
-                "Content received from server - Title length: " +
-                  (data.content.title ? data.content.title.length : 0) +
-                  ", Description length: " +
-                  (data.content.description
-                    ? data.content.description.length
-                    : 0) +
-                  ", Tags count: " +
-                  (data.content.tags ? data.content.tags.length : 0)
-              );
-
-              // Update the form fields
-              document.getElementById("etsy-title").value =
-                data.content.title || "";
-
-              // Format description with proper spacing between emoji sections
-              let description = data.content.description || "";
-              // Add extra line breaks before emoji sections for better readability
-              description = description.replace(
-                /([^\n])(\n*[\u{1F300}-\u{1F6FF}\u{2600}-\u{26FF}])/gu,
-                "$1\n\n$2"
-              );
-              document.getElementById("etsy-description").value = description;
-
-              document.getElementById("etsy-tags").value = (
-                data.content.tags || []
-              ).join(", ");
-
-              // Update counters
-              updateTitleCounter();
-              updateTagsCounter();
-
-              log("Listing content applied to form fields.");
-
-              // Highlight the fields that were updated
-              const titleField = document.getElementById("etsy-title");
-              const descriptionField =
-                document.getElementById("etsy-description");
-              const tagsField = document.getElementById("etsy-tags");
-
-              // Add a temporary highlight class
-              titleField.classList.add("highlight-update");
-              descriptionField.classList.add("highlight-update");
-              tagsField.classList.add("highlight-update");
-
-              // Remove the highlight after a delay
-              setTimeout(() => {
-                titleField.classList.remove("highlight-update");
-                descriptionField.classList.remove("highlight-update");
-                tagsField.classList.remove("highlight-update");
-              }, 2000);
-            }
-          })
-          .catch((error) => {
-            alert(error.message);
-            log("Error: " + error.message);
-          })
-          .finally(() => {
-            // Re-enable the button and restore text
-            generateButton.disabled = false;
-            generateButton.textContent = originalText;
-          });
-      }
-
-      function createEtsyListing() {
-        const subfolder = document.getElementById("etsy-subfolder").value;
-        const productType = document.getElementById("etsy-product-type").value;
-        const title = document.getElementById("etsy-title").value;
-        const description = document.getElementById("etsy-description").value;
-        const tagsInput = document.getElementById("etsy-tags").value;
-        const draft = document.getElementById("etsy-draft").checked;
-
-        // Validate inputs
-        if (!subfolder) {
-          alert("Please select a subfolder from the input directory.");
-          return;
-        }
-
-        // Validate title length (max 140 characters)
-        if (title.length > 140) {
-          alert(
-            `Title is too long (${title.length} characters). Etsy allows a maximum of 140 characters.`
-          );
-          return;
-        }
-
-        // Process tags - split by comma and trim whitespace
-        const tags = tagsInput
-          .split(",")
-          .map((tag) => tag.trim())
-          .filter((tag) => tag.length > 0);
-
-        // Validate tags (max 13 for Etsy)
-        if (tags.length > 13) {
-          alert(
-            "Etsy allows a maximum of 13 tags. Please reduce the number of tags."
-          );
-          return;
-        }
-
-        // Validate individual tag length (max 20 characters each)
-        const longTags = tags.filter((tag) => tag.length > 20);
-        if (longTags.length > 0) {
-          alert(
-            `The following tags are too long (max 20 characters each): ${longTags.join(
-              ", "
-            )}`
-          );
-          return;
-        }
-
-        // Construct the full folder path
-        const folder = "input/" + subfolder;
-
-        fetch("/run", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            command: "etsy-create",
-            folder: folder,
-            productType: productType,
-            title: title,
-            description: description,
-            tags: tags,
-            draft: draft,
-          }),
-        })
-          .then((response) => {
-            if (!response.ok) {
-              return response.json().then((data) => {
-                throw new Error(data.error || "An error occurred");
-              });
-            }
-            return response.json();
-          })
-          .then((data) => {
-            log("Command submitted: " + data.command);
-          })
-          .catch((error) => {
-            alert(error.message);
-            log("Error: " + error.message);
-          });
-      }
+      // Bulk listing functions start here
 
       function prepareBulkListings() {
         const productType = document.getElementById(
@@ -2344,16 +2150,7 @@
           "prepared-listings-container"
         );
 
-        // Make sure the bulk tab is active
-        document.querySelectorAll(".etsy-tab").forEach((t) => {
-          t.classList.remove("active");
-        });
-        document.getElementById("etsy-bulk-tab").classList.add("active");
-
-        document.querySelectorAll(".etsy-tab-content").forEach((content) => {
-          content.classList.remove("active");
-        });
-        document.getElementById("etsy-bulk").classList.add("active");
+        // No need to switch tabs anymore as there's only one content area
 
         // Show loading state
         container.innerHTML =
@@ -2771,29 +2568,6 @@
             log("Error: " + error.message);
           });
       }
-
-      // Etsy Sub-tab switching
-      document.querySelectorAll(".etsy-tab").forEach((tab) => {
-        tab.addEventListener("click", () => {
-          // Remove active class from all etsy tabs
-          document.querySelectorAll(".etsy-tab").forEach((t) => {
-            t.classList.remove("active");
-          });
-
-          // Add active class to clicked tab
-          tab.classList.add("active");
-
-          // Hide all etsy tab content
-          document.querySelectorAll(".etsy-tab-content").forEach((content) => {
-            content.classList.remove("active");
-          });
-
-          // Show corresponding etsy tab content
-          const tabId = tab.id;
-          const contentId = tabId.replace("-tab", "");
-          document.getElementById(contentId).classList.add("active");
-        });
-      });
     </script>
   </body>
 </html>
