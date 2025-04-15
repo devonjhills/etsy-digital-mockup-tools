@@ -21,7 +21,7 @@ logger = setup_logging(__name__)
 
 
 def extract_colors_from_images(
-    images: List[str], num_colors: int = 5
+    images: List[str], num_colors: int = 8
 ) -> List[Tuple[int, int, int]]:
     """
     Extract dominant colors from a list of images.
@@ -48,8 +48,8 @@ def extract_colors_from_images(
                 if img.mode != "RGB":
                     img = img.convert("RGB")
 
-                # Resize for faster processing
-                img.thumbnail((100, 100))
+                # Resize for faster processing but keep enough detail for color extraction
+                img.thumbnail((200, 200))
 
                 # Get image statistics
                 stat = ImageStat.Stat(img)
@@ -58,19 +58,58 @@ def extract_colors_from_images(
 
                 # Sample pixels from different regions
                 width, height = img.size
-                regions = [
-                    (0, 0, width // 2, height // 2),
-                    (width // 2, 0, width, height // 2),
-                    (0, height // 2, width // 2, height),
-                    (width // 2, height // 2, width, height),
-                    (width // 4, height // 4, 3 * width // 4, 3 * height // 4),
-                ]
+
+                # Create a more detailed grid of regions
+                regions = []
+                grid_size = 4  # 4x4 grid
+                for x in range(grid_size):
+                    for y in range(grid_size):
+                        x_start = int(width * x / grid_size)
+                        y_start = int(height * y / grid_size)
+                        x_end = int(width * (x + 1) / grid_size)
+                        y_end = int(height * (y + 1) / grid_size)
+                        regions.append((x_start, y_start, x_end, y_end))
+
+                # Add some focused regions for potential accent colors
+                regions.extend(
+                    [
+                        (
+                            width // 4,
+                            height // 4,
+                            3 * width // 4,
+                            3 * height // 4,
+                        ),  # Center
+                        (0, 0, width // 3, height // 3),  # Top-left
+                        (2 * width // 3, 0, width, height // 3),  # Top-right
+                        (0, 2 * height // 3, width // 3, height),  # Bottom-left
+                        (
+                            2 * width // 3,
+                            2 * height // 3,
+                            width,
+                            height,
+                        ),  # Bottom-right
+                    ]
+                )
 
                 for region in regions:
                     region_img = img.crop(region)
                     region_stat = ImageStat.Stat(region_img)
                     region_color = tuple(map(int, region_stat.mean))
                     all_colors.append(region_color)
+
+                    # Also extract min and max colors from each region for more variety
+                    min_vals = (
+                        region_stat.extrema[0][0],
+                        region_stat.extrema[1][0],
+                        region_stat.extrema[2][0],
+                    )
+                    max_vals = (
+                        region_stat.extrema[0][1],
+                        region_stat.extrema[1][1],
+                        region_stat.extrema[2][1],
+                    )
+                    all_colors.append(tuple(map(int, min_vals)))
+                    all_colors.append(tuple(map(int, max_vals)))
 
         except Exception as e:
             logger.error(f"Error extracting colors from {img_path}: {e}")
@@ -89,8 +128,8 @@ def extract_colors_from_images(
         if v < 0.1 or v > 0.98:
             continue
 
-        # Allow colors with lower saturation for more subtle palette
-        if s < 0.05:
+        # Allow more colors with lower saturation but prioritize vibrant ones
+        if s < 0.03:  # Only skip very desaturated colors
             continue
 
         # Check if this color is too similar to ones we've already kept
@@ -107,8 +146,8 @@ def extract_colors_from_images(
             s_diff = abs(s - existing_s)
             v_diff = abs(v - existing_v)
 
-            # If colors are too similar, skip this one
-            if h_diff < 0.1 and s_diff < 0.2 and v_diff < 0.2:
+            # If colors are too similar, skip this one (use tighter threshold)
+            if h_diff < 0.08 and s_diff < 0.15 and v_diff < 0.15:
                 is_unique = False
                 break
 
@@ -119,8 +158,17 @@ def extract_colors_from_images(
     if not filtered_colors:
         filtered_colors = all_colors
 
+    # Sort by saturation to prioritize more vibrant colors
+    filtered_colors_with_hsv = []
+    for color in filtered_colors:
+        h, s, v = colorsys.rgb_to_hsv(color[0] / 255, color[1] / 255, color[2] / 255)
+        filtered_colors_with_hsv.append((color, s))
+
+    filtered_colors_with_hsv.sort(key=lambda x: x[1], reverse=True)
+    sorted_colors = [c[0] for c in filtered_colors_with_hsv]
+
     # Return the requested number of colors
-    return filtered_colors[:num_colors]
+    return sorted_colors[:num_colors]
 
 
 def calculate_contrast_ratio(
@@ -188,8 +236,6 @@ def generate_color_palette(
             ),  # Semi-transparent background (200/255 = ~80% opacity)
             "title_text": (50, 50, 50),
             "subtitle_text": (80, 80, 80),
-            "title_outline": (255, 255, 255),
-            "subtitle_outline": (255, 255, 255),
         }
 
     # Sort colors by saturation (most saturated first)
@@ -224,26 +270,111 @@ def generate_color_palette(
     # Determine if background is light or dark (threshold at 0.5)
     is_light_bg = luminance > 0.5
 
-    # Find a vibrant color from the extracted colors for the title text
+    # Find colors from the extracted colors for the text elements
     title_text = None
     subtitle_text = None
 
-    # Try to find a vibrant color with good contrast for the title
+    # Sort colors by contrast with background (highest contrast first)
+    colors_by_contrast = []
     for color, h, s, v in colors_with_hsv:
-        # Skip colors that are too similar to the background
         bg_contrast = calculate_contrast_ratio(text_bg_rgb, color)
-        if bg_contrast >= 4.5 and s >= 0.4 and 0.2 <= v <= 0.9:
+        colors_by_contrast.append((color, h, s, v, bg_contrast))
+
+    colors_by_contrast.sort(key=lambda x: x[4], reverse=True)  # Sort by contrast
+
+    logger.info(f"Found {len(colors_by_contrast)} colors from input images")
+    if colors_by_contrast:
+        top_colors = colors_by_contrast[: min(3, len(colors_by_contrast))]
+        logger.info(
+            f"Top colors by contrast: {[c[0] for c in top_colors]} with contrast ratios: {[c[4] for c in top_colors]}"
+        )
+
+    # Try to find a color with good contrast for the title
+    # WCAG AA standard requires a contrast ratio of at least 4.5:1 for normal text
+    # But for large text (like our title), 3:1 is acceptable
+    min_contrast_normal = 4.5
+    min_contrast_large = 3.0  # For large text (like our title)
+
+    # First try: Find a vibrant color with good contrast for normal text
+    for color, h, s, v, contrast in colors_by_contrast:
+        if contrast >= min_contrast_normal and s >= 0.3 and 0.2 <= v <= 0.9:
             title_text = color
+            logger.info(
+                f"Selected vibrant color from input for title: {color} (contrast: {contrast:.2f})"
+            )
+
             # Create a slightly less saturated version for subtitle
-            subtitle_hsv = (h, max(0.3, s - 0.1), v)
+            subtitle_hsv = (h, max(0.2, s - 0.1), v)
             subtitle_rgb = tuple(
                 int(x * 255) for x in colorsys.hsv_to_rgb(*subtitle_hsv)
             )
             subtitle_text = subtitle_rgb
             break
 
-    # If we couldn't find a suitable vibrant color, fall back to contrast-based selection
+    # Second try: Find any color with good contrast for normal text
+    if title_text is None and colors_by_contrast:
+        for color, h, s, v, contrast in colors_by_contrast:
+            if contrast >= min_contrast_normal:
+                title_text = color
+                logger.info(
+                    f"Selected color from input for title: {color} (contrast: {contrast:.2f})"
+                )
+
+                # Create a slightly adjusted version for subtitle
+                if v > 0.5:  # If color is bright
+                    subtitle_hsv = (h, s, max(0.2, v - 0.1))  # Make slightly darker
+                else:  # If color is dark
+                    subtitle_hsv = (h, s, min(0.9, v + 0.1))  # Make slightly lighter
+
+                subtitle_rgb = tuple(
+                    int(x * 255) for x in colorsys.hsv_to_rgb(*subtitle_hsv)
+                )
+                subtitle_text = subtitle_rgb
+                break
+
+    # Third try: Find a vibrant color with acceptable contrast for large text
+    if title_text is None and colors_by_contrast:
+        for color, h, s, v, contrast in colors_by_contrast:
+            if contrast >= min_contrast_large and s >= 0.4 and 0.2 <= v <= 0.9:
+                title_text = color
+                logger.info(
+                    f"Selected vibrant color from input for large title text: {color} (contrast: {contrast:.2f})"
+                )
+
+                # Create a slightly less saturated version for subtitle
+                subtitle_hsv = (h, max(0.2, s - 0.1), v)
+                subtitle_rgb = tuple(
+                    int(x * 255) for x in colorsys.hsv_to_rgb(*subtitle_hsv)
+                )
+                subtitle_text = subtitle_rgb
+                break
+
+    # Fourth try: Find any color with acceptable contrast for large text
+    if title_text is None and colors_by_contrast:
+        for color, h, s, v, contrast in colors_by_contrast:
+            if contrast >= min_contrast_large:
+                title_text = color
+                logger.info(
+                    f"Selected color from input for large title text: {color} (contrast: {contrast:.2f})"
+                )
+
+                # Create a slightly adjusted version for subtitle
+                if v > 0.5:  # If color is bright
+                    subtitle_hsv = (h, s, max(0.2, v - 0.1))  # Make slightly darker
+                else:  # If color is dark
+                    subtitle_hsv = (h, s, min(0.9, v + 0.1))  # Make slightly lighter
+
+                subtitle_rgb = tuple(
+                    int(x * 255) for x in colorsys.hsv_to_rgb(*subtitle_hsv)
+                )
+                subtitle_text = subtitle_rgb
+                break
+
+    # If we still couldn't find a suitable color, fall back to contrast-based selection
     if title_text is None:
+        logger.info(
+            "No suitable colors found in input images, using contrast-based fallback"
+        )
         # Choose contrasting colors based on background luminance
         # For dark backgrounds, use lighter text; for light backgrounds, use darker text
         if is_light_bg:
@@ -256,12 +387,10 @@ def generate_color_palette(
             subtitle_text = (230, 230, 230)  # Light gray for subtitle
 
         # Check contrast ratio and adjust if needed to ensure readability
-        # WCAG AA standard requires a contrast ratio of at least 4.5:1 for normal text
-        min_contrast = 4.5
-
-        # Check and adjust title text contrast
         title_contrast = calculate_contrast_ratio(text_bg_rgb, title_text)
-        if title_contrast < min_contrast:
+        if (
+            title_contrast < min_contrast_normal
+        ):  # Use the normal text contrast requirement
             # Adjust title text to be darker or lighter based on background
             if is_light_bg:
                 title_text = (
@@ -278,7 +407,9 @@ def generate_color_palette(
 
         # Check and adjust subtitle text contrast
         subtitle_contrast = calculate_contrast_ratio(text_bg_rgb, subtitle_text)
-        if subtitle_contrast < min_contrast:
+        if (
+            subtitle_contrast < min_contrast_normal
+        ):  # Use the normal text contrast requirement
             # Adjust subtitle text to be darker or lighter based on background
             if is_light_bg:
                 subtitle_text = (
@@ -293,8 +424,7 @@ def generate_color_palette(
                     240,
                 )  # Very light gray for good contrast on dark background
 
-    # Create contrasting outline colors for the text
-    # For dark text, use light outline and vice versa
+    # Calculate luminance for logging purposes
     title_luminance = (
         0.299 * title_text[0] + 0.587 * title_text[1] + 0.114 * title_text[2]
     ) / 255
@@ -302,16 +432,9 @@ def generate_color_palette(
         0.299 * subtitle_text[0] + 0.587 * subtitle_text[1] + 0.114 * subtitle_text[2]
     ) / 255
 
-    # Create outline colors with opposite luminance
-    if title_luminance > 0.5:  # Light text
-        title_outline = (0, 0, 0)  # Black outline
-    else:  # Dark text
-        title_outline = (255, 255, 255)  # White outline
-
-    if subtitle_luminance > 0.5:  # Light text
-        subtitle_outline = (0, 0, 0)  # Black outline
-    else:  # Dark text
-        subtitle_outline = (255, 255, 255)  # White outline
+    logger.info(
+        f"Selected text colors - Title: {title_text} (luminance: {title_luminance:.2f}), Subtitle: {subtitle_text} (luminance: {subtitle_luminance:.2f})"
+    )
 
     # Use a neutral background color
     background = (240, 240, 240) if v < 0.5 else (220, 220, 220)
@@ -323,22 +446,18 @@ def generate_color_palette(
         "text_bg": text_bg_with_alpha,  # Now includes alpha channel
         "title_text": title_text,
         "subtitle_text": subtitle_text,
-        "title_outline": title_outline,
-        "subtitle_outline": subtitle_outline,
     }
 
 
-def draw_text_with_outline(
+def draw_text(
     draw: ImageDraw.Draw,
     position: Tuple[int, int],
     text: str,
     font: ImageFont.FreeTypeFont,
     text_color: Tuple[int, int, int],
-    outline_color: Tuple[int, int, int],
-    outline_width: int = 1,
 ) -> None:
     """
-    Draw text with an outline for better visibility.
+    Draw text without an outline, using dynamic color selection for readability.
 
     Args:
         draw: ImageDraw object to draw on
@@ -346,20 +465,8 @@ def draw_text_with_outline(
         text: Text to draw
         font: Font to use
         text_color: RGB color for the text
-        outline_color: RGB color for the outline
-        outline_width: Width of the outline in pixels
     """
-    x, y = position
-
-    # Draw the outline by drawing the text multiple times with offsets
-    for offset_x in range(-outline_width, outline_width + 1):
-        for offset_y in range(-outline_width, outline_width + 1):
-            # Skip the center position (that will be the main text)
-            if offset_x == 0 and offset_y == 0:
-                continue
-            draw.text((x + offset_x, y + offset_y), text, font=font, fill=outline_color)
-
-    # Draw the main text on top
+    # Draw the text directly without outline
     draw.text(position, text, font=font, fill=text_color)
 
 
@@ -605,38 +712,32 @@ def create_dynamic_overlay(
     bottom_subtitle_x = (width - bottom_subtitle_width) // 2
     bottom_subtitle_y = text_y + text_height - padding_y - bottom_subtitle_height
 
-    # Draw text elements with outlines for better visibility
-    # Top subtitle with outline
-    draw_text_with_outline(
+    # Draw text elements with dynamic color selection for readability
+    # Top subtitle
+    draw_text(
         draw=draw,
         position=(subtitle_x, subtitle_y),
         text=subtitle_text,
         font=top_subtitle_font,
         text_color=palette["subtitle_text"],
-        outline_color=palette["subtitle_outline"],
-        outline_width=1,
     )
 
-    # Main title with slightly thicker outline
-    draw_text_with_outline(
+    # Main title
+    draw_text(
         draw=draw,
         position=(title_x, title_y),
         text=title,
         font=title_font,
         text_color=palette["title_text"],
-        outline_color=palette["title_outline"],
-        outline_width=2,  # Thicker outline for the main title
     )
 
-    # Bottom subtitle with outline
-    draw_text_with_outline(
+    # Bottom subtitle
+    draw_text(
         draw=draw,
         position=(bottom_subtitle_x, bottom_subtitle_y),
         text=bottom_subtitle_text,
         font=bottom_subtitle_font,
         text_color=palette["subtitle_text"],
-        outline_color=palette["subtitle_outline"],
-        outline_width=1,
     )
 
     return overlay
