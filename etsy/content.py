@@ -24,7 +24,7 @@ class ContentGenerator:
         self,
         api_key: Optional[str] = None,
         model_name: Optional[str] = None,
-        provider_type: Optional[str] = None,
+        provider_type: str = "gemini",
     ):
         """
         Initialize the content generator.
@@ -32,7 +32,7 @@ class ContentGenerator:
         Args:
             api_key: API key for the AI provider (if None, will try to get from environment)
             model_name: Name of the model to use (if None, will try to get from environment)
-            provider_type: Type of AI provider to use ('gemini', 'openrouter', or None for default)
+            provider_type: Type of AI provider to use (only 'gemini' is supported)
         """
         # Get the AI provider
         if provider_type:

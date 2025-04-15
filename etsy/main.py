@@ -25,7 +25,7 @@ class EtsyIntegration:
         etsy_api_secret: str,
         api_key: Optional[str] = None,
         model_name: Optional[str] = None,
-        provider_type: Optional[str] = None,
+        provider_type: str = "gemini",
         templates_dir: str = "templates",
     ):
         """
@@ -36,7 +36,7 @@ class EtsyIntegration:
             etsy_api_secret: Etsy API secret
             api_key: API key for the AI provider (optional)
             model_name: Model name to use (optional)
-            provider_type: Type of AI provider to use ('gemini', 'openrouter', or None for default)
+            provider_type: Type of AI provider to use (only 'gemini' is supported)
             templates_dir: Directory to store templates
         """
         self.auth = EtsyAuth(etsy_api_key, etsy_api_secret)
@@ -1045,29 +1045,77 @@ class EtsyIntegration:
 
                         layout_with_images = layout_canvas
 
-                    # Create a completely new implementation for the main mockup
-                    # This avoids any issues with the original implementation
+                    # Create a proper collage layout for the main mockup
+                    # This uses the same implementation as in clipart/main.py
 
-                    # Create a new canvas with a white background
-                    final_main_mockup = Image.new(
-                        "RGBA", (1500, 1500), (255, 255, 255, 255)
+                    # Create title text for the mockup
+                    title = product_name
+                    subtitle_bottom_text = (
+                        f"{num_images} clip arts • 300 DPI • Transparent PNG"
                     )
 
-                    # Load the first image
-                    if input_image_paths:
-                        try:
-                            with Image.open(input_image_paths[0]) as img:
-                                # Resize the image to fit in the mockup
-                                img = img.convert("RGBA")
-                                img.thumbnail((1000, 1000))
-                                # Paste the image in the center
-                                position = (
-                                    (1500 - img.width) // 2,
-                                    (1500 - img.height) // 2,
-                                )
-                                final_main_mockup.paste(img, position, img)
-                        except Exception as e:
-                            logger.error(f"Error creating main mockup: {e}")
+                    # Create the title layer
+                    logger.info("Creating title layer...")
+                    title_layer_canvas = Image.new("RGBA", (3000, 2250), (0, 0, 0, 0))
+
+                    # Add title bar and text
+                    title_style_args = {
+                        "title_font_name": "Angelina",
+                        "title_font_size": 170,
+                        "title_text_color": (50, 50, 50, 255),
+                        "subtitle_font_name": "MarkerFelt",
+                        "subtitle_font_size": 70,
+                        "subtitle_text_color": (80, 80, 80, 255),
+                        "title_backdrop_color": (255, 255, 255, 255),
+                        "title_backdrop_border_color": (218, 165, 32, 255),
+                        "title_backdrop_border_width": 5,
+                        "title_backdrop_corner_radius": 40,
+                    }
+
+                    image_with_title_block_only, title_backdrop_bounds = (
+                        add_title_bar_and_text(
+                            image=title_layer_canvas,
+                            background_image=canvas_bg_main,
+                            title=title,
+                            subtitle_top="Commercial Use",
+                            subtitle_bottom=subtitle_bottom_text,
+                            **title_style_args,
+                        )
+                    )
+
+                    if not title_backdrop_bounds:
+                        logger.warning(
+                            "Title bounds calculation failed. Collage placement might be affected."
+                        )
+
+                    # Create collage layout
+                    logger.info("Creating collage layout...")
+                    collage_style_args = {
+                        "centerpiece_scale_factor": 0.65,
+                        "surround_min_width_factor": 0.20,
+                        "surround_max_width_factor": 0.30,
+                        "placement_step": 5,
+                        "title_avoid_padding": 20,
+                        "centerpiece_avoid_padding": 20,
+                        "rescale_factor": 0.95,
+                        "rescale_attempts": 3,
+                        "max_acceptable_overlap_ratio": 0.10,
+                        "min_scale_abs": 0.30,
+                    }
+
+                    layout_with_images = create_collage_layout(
+                        image_paths=input_image_paths,
+                        canvas=canvas_bg_main.copy(),
+                        title_backdrop_bounds=title_backdrop_bounds,
+                        **collage_style_args,
+                    )
+
+                    # Composite title onto collage
+                    logger.info("Compositing title block...")
+                    final_main_mockup = Image.alpha_composite(
+                        layout_with_images.convert("RGBA"),
+                        image_with_title_block_only.convert("RGBA"),
+                    )
 
                     # Save main mockup
                     main_mockup_path = os.path.join(mocks_folder, "main.png")
@@ -1087,71 +1135,18 @@ class EtsyIntegration:
                             f"Creating grid {grid_count} (images {i+1}-{i+len(batch_paths)})..."
                         )
 
-                        # Create a simple 2x2 grid mockup
+                        # Create a proper 2x2 grid mockup using the clipart module
                         try:
-                            # Create a white background
-                            grid_size = (2000, 2000)
-                            grid_mockup = Image.new(
-                                "RGBA", grid_size, (255, 255, 255, 255)
+                            # Create the grid mockup
+                            grid_mockup = create_2x2_grid(
+                                input_image_paths=batch_paths,
+                                canvas_bg_image=canvas_bg_2x2.copy(),
+                                grid_size=(2000, 2000),
+                                padding=30,
                             )
 
-                            # Calculate cell size
-                            padding = 30
-                            cell_width = (grid_size[0] - (3 * padding)) // 2
-                            cell_height = (grid_size[1] - (3 * padding)) // 2
-
-                            # Load and place images
-                            for j, img_path in enumerate(batch_paths[:4]):
-                                try:
-                                    # Load image
-                                    with Image.open(img_path) as img:
-                                        img = img.convert("RGBA")
-
-                                        # Calculate position
-                                        row = j // 2
-                                        col = j % 2
-                                        x = padding + col * (cell_width + padding)
-                                        y = padding + row * (cell_height + padding)
-
-                                        # Resize image to fit cell while maintaining aspect ratio
-                                        img_aspect = (
-                                            img.width / img.height
-                                            if img.height > 0
-                                            else 1
-                                        )
-
-                                        if img_aspect >= 1:  # Wider than tall
-                                            img_width = cell_width
-                                            img_height = int(img_width / img_aspect)
-                                            if img_height > cell_height:
-                                                img_height = cell_height
-                                                img_width = int(img_height * img_aspect)
-                                        else:  # Taller than wide
-                                            img_height = cell_height
-                                            img_width = int(img_height * img_aspect)
-                                            if img_width > cell_width:
-                                                img_width = cell_width
-                                                img_height = int(img_width / img_aspect)
-
-                                        img_resized = img.resize(
-                                            (img_width, img_height),
-                                            get_resampling_filter(),
-                                        )
-
-                                        # Center in cell
-                                        x_centered = x + (cell_width - img_width) // 2
-                                        y_centered = y + (cell_height - img_height) // 2
-
-                                        # Paste image
-                                        grid_mockup.paste(
-                                            img_resized,
-                                            (x_centered, y_centered),
-                                            img_resized,
-                                        )
-                                except Exception as e:
-                                    logger.error(
-                                        f"Error processing image {img_path} for grid: {e}"
-                                    )
+                            # Apply watermark
+                            grid_mockup = apply_watermark(grid_mockup)
 
                             # Save the grid mockup
                             output_filename = os.path.join(
@@ -1166,81 +1161,20 @@ class EtsyIntegration:
                     logger.info("Creating transparency demo...")
                     try:
                         if input_image_paths:
-                            # Create a simple transparency demo
-                            # Create a checkerboard pattern
-                            checkerboard_size = 20
-                            checkerboard_color1 = (200, 200, 200, 255)
-                            checkerboard_color2 = (150, 150, 150, 255)
-
-                            # Create a 1000x1000 checkerboard
-                            demo_size = (1000, 1000)
-                            checkerboard = Image.new(
-                                "RGBA", demo_size, (255, 255, 255, 255)
+                            # Use the proper transparency demo function from clipart module
+                            transparency_demo = create_transparency_demo(
+                                image_path=input_image_paths[0],
+                                checkerboard_size=30,
+                                checkerboard_color1=(255, 255, 255),
+                                checkerboard_color2=(200, 200, 200),
+                                scale=0.7,
                             )
-                            draw = ImageDraw.Draw(checkerboard)
-
-                            # Draw checkerboard pattern
-                            for y in range(0, demo_size[1], checkerboard_size):
-                                for x in range(0, demo_size[0], checkerboard_size):
-                                    color = (
-                                        checkerboard_color1
-                                        if (
-                                            (x // checkerboard_size)
-                                            + (y // checkerboard_size)
-                                        )
-                                        % 2
-                                        == 0
-                                        else checkerboard_color2
-                                    )
-                                    draw.rectangle(
-                                        [
-                                            x,
-                                            y,
-                                            x + checkerboard_size,
-                                            y + checkerboard_size,
-                                        ],
-                                        fill=color,
-                                    )
-
-                            # Load the first image
-                            with Image.open(input_image_paths[0]) as img:
-                                img = img.convert("RGBA")
-
-                                # Resize to fit in the demo
-                                scale = 0.8
-                                img_width = int(demo_size[0] * scale)
-                                img_height = (
-                                    int(img_width * img.height / img.width)
-                                    if img.width > 0
-                                    else 0
-                                )
-
-                                if img_height > demo_size[1] * scale:
-                                    img_height = int(demo_size[1] * scale)
-                                    img_width = (
-                                        int(img_height * img.width / img.height)
-                                        if img.height > 0
-                                        else 0
-                                    )
-
-                                img_resized = img.resize(
-                                    (img_width, img_height), get_resampling_filter()
-                                )
-
-                                # Center the image on the checkerboard
-                                position = (
-                                    (demo_size[0] - img_width) // 2,
-                                    (demo_size[1] - img_height) // 2,
-                                )
-
-                                # Paste the image onto the checkerboard
-                                checkerboard.paste(img_resized, position, img_resized)
 
                             # Save the transparency demo
                             transparency_output = os.path.join(
                                 mocks_folder, "transparency_demo.png"
                             )
-                            checkerboard.save(transparency_output)
+                            transparency_demo.save(transparency_output)
                             logger.info(
                                 f"Saved transparency demo: {transparency_output}"
                             )
@@ -1518,75 +1452,8 @@ class EtsyIntegration:
             "Failed to generate content with primary provider. Trying alternatives..."
         )
 
-        # Import the factory to create alternative providers
-        from ai_providers.factory import AIProviderFactory
-
-        # Try alternative providers
-        alternative_providers = ["gemini", "openrouter"]
-        current_provider_type = (
-            self.content_generator.provider.__class__.__name__.lower()
-        )
-        if "gemini" in current_provider_type:
-            # If current is Gemini, try OpenRouter first
-            alternative_providers = ["openrouter", "gemini"]
-
-        for attempt in range(max_retries):
-            for provider_type in alternative_providers:
-                # Skip the current provider type
-                if provider_type in current_provider_type and attempt == 0:
-                    continue
-
-                logger.info(
-                    f"Attempt {attempt + 1}/{max_retries} with provider: {provider_type}"
-                )
-
-                try:
-                    # Create a new provider
-                    alternative_provider = AIProviderFactory.create_provider(
-                        provider_type
-                    )
-
-                    if alternative_provider:
-                        # Try generating content with this provider
-                        from etsy.content import ContentGenerator
-
-                        temp_generator = ContentGenerator(provider_type=provider_type)
-
-                        if temp_generator and temp_generator.provider:
-                            logger.info(
-                                f"Trying with alternative provider: {provider_type}"
-                            )
-                            alt_content = temp_generator.generate_content_from_image(
-                                main_mockup, instructions
-                            )
-
-                            # Check if we got valid content
-                            if (
-                                alt_content
-                                and alt_content["title"]
-                                and alt_content["description"]
-                                and alt_content["tags"]
-                            ):
-                                logger.info(
-                                    f"Successfully generated content with alternative provider {provider_type}: {alt_content['title']}"
-                                )
-                                return alt_content
-                            else:
-                                logger.warning(
-                                    f"Alternative provider {provider_type} also failed to generate valid content"
-                                )
-                        else:
-                            logger.warning(
-                                f"Failed to initialize alternative provider: {provider_type}"
-                            )
-                    else:
-                        logger.warning(
-                            f"Failed to create alternative provider: {provider_type}"
-                        )
-                except Exception as e:
-                    logger.error(
-                        f"Error with alternative provider {provider_type}: {e}"
-                    )
+        # No alternative providers to try, just log the error
+        logger.warning("Content generation failed with Gemini provider")
 
         # If we get here, all attempts failed
         logger.error("All content generation attempts failed")

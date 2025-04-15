@@ -8,7 +8,6 @@ from typing import Optional, Dict, Any
 
 from .base import AIProvider
 from .gemini_provider import GeminiProvider
-from .openrouter_provider import OpenRouterProvider
 
 # Set up logging
 from utils.common import setup_logging
@@ -36,6 +35,7 @@ class AIProviderFactory:
         """
         provider_type = provider_type.lower()
 
+        # Only support Gemini provider
         if provider_type == "gemini":
             # Get API key from environment if not provided
             if not api_key:
@@ -46,27 +46,9 @@ class AIProviderFactory:
 
             # Get model name from environment if not provided
             if not model_name:
-                model_name = os.environ.get("GEMINI_MODEL", "gemini-2.5-pro-exp-03-25")
+                model_name = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash")
 
             return GeminiProvider(api_key, model_name)
-
-        elif provider_type == "openrouter":
-            # Get API key from environment if not provided
-            if not api_key:
-                api_key = os.environ.get("OPEN_ROUTER_API_KEY")
-                if not api_key:
-                    logger.error(
-                        "OPEN_ROUTER_API_KEY not found in environment variables"
-                    )
-                    return None
-
-            # Get model name from environment if not provided
-            if not model_name:
-                model_name = os.environ.get(
-                    "OPEN_ROUTER_MODEL", "moonshotai/kimi-vl-a3b-thinking:free"
-                )
-
-            return OpenRouterProvider(api_key, model_name)
 
         else:
             logger.error(f"Unknown provider type: {provider_type}")
@@ -84,20 +66,10 @@ class AIProviderFactory:
         Returns:
             An AI provider or None if creation failed
         """
-        # Check if a specific provider is requested
-        provider_type = os.environ.get("AI_PROVIDER")
-        if provider_type:
-            return AIProviderFactory.create_provider(provider_type)
-
-        # Try Gemini first
+        # Always use Gemini provider
         if os.environ.get("GEMINI_API_KEY"):
-            logger.info("Using Gemini as default provider")
+            logger.info("Using Gemini as provider")
             return AIProviderFactory.create_provider("gemini")
-
-        # Then try OpenRouter
-        if os.environ.get("OPEN_ROUTER_API_KEY"):
-            logger.info("Using OpenRouter as default provider")
-            return AIProviderFactory.create_provider("openrouter")
 
         logger.error("No API keys found in environment variables")
         return None

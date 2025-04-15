@@ -143,36 +143,16 @@ def main():
     api_key = None
     model_name = None
 
-    # If provider is specified, get the corresponding API key and model
-    if provider_type == "gemini":
-        api_key = os.environ.get("GEMINI_API_KEY")
-        model_name = os.environ.get("GEMINI_MODEL")
-        if api_key:
-            logger.info(f"Using Gemini model: {model_name}")
-    elif provider_type == "openrouter":
-        api_key = os.environ.get("OPEN_ROUTER_API_KEY")
-        model_name = os.environ.get("OPEN_ROUTER_MODEL")
-        if api_key:
-            logger.info(f"Using OpenRouter model: {model_name}")
-    else:
-        # Try to get API keys for available providers
-        gemini_api_key = os.environ.get("GEMINI_API_KEY")
-        openrouter_api_key = os.environ.get("OPEN_ROUTER_API_KEY")
+    # Get Gemini API key and model
+    api_key = os.environ.get("GEMINI_API_KEY")
+    model_name = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash")
 
-        if gemini_api_key:
-            provider_type = "gemini"
-            api_key = gemini_api_key
-            model_name = os.environ.get("GEMINI_MODEL")
-            logger.info(f"Using Gemini model: {model_name}")
-        elif openrouter_api_key:
-            provider_type = "openrouter"
-            api_key = openrouter_api_key
-            model_name = os.environ.get("OPEN_ROUTER_MODEL")
-            logger.info(f"Using OpenRouter model: {model_name}")
-        else:
-            logger.warning(
-                "No AI provider API keys found in environment. Some features may not work."
-            )
+    if api_key:
+        logger.info(f"Using Gemini model: {model_name}")
+    else:
+        logger.warning(
+            "GEMINI_API_KEY not found in environment. Some features may not work."
+        )
 
     # Log API key status (without revealing the full key)
     if etsy_api_key:

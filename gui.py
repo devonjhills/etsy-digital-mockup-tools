@@ -124,8 +124,8 @@ def run_command():
     if command_type == "pattern-workflow":
         command = [
             "python",
-            "cli.py",
-            "pattern",
+            "-m",
+            "pattern.cli",
             "all",
             "--input_dir",
             data.get("inputDir"),
@@ -137,8 +137,8 @@ def run_command():
     elif command_type == "pattern-resize":
         command = [
             "python",
-            "cli.py",
-            "pattern",
+            "-m",
+            "pattern.cli",
             "resize",
             "--input_dir",
             data.get("inputDir"),
@@ -146,8 +146,8 @@ def run_command():
     elif command_type == "pattern-mockups":
         command = [
             "python",
-            "cli.py",
-            "pattern",
+            "-m",
+            "pattern.cli",
             "mockup",
             "--input_dir",
             data.get("inputDir"),
@@ -155,8 +155,8 @@ def run_command():
     elif command_type == "clipart-workflow":
         command = [
             "python",
-            "cli.py",
-            "clipart",
+            "-m",
+            "clipart.cli",
             "all",
             "--input_dir",
             data.get("inputDir"),
@@ -168,8 +168,8 @@ def run_command():
     elif command_type == "clipart-resize":
         command = [
             "python",
-            "cli.py",
-            "clipart",
+            "-m",
+            "clipart.cli",
             "resize",
             "--input_folder",
             data.get("inputDir"),
@@ -177,8 +177,8 @@ def run_command():
     elif command_type == "clipart-mockups":
         command = [
             "python",
-            "cli.py",
-            "clipart",
+            "-m",
+            "clipart.cli",
             "mockup",
             "--input_dir",
             data.get("inputDir"),
@@ -228,26 +228,17 @@ def run_command():
             data.get("productType"),
         ]
 
-        # Check if we have at least one AI provider API key
+        # Check if we have Gemini API key
         gemini_api_key = os.environ.get("GEMINI_API_KEY")
-        openrouter_api_key = os.environ.get("OPEN_ROUTER_API_KEY")
 
-        if not gemini_api_key and not openrouter_api_key:
-            error_msg = "No AI provider API keys found in environment variables. Please set GEMINI_API_KEY or OPEN_ROUTER_API_KEY in .env file."
+        if not gemini_api_key:
+            error_msg = "GEMINI_API_KEY not found in environment variables. Please set it in .env file."
             log_messages.append(error_msg)
             return jsonify({"command": " ".join(command), "error": error_msg}), 400
 
-        # Add provider parameter if specified in environment
-        provider_type = os.environ.get("AI_PROVIDER")
-        if provider_type:
-            log_messages.append(f"Using AI provider: {provider_type}")
-            command.extend(["--provider", provider_type])
-        else:
-            # Default to Gemini if available
-            if gemini_api_key:
-                log_messages.append("Using default Gemini provider")
-            elif openrouter_api_key:
-                log_messages.append("Using default OpenRouter provider")
+        # Always use Gemini provider
+        log_messages.append("Using Gemini provider")
+        command.extend(["--provider", "gemini"])
 
         # Create a process to capture output
         try:

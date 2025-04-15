@@ -3,9 +3,8 @@ Main module for clipart processing.
 """
 
 import os
-import sys
 import glob
-from typing import List, Optional, Dict, Any, Tuple
+from typing import List, Tuple
 from PIL import Image
 
 from utils.common import (
@@ -15,11 +14,13 @@ from utils.common import (
     safe_load_image,
 )
 from clipart import config
-from clipart.resize import process_images
-from clipart.processing.collage import create_collage_layout
+
+# Import resize module for CLI usage only
+from clipart.processing.square_mockup import create_square_mockup
 from clipart.processing.grid import create_2x2_grid, apply_watermark
 from clipart.processing.transparency import create_transparency_demo
-from clipart.processing.title import add_title_bar_and_text
+
+# Title bar is now handled by square_mockup
 from clipart.video import create_video_mockup
 
 # Set up logging
@@ -175,93 +176,44 @@ def grid_mockup(
             logger.info("--- Generating Main Mockup ---")
             subtitle_bottom_text = f"{num_images} clip arts • 300 DPI • Transparent PNG"
 
-            # Create title style arguments with only the parameters that add_title_bar_and_text accepts
-            title_style_args = {
-                "title_font_name": "Angelina",  # Explicitly set to Angelina font
-                "subtitle_font_name": "MarkerFelt",
-                "title_max_font_size": config.TITLE_MAX_FONT_SIZE,
-                "title_min_font_size": config.TITLE_MIN_FONT_SIZE,
-                "title_line_spacing": config.TITLE_LINE_SPACING,
-                "title_font_step": config.TITLE_FONT_STEP,
-                "title_max_lines": config.TITLE_MAX_LINES,
-                "title_padding_x": config.TITLE_PADDING_X,
-                "subtitle_spacing": config.SUBTITLE_SPACING,
-                "subtitle_font_size": config.SUBTITLE_FONT_SIZE,
-                "text_color": config.TITLE_TEXT_COLOR,
-                "subtitle_text_color": config.SUBTITLE_TEXT_COLOR,
-                "backdrop_padding_x": config.TITLE_BACKDROP_PADDING_X,
-                "backdrop_padding_y": config.TITLE_BACKDROP_PADDING_Y,
-                "backdrop_corner_radius": config.TITLE_BACKDROP_CORNER_RADIUS,
-                "backdrop_opacity": config.TITLE_BACKDROP_OPACITY,
-                "border_width": config.TITLE_BACKDROP_BORDER_WIDTH,
-                "border_color": config.TITLE_BACKDROP_BORDER_COLOR,
-                # No vertical_adjustment parameter needed anymore
-            }
+            # Create square mockup with 2x2 grid and title overlay
+            output_main_filename = os.path.join(mocks_output_folder_path, "main.png")
 
-            # Calculate title bounds
-            logger.info("Calculating title bounds...")
-            dummy_layer = Image.new("RGBA", config.OUTPUT_SIZE, (0, 0, 0, 0))
-            _, title_backdrop_bounds = add_title_bar_and_text(
-                image=dummy_layer,
-                background_image=canvas_bg_main,
+            # Load 2x2 grid background
+            canvas_bg_2x2_copy = canvas_bg_2x2.copy()
+
+            # Create square mockup
+            logger.info(
+                "Creating square mockup with 2x3 grid (2 columns, 3 rows) and title overlay..."
+            )
+            final_main_mockup, _ = create_square_mockup(
+                input_image_paths=input_image_paths,
+                canvas_bg_image=canvas_bg_2x2_copy,
                 title=title,
                 subtitle_top=getattr(config, "SUBTITLE_TEXT_TOP", ""),
                 subtitle_bottom=subtitle_bottom_text,
-                **title_style_args,
-            )
-
-            if not title_backdrop_bounds:
-                logger.warning(
-                    "Title bounds calculation failed. Collage placement might be affected."
-                )
-
-            # Create the title layer
-            logger.info("Creating title layer...")
-            title_layer_canvas = Image.new("RGBA", config.OUTPUT_SIZE, (0, 0, 0, 0))
-            image_with_title_block_only, _ = add_title_bar_and_text(
-                image=title_layer_canvas,
-                background_image=canvas_bg_main,
-                title=title,
-                subtitle_top=getattr(config, "SUBTITLE_TEXT_TOP", ""),
-                subtitle_bottom=subtitle_bottom_text,
-                **title_style_args,
-            )
-
-            if not image_with_title_block_only:
-                logger.warning(
-                    "Failed to generate title block layer. Using blank layer."
-                )
-                image_with_title_block_only = Image.new(
-                    "RGBA", config.OUTPUT_SIZE, (0, 0, 0, 0)
-                )
-
-            # Create collage layout
-            output_main_filename = os.path.join(
-                mocks_output_folder_path, "01_main_collage_layout.png"
-            )
-            logger.info("Creating collage layout...")
-            collage_style_args = getattr(config, "COLLAGE_STYLE_ARGS", {})
-            layout_with_images = create_collage_layout(
-                image_paths=input_image_paths,
-                canvas=canvas_bg_main.copy(),
-                title_backdrop_bounds=title_backdrop_bounds,
-                **collage_style_args,
-            )
-
-            # Composite title onto collage
-            logger.info("Compositing title block...")
-            final_main_mockup = Image.alpha_composite(
-                layout_with_images.convert("RGBA"),
-                image_with_title_block_only.convert("RGBA"),
+                grid_size=config.GRID_2x2_SIZE,
+                padding=config.CELL_PADDING,
+                shadow_color=config.GRID_ITEM_SHADOW_COLOR,
+                shadow_offset=config.GRID_ITEM_SHADOW_OFFSET,
+                title_max_font_size=140,  # Smaller than default
+                subtitle_font_size=60,  # Smaller than default
+                title_padding_x=60,  # Smaller than default
+                backdrop_padding_x=50,  # Smaller than default
+                backdrop_padding_y=25,  # Smaller than default
+                backdrop_opacity=180,  # Reduced opacity for transparency
             )
 
             # Save main mockup
             try:
-                final_main_mockup.save(output_main_filename, "PNG")
-                logger.info(
-                    f"Saved: {os.path.relpath(output_main_filename, input_dir_base)}"
-                )
-                output_filenames_current_folder.append(output_main_filename)
+                if final_main_mockup:
+                    final_main_mockup.save(output_main_filename, "PNG")
+                    logger.info(
+                        f"Saved: {os.path.relpath(output_main_filename, input_dir_base)}"
+                    )
+                    output_filenames_current_folder.append(output_main_filename)
+                else:
+                    logger.error("Failed to create square mockup.")
             except Exception as e:
                 logger.error(f"Error saving main mockup {output_main_filename}: {e}")
 

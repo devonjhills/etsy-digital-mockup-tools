@@ -234,8 +234,8 @@ def main():
     )
     parser.add_argument(
         "--provider",
-        choices=["gemini", "openrouter"],
-        help="AI provider to use (default: auto-detect based on available API keys)",
+        choices=["gemini"],
+        help="AI provider to use (only Gemini is supported)",
     )
     parser.add_argument(
         "--model",

@@ -1219,9 +1219,7 @@
           <div class="form-group">
             <label for="ai-provider">AI Provider:</label>
             <select id="ai-provider" name="ai-provider" class="enhanced-select">
-              <option value="">Auto-detect</option>
-              <option value="gemini">Gemini</option>
-              <option value="openrouter">OpenRouter</option>
+              <option value="gemini">Gemini 2.0 Flash</option>
             </select>
           </div>
 
@@ -1263,9 +1261,7 @@
               name="clipart-ai-provider"
               class="enhanced-select"
             >
-              <option value="">Auto-detect</option>
-              <option value="gemini">Gemini</option>
-              <option value="openrouter">OpenRouter</option>
+              <option value="gemini">Gemini 2.0 Flash</option>
             </select>
           </div>
 
@@ -1431,9 +1427,7 @@
                   name="bulk-ai-provider"
                   class="enhanced-select"
                 >
-                  <option value="">Default</option>
-                  <option value="gemini">Gemini</option>
-                  <option value="openrouter">OpenRouter</option>
+                  <option value="gemini">Gemini 2.0 Flash</option>
                 </select>
               </div>
 
@@ -1933,14 +1927,8 @@
           maxRetries: 2, // Default to 2 retries
         };
 
-        // Get the selected provider if any
-        const providerSelect =
-          type === "pattern"
-            ? document.getElementById("ai-provider")
-            : document.getElementById("clipart-ai-provider");
-        if (providerSelect && providerSelect.value) {
-          params.provider = providerSelect.value;
-        }
+        // Always use Gemini provider
+        params.provider = "gemini";
 
         // Show a loading message
         log("Starting folder renaming process...");
@@ -2228,7 +2216,8 @@
         const productType = document.getElementById(
           "etsy-bulk-product-type"
         ).value;
-        const provider = document.getElementById("bulk-ai-provider").value;
+        // Always use Gemini provider
+        const provider = "gemini";
 
         // Confirm with the user
         if (
@@ -2245,11 +2234,7 @@
         );
 
         // Log the AI provider being used
-        if (provider) {
-          log(`Using AI provider: ${provider}`);
-        } else {
-          log("Using default AI provider");
-        }
+        log(`Using Gemini 2.0 Flash for content generation`);
 
         // Disable the button and show loading state
         const prepareButton = document.querySelector(
