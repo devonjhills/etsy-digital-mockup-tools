@@ -3,7 +3,7 @@ Module for creating a 2x3 grid layout (2 columns, 3 rows).
 """
 
 from typing import List, Tuple
-from PIL import Image, ImageDraw
+from PIL import Image
 
 from utils.common import (
     setup_logging,
@@ -20,8 +20,6 @@ def create_2x3_grid(
     canvas_bg_image: Image.Image,
     grid_size: Tuple[int, int] = (2000, 2000),
     padding: int = 30,
-    shadow_color: Tuple[int, int, int, int] = (100, 100, 100, 80),
-    shadow_offset: Tuple[int, int] = (8, 8),
 ) -> Image.Image:
     """
     Create a 2x3 grid of images (2 columns, 3 rows).
@@ -31,8 +29,6 @@ def create_2x3_grid(
         canvas_bg_image: Background image for the canvas
         grid_size: Size of the grid (width, height)
         padding: Padding between images
-        shadow_color: Color of the shadow
-        shadow_offset: Offset of the shadow (x, y)
 
     Returns:
         The grid image

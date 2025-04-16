@@ -22,8 +22,6 @@ def create_square_mockup(
     subtitle_bottom: str = "",
     grid_size: Tuple[int, int] = (2000, 2000),
     padding: int = 30,
-    shadow_color: Tuple[int, int, int, int] = (100, 100, 100, 80),
-    shadow_offset: Tuple[int, int] = (8, 8),
     title_font_name: str = "Angelina",
     subtitle_font_name: str = "MarkerFelt",
     title_max_font_size: int = 140,  # Smaller than the default 170
@@ -54,8 +52,6 @@ def create_square_mockup(
         subtitle_bottom: The bottom subtitle text
         grid_size: Size of the grid (width, height)
         padding: Padding between images
-        shadow_color: Color of the shadow
-        shadow_offset: Offset of the shadow (x, y)
         title_font_name: The font name for the title
         subtitle_font_name: The font name for the subtitle
         title_max_font_size: The maximum font size for the title

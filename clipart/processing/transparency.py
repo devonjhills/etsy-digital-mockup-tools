@@ -89,8 +89,8 @@ def create_transparency_demo(
         white_bg = Image.new("RGBA", (img_w, img_h), (255, 255, 255, 255))
         white_composite = Image.alpha_composite(white_bg, img_copy)
 
-        # Right side: image on checkerboard
-        checker_composite = Image.alpha_composite(checkerboard, img_copy)
+        # Create checkerboard composite (for potential future use)
+        # We're keeping the checkerboard creation code for future enhancements
 
         # Paste only onto the left side of the canvas
         # Move the image more to the left by increasing the offset

@@ -3,7 +3,7 @@ Module for creating grid layouts.
 """
 
 from typing import List, Tuple
-from PIL import Image, ImageDraw
+from PIL import Image
 
 from utils.common import (
     setup_logging,
@@ -21,8 +21,6 @@ def create_2x2_grid(
     canvas_bg_image: Image.Image,
     grid_size: Tuple[int, int] = (2000, 2000),
     padding: int = 30,
-    shadow_color: Tuple[int, int, int, int] = (100, 100, 100, 80),
-    shadow_offset: Tuple[int, int] = (8, 8),
 ) -> Image.Image:
     """
     Create a 2x2 grid of images.
@@ -32,8 +30,6 @@ def create_2x2_grid(
         canvas_bg_image: Background image for the canvas
         grid_size: Size of the grid (width, height)
         padding: Padding between images
-        shadow_color: Color of the shadow
-        shadow_offset: Offset of the shadow (x, y)
 
     Returns:
         The grid image
@@ -105,8 +101,6 @@ def create_2x3_grid(
     canvas_bg_image: Image.Image,
     grid_size: Tuple[int, int] = (3000, 2250),
     padding: int = 30,
-    shadow_color: Tuple[int, int, int, int] = (100, 100, 100, 80),
-    shadow_offset: Tuple[int, int] = (8, 8),
     title_area: Tuple[int, int, int, int] = None,
 ) -> Image.Image:
     """
@@ -117,8 +111,6 @@ def create_2x3_grid(
         canvas_bg_image: Background image for the canvas
         grid_size: Size of the grid (width, height)
         padding: Padding between images
-        shadow_color: Color of the shadow
-        shadow_offset: Offset of the shadow (x, y)
         title_area: Area to avoid for title (x1, y1, x2, y2)
 
     Returns:
@@ -139,8 +131,8 @@ def create_2x3_grid(
     # Adjust grid area if title area is provided
     top_padding = padding
     if title_area:
-        # Extract title area coordinates
-        x1, y1, x2, y2 = title_area
+        # Extract title area coordinates - only using y2 for padding
+        _, _, _, y2 = title_area
         # Adjust top padding to avoid title area
         top_padding = y2 + padding
         # Adjust available height for grid

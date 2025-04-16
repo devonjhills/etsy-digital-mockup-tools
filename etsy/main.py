@@ -161,12 +161,15 @@ class EtsyIntegration:
 
         # Use custom values if provided, otherwise use template values
         if custom_title:
-            title = custom_title
+            # Ensure title is not longer than 140 characters (Etsy limit)
+            title = custom_title[:140] if len(custom_title) > 140 else custom_title
         else:
             # Use template with basic substitution
             title_template = template.get("title_template", "{name}")
             # Use product_info['name'] to avoid duplicate name parameter
             title = title_template.format(**product_info)
+            # Ensure title is not longer than 140 characters
+            title = title[:140] if len(title) > 140 else title
 
         if custom_description:
             description = custom_description
@@ -178,9 +181,11 @@ class EtsyIntegration:
             description = description_template.format(**product_info)
 
         if custom_tags:
-            tags = custom_tags[:13]  # Ensure max 13 tags
+            # Ensure max 13 tags and each tag is under 20 characters
+            tags = [tag[:20] for tag in custom_tags[:13]]
         else:
-            tags = template.get("tags", [])[:13]
+            # Ensure max 13 tags and each tag is under 20 characters
+            tags = [tag[:20] for tag in template.get("tags", [])[:13]]
 
         # Create the listing
         is_digital = template.get("is_digital", True)  # Default to digital listing
@@ -191,9 +196,6 @@ class EtsyIntegration:
             "price": float(template.get("price", 3.32)),
             "quantity": int(template.get("quantity", 999)),
             "tags": tags[:13],  # Etsy allows max 13 tags
-            "materials": template.get("materials", [])[
-                :13
-            ],  # Etsy allows max 13 materials
             "taxonomy_id": int(
                 template.get("taxonomy_id", 6844)
             ),  # Default to Digital Patterns & Textures (6844 for clipart and patterns)
@@ -207,6 +209,12 @@ class EtsyIntegration:
             ),
             "is_draft": is_draft,
         }
+
+        # Only add materials for physical products (not for digital listings)
+        if not is_digital and template.get("materials"):
+            listing_data["materials"] = template.get("materials", [])[
+                :13
+            ]  # Etsy allows max 13 materials
 
         # Only add shipping_profile_id for physical products
         if not is_digital and shipping_profile_id:
@@ -332,14 +340,19 @@ class EtsyIntegration:
                 # Set attributes for patterns - using only verified Etsy options
                 attributes = {
                     "craft_types": [
+                        "Card making & stationery",
+                        "Collage",
+                        "Kids' crafts",
                         "Scrapbooking",
-                        "Card Making",  # Verified Etsy option
                     ],
                     "length": 12,  # 12 inches
                     "width": 12,  # 12 inches
                     "length_unit": "inches",
                     "width_unit": "inches",
                 }
+
+                # Log the attributes for debugging
+                logger.info(f"Setting pattern attributes: {attributes}")
 
                 # Try to extract primary color from product info if available
                 if "colors" in product_info and product_info["colors"]:
@@ -355,25 +368,25 @@ class EtsyIntegration:
                 # Set attributes for clipart - using only verified Etsy options
                 attributes = {
                     "craft_types": [
+                        "Card making & stationery",
+                        "Collage",
+                        "Kids' crafts",
                         "Scrapbooking",
-                        "Card Making",  # Verified Etsy option
                     ],
+                    "length": 5,  # 5 inches length for clipart
+                    "length_unit": "inches",
                 }
+
+                # Log the attributes for debugging
+                logger.info(f"Setting clipart attributes: {attributes}")
 
                 # Try to extract subject from product info if available
                 if "theme" in product_info and product_info["theme"]:
                     # Let the API match to valid Etsy subject options
                     attributes["subjects"] = [product_info["theme"]]
 
-            # Set the attributes on the listing
-            logger.info(f"Setting additional attributes for listing {listing_id}...")
-            result = self.listings.set_listing_attributes(
-                listing_id, product_type, attributes
-            )
-            if result:
-                logger.info(f"Successfully set attributes for listing {listing_id}")
-            else:
-                logger.warning(f"Failed to set attributes for listing {listing_id}")
+            # Attribute setting has been removed as it doesn't work with Etsy API
+            logger.info(f"Skipping attribute setting for listing {listing_id}")
 
         logger.info(f"Created listing {listing_id} for {product_name}")
         return listing
@@ -574,14 +587,24 @@ class EtsyIntegration:
                             glob.glob(os.path.join(videos_folder, "*.mp4"))
                         )
 
+                    # Ensure title is not longer than 140 characters (Etsy limit)
+                    title = (
+                        content["title"][:140]
+                        if len(content["title"]) > 140
+                        else content["title"]
+                    )
+
+                    # Ensure max 13 tags and each tag is under 20 characters
+                    tags = [tag[:20] for tag in content["tags"][:13]]
+
                     # Prepare listing data
                     listing_data = {
                         "folder_path": folder_path,
                         "folder_name": subfolder,
                         "product_type": product_type,
-                        "title": content["title"],
+                        "title": title,
                         "description": content["description"],
-                        "tags": content["tags"],
+                        "tags": tags,
                         "mockup_images": mockup_images,
                         "zip_files": zip_files,
                         "video_files": video_files,
@@ -962,140 +985,7 @@ class EtsyIntegration:
                     # 1. Create collage layout for main mockup
                     logger.info(f"Creating collage layout for {product_name}...")
 
-                    # Create title block
-                    title_text = product_name
-                    subtitle_text_top = "Commercial Use"
-
-                    # Skip the complex title block generation
-
-                    # Create a simplified collage layout
-                    # Instead of using the complex collage layout function, we'll create a simpler layout
-                    # that's more reliable for our needs
-
-                    # Create a copy of the canvas for the layout
-                    layout_canvas = canvas_bg_main.copy()
-
-                    # Load images directly
-                    loaded_images = []
-                    for path in input_image_paths:
-                        try:
-                            img = Image.open(path).convert("RGBA")
-                            loaded_images.append(img)
-                        except Exception as e:
-                            logger.warning(f"Failed to load image {path}: {e}")
-
-                    if not loaded_images:
-                        logger.warning("No images loaded for collage")
-                        layout_with_images = layout_canvas
-                    else:
-                        # Select a centerpiece (just use the first image)
-                        centerpiece = loaded_images[0]
-
-                        # Calculate centerpiece size (65% of canvas width)
-                        centerpiece_scale_factor = 0.65
-                        centerpiece_max_width = int(
-                            layout_canvas.width * centerpiece_scale_factor
-                        )
-                        centerpiece_max_height = int(
-                            layout_canvas.height * centerpiece_scale_factor
-                        )
-
-                        # Resize centerpiece
-                        centerpiece_aspect = (
-                            centerpiece.width / centerpiece.height
-                            if centerpiece.height > 0
-                            else 1
-                        )
-                        if centerpiece_aspect >= 1:  # Wider than tall
-                            centerpiece_width = centerpiece_max_width
-                            centerpiece_height = int(
-                                centerpiece_width / centerpiece_aspect
-                            )
-                            if centerpiece_height > centerpiece_max_height:
-                                centerpiece_height = centerpiece_max_height
-                                centerpiece_width = int(
-                                    centerpiece_height * centerpiece_aspect
-                                )
-                        else:  # Taller than wide
-                            centerpiece_height = centerpiece_max_height
-                            centerpiece_width = int(
-                                centerpiece_height * centerpiece_aspect
-                            )
-                            if centerpiece_width > centerpiece_max_width:
-                                centerpiece_width = centerpiece_max_width
-                                centerpiece_height = int(
-                                    centerpiece_width / centerpiece_aspect
-                                )
-
-                        centerpiece_resized = centerpiece.resize(
-                            (centerpiece_width, centerpiece_height),
-                            get_resampling_filter(),
-                        )
-
-                        # Calculate centerpiece position (centered, but avoid title)
-                        centerpiece_x = (layout_canvas.width - centerpiece_width) // 2
-                        centerpiece_y = (layout_canvas.height - centerpiece_height) // 2
-
-                        # Center the image vertically
-                        # No title adjustment needed
-
-                        # Paste centerpiece
-                        layout_canvas.paste(
-                            centerpiece_resized,
-                            (centerpiece_x, centerpiece_y),
-                            centerpiece_resized,
-                        )
-
-                        # Place a few surrounding images if we have more than one image
-                        if len(loaded_images) > 1:
-                            # Use a few images for the surrounding (up to 4 more)
-                            surrounding_images = loaded_images[
-                                1 : min(5, len(loaded_images))
-                            ]
-
-                            # Define positions for surrounding images (fixed positions for reliability)
-                            positions = [
-                                (50, 50),  # Top left
-                                (layout_canvas.width - 300, 50),  # Top right
-                                (50, layout_canvas.height - 300),  # Bottom left
-                                (
-                                    layout_canvas.width - 300,
-                                    layout_canvas.height - 300,
-                                ),  # Bottom right
-                            ]
-
-                            # Calculate size for surrounding images (30% of canvas width)
-                            surround_width = int(layout_canvas.width * 0.3)
-
-                            # Place each surrounding image
-                            for i, img in enumerate(surrounding_images):
-                                if i >= len(positions):
-                                    break
-
-                                # Resize image
-                                img_aspect = (
-                                    img.width / img.height if img.height > 0 else 1
-                                )
-                                if img_aspect >= 1:  # Wider than tall
-                                    img_width = surround_width
-                                    img_height = int(img_width / img_aspect)
-                                else:  # Taller than wide
-                                    img_height = surround_width
-                                    img_width = int(img_height * img_aspect)
-
-                                img_resized = img.resize(
-                                    (img_width, img_height), get_resampling_filter()
-                                )
-
-                                # Paste image
-                                layout_canvas.paste(
-                                    img_resized, positions[i], img_resized
-                                )
-
-                        layout_with_images = layout_canvas
-
-                    # Create a proper collage layout for the main mockup
-                    # This uses the same implementation as in clipart/main.py
+                    # Removed unused collage layout code
 
                     # Create title text for the mockup
                     title = product_name
@@ -1376,11 +1266,10 @@ class EtsyIntegration:
     def generate_content_from_mockup(
         self,
         folder_path: str,
-        product_type: str,
+        product_type: str,  # Kept for future use when we might customize prompts by product type
         instructions: str,
-        max_retries: int = 2,
+        max_retries: int = 2,  # Kept for future implementation of retry logic
     ) -> Dict[str, str]:
-        # product_type parameter is kept for future use when we might customize prompts by product type
         """
         Generate listing content from a mockup image using AI.
 

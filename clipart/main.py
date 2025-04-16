@@ -194,8 +194,7 @@ def grid_mockup(
                 subtitle_bottom=subtitle_bottom_text,
                 grid_size=config.GRID_2x2_SIZE,
                 padding=config.CELL_PADDING,
-                shadow_color=config.GRID_ITEM_SHADOW_COLOR,
-                shadow_offset=config.GRID_ITEM_SHADOW_OFFSET,
+                # Shadow parameters removed
                 title_max_font_size=140,  # Smaller than default
                 subtitle_font_size=60,  # Smaller than default
                 title_padding_x=60,  # Smaller than default
