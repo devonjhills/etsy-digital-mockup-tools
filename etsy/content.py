@@ -24,7 +24,7 @@ class ContentGenerator:
         self,
         api_key: Optional[str] = None,
         model_name: Optional[str] = None,
-        provider_type: str = "gemini",
+        provider_type: str = None,
     ):
         """
         Initialize the content generator.

@@ -479,7 +479,7 @@
         border: var(--border-thin) solid var(--border-color);
         box-shadow: var(--shadow-offset) var(--shadow-offset) 0
           var(--border-color);
-        transition: all 0.2s ease;
+        /* transition removed to eliminate hover effects */
         position: relative;
       }
 
@@ -500,11 +500,7 @@
         z-index: 0;
       }
 
-      .prepared-listing:hover {
-        transform: translateY(-4px) translateX(-2px);
-        box-shadow: calc(var(--shadow-offset) + 2px)
-          calc(var(--shadow-offset) + 4px) 0 var(--border-color);
-      }
+      /* Hover effect removed as requested */
 
       .prepared-listings-content {
         margin-top: 20px;
@@ -570,17 +566,12 @@
         border: var(--border-thin) solid var(--border-color);
         font-size: 0.9em;
         font-weight: 600;
-        transition: all 0.2s ease;
+        /* transition removed to eliminate hover effects */
         position: relative;
         box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.1);
       }
 
-      .prepared-listing-tag:hover {
-        background-color: var(--primary-color);
-        color: white;
-        transform: translateY(-2px);
-        box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.2);
-      }
+      /* Tag hover effect removed as requested */
 
       /* Bulk tab styling */
       .bulk-form-row {
@@ -1435,6 +1426,7 @@
         <button class="tab active" id="pattern-tab">Pattern</button>
         <button class="tab" id="clipart-tab">Clipart</button>
         <button class="tab" id="etsy-tab">Etsy</button>
+        <button class="tab" id="ai-settings-tab">AI Settings</button>
       </div>
 
       <div id="pattern" class="tab-content active">
@@ -1455,6 +1447,7 @@
           <div class="form-group">
             <label for="ai-provider">AI Provider:</label>
             <select id="ai-provider" name="ai-provider" class="enhanced-select">
+              <option value="openai">OpenAI GPT-4.1 Mini</option>
               <option value="gemini">Gemini 2.0 Flash</option>
             </select>
           </div>
@@ -1491,6 +1484,7 @@
               name="clipart-ai-provider"
               class="enhanced-select"
             >
+              <option value="openai">OpenAI GPT-4.1 Mini</option>
               <option value="gemini">Gemini 2.0 Flash</option>
             </select>
           </div>
@@ -1503,6 +1497,34 @@
             <button onclick="runClipartMockups()">Create Mockups Only</button>
             <button onclick="runClipartCropMulti()">
               Extract Multiple Images
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div id="ai-settings" class="tab-content">
+        <h2>AI Settings</h2>
+
+        <div class="section">
+          <h3>Etsy Listing Instructions</h3>
+          <p>
+            Customize the instructions used to generate Etsy listings with AI:
+          </p>
+
+          <div class="form-group">
+            <textarea
+              id="ai-instructions"
+              rows="20"
+              style="width: 100%; font-family: monospace"
+            ></textarea>
+          </div>
+
+          <div class="actions">
+            <button onclick="saveAIInstructions()" class="primary-button">
+              <i class="fas fa-save"></i> Save Instructions
+            </button>
+            <button onclick="resetAIInstructions()" class="secondary-button">
+              <i class="fas fa-undo"></i> Reset to Default
             </button>
           </div>
         </div>
@@ -1552,6 +1574,7 @@
                   name="bulk-ai-provider"
                   class="enhanced-select"
                 >
+                  <option value="openai">OpenAI GPT-4.1 Mini</option>
                   <option value="gemini">Gemini 2.0 Flash</option>
                 </select>
               </div>
@@ -1571,10 +1594,15 @@
               <button onclick="prepareBulkListings()" class="primary-button">
                 <i class="fas fa-cogs"></i> Prepare Bulk Listings
               </button>
+              <button onclick="generateListingsOnly()" class="secondary-button">
+                <i class="fas fa-file-alt"></i> Generate Listings Only
+              </button>
               <p class="bulk-info-text">
                 <i class="fas fa-info-circle"></i>
-                Generates mockups, zip files, and listing content for all
-                subfolders in the input directory.
+                <span id="bulk-info-text"
+                  >Generates mockups, zip files, and listing content for all
+                  subfolders in the input directory.</span
+                >
               </p>
             </div>
           </div>
@@ -1662,6 +1690,15 @@
             showTab("etsy");
             // Show prepared listings when switching to Etsy tab
             showPreparedListings();
+          });
+
+        // AI Settings tab
+        document
+          .getElementById("ai-settings-tab")
+          .addEventListener("click", function () {
+            showTab("ai-settings");
+            // Load the current AI instructions
+            loadAIInstructions();
           });
 
         // Check for authentication status
@@ -1835,6 +1872,7 @@
 
       // Pattern actions
       function runPatternWorkflow() {
+        const provider = document.getElementById("ai-provider").value;
         fetch("/run", {
           method: "POST",
           headers: {
@@ -1844,6 +1882,7 @@
             command: "pattern-workflow",
             inputDir: document.getElementById("pattern-input-dir").value,
             createVideo: true,
+            provider: provider,
           }),
         })
           .then((response) => response.json())
@@ -1888,6 +1927,7 @@
 
       // Clipart actions
       function runClipartWorkflow() {
+        const provider = document.getElementById("clipart-ai-provider").value;
         fetch("/run", {
           method: "POST",
           headers: {
@@ -1897,6 +1937,7 @@
             command: "clipart-workflow",
             inputDir: document.getElementById("clipart-input-dir").value,
             createVideo: true,
+            provider: provider,
           }),
         })
           .then((response) => response.json())
@@ -1955,6 +1996,65 @@
           .then((data) => {
             log("Command submitted: " + data.command);
           });
+      }
+
+      // AI Settings functions
+      function loadAIInstructions() {
+        fetch("/get-instructions")
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.instructions) {
+              document.getElementById("ai-instructions").value =
+                data.instructions;
+              log("Loaded AI instructions");
+            } else if (data.error) {
+              log("Error loading AI instructions: " + data.error);
+            }
+          })
+          .catch((error) => {
+            log("Error loading AI instructions: " + error);
+          });
+      }
+
+      function saveAIInstructions() {
+        const instructions = document.getElementById("ai-instructions").value;
+
+        if (!instructions.trim()) {
+          log("Error: Instructions cannot be empty");
+          return;
+        }
+
+        fetch("/save-instructions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            instructions: instructions,
+          }),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.success) {
+              log("Successfully saved AI instructions");
+            } else if (data.error) {
+              log("Error saving AI instructions: " + data.error);
+            }
+          })
+          .catch((error) => {
+            log("Error saving AI instructions: " + error);
+          });
+      }
+
+      function resetAIInstructions() {
+        if (
+          confirm(
+            "Are you sure you want to reset the AI instructions to default?"
+          )
+        ) {
+          loadAIInstructions();
+          log("Reset AI instructions to default");
+        }
       }
 
       // Etsy actions
@@ -2022,8 +2122,10 @@
         const productType = document.getElementById(
           "etsy-bulk-product-type"
         ).value;
-        // Always use Gemini provider
-        const provider = "gemini";
+        // Get the selected AI provider
+        const provider = document.getElementById("bulk-ai-provider").value;
+        const providerName =
+          provider === "openai" ? "OpenAI GPT-4.1 Mini" : "Gemini 2.0 Flash";
 
         // Confirm with the user
         if (
@@ -2040,7 +2142,7 @@
         );
 
         // Log the AI provider being used
-        log(`Using Gemini 2.0 Flash for content generation`);
+        log(`Using ${providerName} for content generation`);
 
         // Disable the button and show loading state
         const prepareButton = document.querySelector(
@@ -2049,6 +2151,10 @@
         const originalText = prepareButton.textContent;
         prepareButton.disabled = true;
         prepareButton.textContent = "Processing...";
+
+        // Update info text
+        document.getElementById("bulk-info-text").textContent =
+          "Generates mockups, zip files, and listing content for all subfolders in the input directory.";
 
         // Prepare the request parameters
         const requestParams = {
@@ -2098,6 +2204,95 @@
             // Re-enable the button and restore text
             prepareButton.disabled = false;
             prepareButton.textContent = originalText;
+          });
+      }
+
+      function generateListingsOnly() {
+        const productType = document.getElementById(
+          "etsy-bulk-product-type"
+        ).value;
+        // Get the selected AI provider
+        const provider = document.getElementById("bulk-ai-provider").value;
+        const providerName =
+          provider === "openai" ? "OpenAI GPT-4.1 Mini" : "Gemini 2.0 Flash";
+
+        // Confirm with the user
+        if (
+          !confirm(
+            `This will generate Etsy listings for ALL subfolders in the input directory using the ${productType} product type WITHOUT creating mockups or zip files. Continue?`
+          )
+        ) {
+          return;
+        }
+
+        // Show loading message
+        log(
+          `Starting content generation for ${productType} listings from input directory...`
+        );
+
+        // Log the AI provider being used
+        log(`Using ${providerName} for content generation`);
+
+        // Disable the button and show loading state
+        const generateButton = document.querySelector(
+          "button[onclick='generateListingsOnly()'"
+        );
+        const originalText = generateButton.textContent;
+        generateButton.disabled = true;
+        generateButton.textContent = "Processing...";
+
+        // Update info text
+        document.getElementById("bulk-info-text").textContent =
+          "Generates listing content only (no mockups or zip files) for all subfolders in the input directory.";
+
+        // Prepare the request parameters
+        const requestParams = {
+          command: "etsy-generate-only",
+          productType: productType,
+        };
+
+        // Add provider if specified
+        if (provider) {
+          requestParams.provider = provider;
+        }
+
+        // Call the API to generate listings in bulk
+        fetch("/run", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(requestParams),
+        })
+          .then((response) => {
+            if (!response.ok) {
+              return response.json().then((data) => {
+                throw new Error(data.error || "An error occurred");
+              });
+            }
+            return response.json();
+          })
+          .then((data) => {
+            log(
+              "Bulk content generation complete. Check the logs for details."
+            );
+            log("You can now view and upload the prepared listings.");
+
+            // Automatically show the prepared listings after a short delay
+            // to ensure the file is fully written
+            log("Loading prepared listings...");
+            setTimeout(() => {
+              showPreparedListings();
+            }, 1000); // 1 second delay
+          })
+          .catch((error) => {
+            alert(error.message);
+            log("Error: " + error.message);
+          })
+          .finally(() => {
+            // Re-enable the button and restore text
+            generateButton.disabled = false;
+            generateButton.textContent = originalText;
           });
       }
 

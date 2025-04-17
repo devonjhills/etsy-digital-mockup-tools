@@ -102,8 +102,18 @@ def main():
     )
     bulk_prepare_parser.add_argument(
         "--provider",
-        choices=["gemini", "openrouter"],
+        choices=["gemini", "openai"],
         help="AI provider to use for content generation (overrides environment variable)",
+    )
+    bulk_prepare_parser.add_argument(
+        "--skip-mockups",
+        action="store_true",
+        help="Skip creating mockups, use existing ones",
+    )
+    bulk_prepare_parser.add_argument(
+        "--skip-zips",
+        action="store_true",
+        help="Skip creating zip files, use existing ones",
     )
 
     # Generate content command
@@ -266,11 +276,11 @@ def main():
                     command_model_name = os.environ.get("GEMINI_MODEL")
                     if command_api_key:
                         logger.info(f"Using Gemini model: {command_model_name}")
-                elif args.provider == "openrouter":
-                    command_api_key = os.environ.get("OPEN_ROUTER_API_KEY")
-                    command_model_name = os.environ.get("OPEN_ROUTER_MODEL")
+                elif args.provider == "openai":
+                    command_api_key = os.environ.get("OPENAI_API_KEY")
+                    command_model_name = os.environ.get("OPENAI_MODEL")
                     if command_api_key:
-                        logger.info(f"Using OpenRouter model: {command_model_name}")
+                        logger.info(f"Using OpenAI model: {command_model_name}")
 
             # Prepare listings in bulk
             logger.info(
@@ -291,9 +301,20 @@ def main():
                     f"Updated EtsyIntegration to use provider: {command_provider_type}"
                 )
 
+            # Check if we should skip mockups or zip files
+            skip_mockups = hasattr(args, "skip_mockups") and args.skip_mockups
+            skip_zips = hasattr(args, "skip_zips") and args.skip_zips
+
+            if skip_mockups:
+                logger.info("Skipping mockup generation as requested")
+            if skip_zips:
+                logger.info("Skipping zip file creation as requested")
+
             prepared_listings = etsy.prepare_bulk_listings(
                 input_dir=args.input_dir,
                 product_type=args.product_type,
+                skip_mockups=skip_mockups,
+                skip_zips=skip_zips,
             )
 
             # Save prepared listings to file

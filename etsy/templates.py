@@ -159,7 +159,7 @@ class ListingTemplate:
                     "craft supply",
                     "digital scrapbook",
                 ],
-                "taxonomy_id": 6844,
+                "taxonomy_id": 2078,  # Digital Prints
                 "who_made": "i_did",
                 "is_supply": True,
                 "when_made": "made_to_order",

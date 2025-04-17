@@ -25,7 +25,7 @@ class EtsyIntegration:
         etsy_api_secret: str,
         api_key: Optional[str] = None,
         model_name: Optional[str] = None,
-        provider_type: str = "gemini",
+        provider_type: str = None,
         templates_dir: str = "templates",
     ):
         """
@@ -197,8 +197,11 @@ class EtsyIntegration:
             "quantity": int(template.get("quantity", 999)),
             "tags": tags[:13],  # Etsy allows max 13 tags
             "taxonomy_id": int(
-                template.get("taxonomy_id", 6844)
-            ),  # Default to Digital Patterns & Textures (6844 for clipart and patterns)
+                template.get(
+                    "taxonomy_id",
+                    2078 if product_type in ["pattern", "patterns"] else 6844,
+                )
+            ),  # Default to Digital Prints (2078) for patterns, Digital Clip Art (6844) for clipart
             "who_made": template.get("who_made", "i_did"),
             "is_supply": template.get("is_supply", False),
             "when_made": template.get("when_made", "2020_2024"),
@@ -488,13 +491,21 @@ class EtsyIntegration:
 
         return created_listings
 
-    def prepare_bulk_listings(self, input_dir: str, product_type: str) -> List[Dict]:
+    def prepare_bulk_listings(
+        self,
+        input_dir: str,
+        product_type: str,
+        skip_mockups: bool = False,
+        skip_zips: bool = False,
+    ) -> List[Dict]:
         """
         Prepare Etsy listings for all subfolders in the input directory without uploading.
 
         Args:
             input_dir: Path to the input directory containing product subfolders
             product_type: Product type (pattern or clipart)
+            skip_mockups: Whether to skip creating mockups (use existing ones)
+            skip_zips: Whether to skip creating zip files (use existing ones)
 
         Returns:
             List of prepared listings data
@@ -529,13 +540,37 @@ class EtsyIntegration:
                 logger.info(f"Resizing and renaming images for {subfolder}...")
                 self._resize_and_rename(folder_path, product_type)
 
-                # Step 2: Generate mockups based on product type
-                logger.info(f"Generating mockups for {subfolder}...")
-                self._generate_mockups(folder_path, product_type)
+                # Step 2: Generate mockups based on product type (if not skipped)
+                if not skip_mockups:
+                    logger.info(f"Generating mockups for {subfolder}...")
+                    self._generate_mockups(folder_path, product_type)
+                else:
+                    logger.info(
+                        f"Skipping mockup generation for {subfolder} as requested"
+                    )
+                    # Check if mockups exist
+                    mocks_folder = os.path.join(folder_path, "mocks")
+                    if not os.path.exists(mocks_folder) or not os.listdir(mocks_folder):
+                        logger.warning(
+                            f"No existing mockups found in {mocks_folder}. Content generation may fail."
+                        )
 
-                # Step 3: Create zip files
-                logger.info(f"Creating zip files for {subfolder}...")
-                self._create_zip_files(folder_path)
+                # Step 3: Create zip files (if not skipped)
+                if not skip_zips:
+                    logger.info(f"Creating zip files for {subfolder}...")
+                    self._create_zip_files(folder_path)
+                else:
+                    logger.info(
+                        f"Skipping zip file creation for {subfolder} as requested"
+                    )
+                    # Check if zip files exist
+                    zipped_folder = os.path.join(folder_path, "zipped")
+                    if not os.path.exists(zipped_folder) or not os.listdir(
+                        zipped_folder
+                    ):
+                        logger.warning(
+                            f"No existing zip files found in {zipped_folder}."
+                        )
 
                 # Step 4: Generate content using Gemini API
                 logger.info(f"Generating content for {subfolder}...")

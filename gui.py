@@ -36,7 +36,7 @@ try:
 
         # Test the API connection
         try:
-            model_name = os.environ.get("GEMINI_MODEL", "gemini-2.5-pro-exp-03-25")
+            model_name = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash")
             model = genai.GenerativeModel(model_name)
             print(f"Successfully initialized Gemini model: {model_name}")
         except Exception as e:
@@ -70,6 +70,56 @@ except ImportError:
     except Exception as e:
         print(f"Error installing Gemini API client: {e}")
 
+# Try to import the OpenAI API client
+try:
+    from openai import OpenAI
+
+    print("OpenAI API client found.")
+
+    # Check if OPENAI_API_KEY is set
+    openai_api_key = os.environ.get("OPENAI_API_KEY")
+    if openai_api_key:
+        # Test the API connection
+        try:
+            model_name = os.environ.get("OPENAI_MODEL", "gpt-4.1-mini")
+            client = OpenAI(api_key=openai_api_key)
+            print(
+                f"OpenAI API configured with key: {openai_api_key[:4]}...{openai_api_key[-4:]}"
+            )
+            print(f"Successfully initialized OpenAI model: {model_name}")
+        except Exception as e:
+            print(f"Error initializing OpenAI client: {e}")
+    else:
+        print("OPENAI_API_KEY not found in environment variables. Set it in .env file.")
+
+except ImportError:
+    print("OpenAI API client not found. Installing...")
+    try:
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "openai"])
+        from openai import OpenAI
+
+        print("OpenAI API client installed successfully.")
+
+        # Check if OPENAI_API_KEY is set after installation
+        openai_api_key = os.environ.get("OPENAI_API_KEY")
+        if openai_api_key:
+            # Test the API connection
+            try:
+                model_name = os.environ.get("OPENAI_MODEL", "gpt-4.1-mini")
+                client = OpenAI(api_key=openai_api_key)
+                print(
+                    f"OpenAI API configured with key: {openai_api_key[:4]}...{openai_api_key[-4:]}"
+                )
+                print(f"Successfully initialized OpenAI model: {model_name}")
+            except Exception as e:
+                print(f"Error initializing OpenAI client: {e}")
+        else:
+            print(
+                "OPENAI_API_KEY not found in environment variables. Set it in .env file."
+            )
+    except Exception as e:
+        print(f"Error installing OpenAI API client: {e}")
+
 # Create Flask app
 app = Flask(__name__)
 
@@ -92,6 +142,62 @@ def get_log():
     messages = log_messages.copy()
     log_messages.clear()
     return jsonify({"messages": messages})
+
+
+@app.route("/get-instructions")
+def get_instructions():
+    """Get the current AI instructions."""
+    try:
+        from etsy.constants import DEFAULT_ETSY_INSTRUCTIONS
+
+        return jsonify({"instructions": DEFAULT_ETSY_INSTRUCTIONS})
+    except Exception as e:
+        return jsonify({"error": str(e)})
+
+
+@app.route("/save-instructions", methods=["POST"])
+def save_instructions():
+    """Save the AI instructions."""
+    try:
+        data = request.json
+        new_instructions = data.get("instructions", "")
+
+        if not new_instructions:
+            return jsonify({"error": "Instructions cannot be empty"})
+
+        # Create a backup of the original file
+        import shutil
+        import time
+
+        timestamp = time.strftime("%Y%m%d-%H%M%S")
+        constants_path = os.path.join(os.path.dirname(__file__), "etsy", "constants.py")
+        backup_path = f"{constants_path}.{timestamp}.bak"
+        shutil.copy2(constants_path, backup_path)
+
+        # Read the current file
+        with open(constants_path, "r") as f:
+            content = f.read()
+
+        # Find the DEFAULT_ETSY_INSTRUCTIONS definition
+        import re
+
+        pattern = r'DEFAULT_ETSY_INSTRUCTIONS\s*=\s*"""[\s\S]*?"""'
+        replacement = f'DEFAULT_ETSY_INSTRUCTIONS = """{new_instructions}"""'
+
+        # Replace the instructions
+        new_content = re.sub(pattern, replacement, content)
+
+        # Write the updated file
+        with open(constants_path, "w") as f:
+            f.write(new_content)
+
+        log_messages.append("AI instructions updated successfully")
+        log_messages.append(f"Backup saved to {backup_path}")
+
+        return jsonify({"success": True, "message": "Instructions saved successfully"})
+    except Exception as e:
+        log_messages.append(f"Error saving instructions: {e}")
+        return jsonify({"error": str(e)})
 
 
 @app.route("/get-subfolders")
@@ -134,6 +240,10 @@ def run_command():
         # Add video creation if requested
         if data.get("createVideo"):
             command.append("--create_video")
+
+        # Add provider if specified
+        if data.get("provider"):
+            command.extend(["--provider", data.get("provider")])
     elif command_type == "pattern-resize":
         command = [
             "python",
@@ -165,6 +275,10 @@ def run_command():
         # Add video creation if requested
         if data.get("createVideo"):
             command.append("--create_video")
+
+        # Add provider if specified
+        if data.get("provider"):
+            command.extend(["--provider", data.get("provider")])
     elif command_type == "clipart-resize":
         command = [
             "python",
@@ -576,6 +690,33 @@ def run_command():
 
         log_messages.append(
             f"Starting bulk preparation of {data.get('productType')} listings from input directory..."
+        )
+
+    elif command_type == "etsy-generate-only":
+        # Prepare command for generating listings only (no mockups or zip files)
+        command = [
+            "python",
+            "-m",
+            "etsy.cli",
+            "etsy",
+            "bulk-prepare",
+            "--input_dir",
+            "input",  # Always use the input directory
+            "--product_type",
+            data.get("productType"),
+            "--output_file",
+            "prepared_listings.json",
+            "--skip-mockups",  # Skip creating mockups
+            "--skip-zips",  # Skip creating zip files
+        ]
+
+        # Add provider if specified
+        if data.get("provider"):
+            command.extend(["--provider", data.get("provider")])
+            log_messages.append(f"Using AI provider: {data.get('provider')}")
+
+        log_messages.append(
+            f"Starting content generation for {data.get('productType')} listings from input directory..."
         )
 
     elif command_type == "etsy-bulk-create":

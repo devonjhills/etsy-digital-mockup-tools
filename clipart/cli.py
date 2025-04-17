@@ -51,6 +51,11 @@ def main():
     all_parser.add_argument(
         "--create_video", action="store_true", help="Create video mockups"
     )
+    all_parser.add_argument(
+        "--provider",
+        choices=["gemini", "openai"],
+        help="AI provider to use for content generation (overrides environment variable)",
+    )
 
     # Resize command
     resize_parser = subparsers.add_parser("resize", help="Resize clipart images")
@@ -110,6 +115,11 @@ def main():
         # Step 2: Create mockups
         logger.info("Step 2: Creating clipart mockups...")
         process_clipart(args.input_dir, args.title, args.create_video)
+
+        # Set AI provider if specified
+        if hasattr(args, "provider") and args.provider:
+            os.environ["AI_PROVIDER"] = args.provider
+            logger.info(f"Using AI provider: {args.provider}")
 
         # Step 3: Create zip files
         logger.info("Step 3: Creating zip files...")
