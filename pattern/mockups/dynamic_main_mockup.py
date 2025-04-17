@@ -210,6 +210,79 @@ def calculate_contrast_ratio(
         return (l2 + 0.05) / (l1 + 0.05)
 
 
+def adjust_color_for_contrast(
+    foreground: Tuple[int, int, int],
+    background: Tuple[int, int, int],
+    min_contrast: float = 4.5,
+) -> Tuple[int, int, int]:
+    """
+    Adjust foreground color to ensure minimum contrast with background.
+
+    Args:
+        foreground: RGB foreground color to adjust
+        background: RGB background color to contrast against
+        min_contrast: Minimum contrast ratio required (WCAG AA: 4.5 for normal text, 3.0 for large text)
+
+    Returns:
+        Adjusted RGB foreground color with sufficient contrast
+    """
+    # Check current contrast
+    current_contrast = calculate_contrast_ratio(foreground, background)
+
+    if current_contrast >= min_contrast:
+        return foreground  # Already meets contrast requirements
+
+    # Convert to HSV for easier manipulation
+    r, g, b = foreground
+    h, s, v = colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)
+
+    # Get background luminance to determine if we should lighten or darken
+    bg_r, bg_g, bg_b = background
+    bg_luminance = (0.299 * bg_r + 0.587 * bg_g + 0.114 * bg_b) / 255
+    is_light_bg = bg_luminance > 0.5
+
+    # Adjust value (brightness) in steps until we reach minimum contrast
+    step = 0.05
+    max_iterations = 20  # Prevent infinite loops
+    iterations = 0
+
+    while current_contrast < min_contrast and iterations < max_iterations:
+        iterations += 1
+
+        if is_light_bg:
+            # For light backgrounds, darken the text
+            v = max(0.0, v - step)
+        else:
+            # For dark backgrounds, lighten the text
+            v = min(1.0, v + step)
+
+        # Convert back to RGB
+        adjusted_rgb = tuple(int(x * 255) for x in colorsys.hsv_to_rgb(h, s, v))
+        current_contrast = calculate_contrast_ratio(adjusted_rgb, background)
+
+        # If we've reached extreme values and still don't have enough contrast,
+        # try adjusting saturation as well
+        if (is_light_bg and v <= 0.05) or (not is_light_bg and v >= 0.95):
+            if is_light_bg:
+                # For light backgrounds, increase saturation to make text more vibrant
+                s = min(1.0, s + step)
+            else:
+                # For dark backgrounds, decrease saturation to make text more white
+                s = max(0.0, s - step)
+
+            adjusted_rgb = tuple(int(x * 255) for x in colorsys.hsv_to_rgb(h, s, v))
+            current_contrast = calculate_contrast_ratio(adjusted_rgb, background)
+
+    # If we still don't have enough contrast, use black or white
+    if current_contrast < min_contrast:
+        if is_light_bg:
+            return (0, 0, 0)  # Black text on light background
+        else:
+            return (255, 255, 255)  # White text on dark background
+
+    return adjusted_rgb
+
+
 def generate_color_palette(
     base_colors: List[Tuple[int, int, int]],
 ) -> Dict[str, Tuple[int, int, int, int]]:
@@ -222,6 +295,11 @@ def generate_color_palette(
     Returns:
         Dictionary with color roles and RGB values
     """
+    # Define contrast thresholds according to WCAG standards
+    # These are used throughout the function
+    min_contrast_normal = 4.5  # For normal text (WCAG AA)
+    min_contrast_large = 3.0  # For large text (WCAG AA)
+
     if not base_colors:
         # Default palette if no colors provided
         return {
@@ -256,8 +334,15 @@ def generate_color_palette(
     border_hsv = (h, s, max(0.1, v - 0.2))
     border_rgb = tuple(int(x * 255) for x in colorsys.hsv_to_rgb(*border_hsv))
 
-    # Create a lighter version for the text background (with transparency)
-    text_bg_hsv = (h, s * 0.3, min(0.95, v + 0.2))
+    # Create a version for the text background that will provide good contrast with text
+    # For darker colors, make the background lighter; for lighter colors, make it darker
+    if v > 0.5:  # If the base color is light
+        # Create a darker background for better contrast with light text
+        text_bg_hsv = (h, s * 0.5, max(0.2, v - 0.3))
+    else:  # If the base color is dark
+        # Create a lighter background for better contrast with dark text
+        text_bg_hsv = (h, s * 0.3, min(0.95, v + 0.4))
+
     text_bg_rgb = tuple(int(x * 255) for x in colorsys.hsv_to_rgb(*text_bg_hsv))
     # Add alpha channel (200 out of 255 for semi-transparency - ~80% opacity for the base color)
     text_bg_with_alpha = text_bg_rgb + (200,)
@@ -277,8 +362,29 @@ def generate_color_palette(
     # Sort colors by contrast with background (highest contrast first)
     colors_by_contrast = []
     for color, h, s, v in colors_with_hsv:
+        # Calculate contrast with the text background
         bg_contrast = calculate_contrast_ratio(text_bg_rgb, color)
-        colors_by_contrast.append((color, h, s, v, bg_contrast))
+
+        # If contrast is too low, adjust the color to improve contrast
+        if bg_contrast < min_contrast_normal:
+            adjusted_color = adjust_color_for_contrast(
+                color, text_bg_rgb, min_contrast_normal
+            )
+            # Recalculate HSV values for the adjusted color
+            adj_r, adj_g, adj_b = adjusted_color
+            adj_h, adj_s, adj_v = colorsys.rgb_to_hsv(
+                adj_r / 255, adj_g / 255, adj_b / 255
+            )
+            # Calculate new contrast with the adjusted color
+            new_contrast = calculate_contrast_ratio(text_bg_rgb, adjusted_color)
+            colors_by_contrast.append(
+                (adjusted_color, adj_h, adj_s, adj_v, new_contrast)
+            )
+            logger.info(
+                f"Adjusted color from {color} to {adjusted_color} to improve contrast from {bg_contrast:.2f} to {new_contrast:.2f}"
+            )
+        else:
+            colors_by_contrast.append((color, h, s, v, bg_contrast))
 
     colors_by_contrast.sort(key=lambda x: x[4], reverse=True)  # Sort by contrast
 
@@ -292,8 +398,7 @@ def generate_color_palette(
     # Try to find a color with good contrast for the title
     # WCAG AA standard requires a contrast ratio of at least 4.5:1 for normal text
     # But for large text (like our title), 3:1 is acceptable
-    min_contrast_normal = 4.5
-    min_contrast_large = 3.0  # For large text (like our title)
+    # Note: min_contrast_normal and min_contrast_large are defined at the beginning of the function
 
     # First try: Find a vibrant color with good contrast for normal text
     for color, h, s, v, contrast in colors_by_contrast:
@@ -386,43 +491,13 @@ def generate_color_palette(
             title_text = (250, 250, 250)  # Almost white for title
             subtitle_text = (230, 230, 230)  # Light gray for subtitle
 
-        # Check contrast ratio and adjust if needed to ensure readability
-        title_contrast = calculate_contrast_ratio(text_bg_rgb, title_text)
-        if (
-            title_contrast < min_contrast_normal
-        ):  # Use the normal text contrast requirement
-            # Adjust title text to be darker or lighter based on background
-            if is_light_bg:
-                title_text = (
-                    0,
-                    0,
-                    0,
-                )  # Pure black for maximum contrast on light background
-            else:
-                title_text = (
-                    255,
-                    255,
-                    255,
-                )  # Pure white for maximum contrast on dark background
-
-        # Check and adjust subtitle text contrast
-        subtitle_contrast = calculate_contrast_ratio(text_bg_rgb, subtitle_text)
-        if (
-            subtitle_contrast < min_contrast_normal
-        ):  # Use the normal text contrast requirement
-            # Adjust subtitle text to be darker or lighter based on background
-            if is_light_bg:
-                subtitle_text = (
-                    20,
-                    20,
-                    20,
-                )  # Very dark gray for good contrast on light background
-            else:
-                subtitle_text = (
-                    240,
-                    240,
-                    240,
-                )  # Very light gray for good contrast on dark background
+        # Use our new adjustment function to ensure proper contrast
+        title_text = adjust_color_for_contrast(
+            title_text, text_bg_rgb, min_contrast_normal
+        )
+        subtitle_text = adjust_color_for_contrast(
+            subtitle_text, text_bg_rgb, min_contrast_normal
+        )
 
     # Calculate luminance for logging purposes
     title_luminance = (

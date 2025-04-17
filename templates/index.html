@@ -2449,11 +2449,7 @@
                   <div class="form-group">
                     <label><strong>Description:</strong></label>
                     <textarea class="description-input" data-index="${index}" rows="10" style="width: 100%;">${
-            // Format description with proper spacing between emoji sections
-            listing.description.replace(
-              /([^\n])(\n*[\u{1F300}-\u{1F6FF}\u{2600}-\u{26FF}])/gu,
-              "$1\n\n$2"
-            )
+            listing.description
           }</textarea>
                   </div>
 

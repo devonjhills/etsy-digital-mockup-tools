@@ -124,9 +124,7 @@ class ContentGenerator:
                     return text
 
                 title = ensure_plain_text(title)
-                description = description.replace(
-                    "\n\n", "\n"
-                )  # Preserve line breaks but remove excessive ones
+                # No longer modifying description line breaks to preserve original formatting
                 tags = [ensure_plain_text(tag) for tag in tags]
 
                 return {"title": title, "description": description, "tags": tags}

@@ -145,9 +145,9 @@ class OpenAIProvider(AIProvider):
                     title = title_match.group(1).strip()
                     logger.info(f"Extracted title: {title}")
 
-                # Look for description
+                # Look for description - capture everything between Description: and Tags:
                 desc_match = re.search(
-                    r"(?:^|\n)Description:?\s*([\s\S]*?)(?:\n\n|\n(?:[A-Za-z]+:)|\Z)",
+                    r"(?:^|\n)Description:?\s*([\s\S]*?)(?:\n(?:Tags:|$))",
                     content,
                     re.IGNORECASE,
                 )

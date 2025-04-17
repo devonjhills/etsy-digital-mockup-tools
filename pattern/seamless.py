@@ -32,12 +32,23 @@ def create_pattern(input_folder: str) -> Optional[str]:
     ensure_dir_exists(output_folder)
 
     # Find JPG images in the input folder
-    images = sorted(glob.glob(os.path.join(input_folder, "*.jpg")))[:1]
+    images = sorted(glob.glob(os.path.join(input_folder, "*.jpg")))
     if not images:
         logger.warning("No JPG images found for seamless pattern.")
         return None
 
-    image_path = images[0]
+    # Use the second image if available, otherwise use the first one
+    # This ensures seamless_1.jpg uses a different image than the other seamless mockup
+    if len(images) > 1:
+        image_path = images[1]  # Use the second image
+        logger.info(
+            f"Using second image for seamless_1.jpg: {os.path.basename(image_path)}"
+        )
+    else:
+        image_path = images[0]  # Fall back to the first image if only one is available
+        logger.info(
+            f"Only one image available, using it for seamless_1.jpg: {os.path.basename(image_path)}"
+        )
     IMAGE_SIZE = 2048
     GRID_SIZE = 2
 
@@ -129,7 +140,11 @@ def create_seamless_mockup(input_folder: str) -> Optional[str]:
         logger.warning("No image files found in input folder for seamless mockup.")
         return None
 
+    # Always use the first image for the comparison mockup
     input_image_path = input_files[0]
+    logger.info(
+        f"Using first image for seamless comparison mockup: {os.path.basename(input_image_path)}"
+    )
 
     try:
         input_img = Image.open(input_image_path)
