@@ -55,30 +55,43 @@ def load_images(image_paths: List[str]) -> List[Image.Image]:
 
 def get_font(font_name: str, size: int) -> Optional[ImageFont.FreeTypeFont]:
     """Loads a font by name from AVAILABLE_FONTS, with fallback."""
+    print(f"Loading font: {font_name} at size {size}")
+
+    # Check if font_name is already a path
+    if os.path.exists(font_name) and font_name.lower().endswith((".ttf", ".otf")):
+        try:
+            print(f"Loading font from direct path: {font_name}")
+            return ImageFont.truetype(font_name, size)
+        except Exception as e:
+            print(f"Error loading font from path {font_name}: {e}")
+            # Continue with normal font loading
+
+    # Try to load by name from AVAILABLE_FONTS
     font_path = config.AVAILABLE_FONTS.get(font_name)
-    fallback_used = False
-    if not font_path or not os.path.exists(font_path):
-        print(f"Warn: Font '{font_name}' path not found or invalid: {font_path}")
-        found_fallback = False
-        for key, path in config.AVAILABLE_FONTS.items():
-            if os.path.exists(path):
-                print(f"Warn: Using fallback font '{key}' instead.")
-                font_path = path
-                font_name = key
-                found_fallback = True
-                fallback_used = True
-                break
-        if not found_fallback:
-            print(
-                f"Error: No fonts found at configured paths: {list(config.AVAILABLE_FONTS.values())}"
-            )
-            return None
-    try:
-        return ImageFont.truetype(font_path, size)
-    except Exception as e:
-        font_status = f"(using fallback '{font_name}')" if fallback_used else ""
-        print(f"Error loading font {font_path} {font_status} at size {size}: {e}")
-        return None
+    if font_path and os.path.exists(font_path):
+        try:
+            print(f"Loading font from config path: {font_path}")
+            return ImageFont.truetype(font_path, size)
+        except Exception as e:
+            print(f"Error loading font from config path {font_path}: {e}")
+            # Continue with fallbacks
+    else:
+        print(f"Font '{font_name}' not found in config or path invalid: {font_path}")
+
+    # Try fallbacks
+    print("Trying fallback fonts...")
+    for key, path in config.AVAILABLE_FONTS.items():
+        if os.path.exists(path):
+            try:
+                print(f"Trying fallback font '{key}' at {path}")
+                return ImageFont.truetype(path, size)
+            except Exception as e:
+                print(f"Error loading fallback font {path}: {e}")
+
+    print(
+        f"No usable fonts found. Available fonts: {list(config.AVAILABLE_FONTS.keys())}"
+    )
+    return None
 
 
 def generate_background(

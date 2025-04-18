@@ -318,6 +318,17 @@ def get_font(
         The font, or None if not found
     """
     logger = logging.getLogger(__name__)
+    logger.info(f"Loading font: {font_name} at size {size}")
+
+    # Check if font_name is a path
+    if os.path.exists(font_name) and font_name.lower().endswith((".ttf", ".otf")):
+        try:
+            logger.info(f"Loading font from direct path: {font_name}")
+            font = ImageFont.truetype(font_name, size)
+            return font
+        except Exception as e:
+            logger.warning(f"Error loading font from path {font_name}: {e}")
+            # Continue with normal font loading
 
     if fallback_names is None:
         fallback_names = []
@@ -325,6 +336,7 @@ def get_font(
     # Get the project root and assets directory
     project_root = get_project_root()
     fonts_dir = os.path.join(project_root, "assets", "fonts")
+    logger.info(f"Looking for fonts in: {fonts_dir}")
 
     # Check if fonts directory exists
     if not os.path.exists(fonts_dir):
@@ -333,6 +345,7 @@ def get_font(
 
     # Try to find the font in the assets/fonts directory
     font_files = os.listdir(fonts_dir)
+    logger.info(f"Available font files: {font_files}")
     matching_fonts = []
 
     # First, try to find an exact match
@@ -340,7 +353,9 @@ def get_font(
         if font_file.lower().endswith((".ttf", ".otf")):
             # Check if the font name is in the filename
             if font_name.lower() in font_file.lower():
-                matching_fonts.append(os.path.join(fonts_dir, font_file))
+                font_path = os.path.join(fonts_dir, font_file)
+                logger.info(f"Found matching font: {font_path}")
+                matching_fonts.append(font_path)
 
     # If we found matching fonts, try to load them
     for font_path in matching_fonts:

@@ -16,13 +16,28 @@ from utils.common import (
     get_font,
 )
 
+# Import pattern configuration
+from pattern import config
+
 # Set up logging
 logger = setup_logging(__name__)
 
 
 def extract_colors_from_images(
-    images: List[str], num_colors: int = 8
+    images: List[str], num_colors: int = None
 ) -> List[Tuple[int, int, int]]:
+    """Extract dominant colors from a list of images.
+
+    Args:
+        images: List of image paths
+        num_colors: Number of dominant colors to extract (default: from config)
+
+    Returns:
+        List of RGB color tuples
+    """
+    # Use the number of colors from config if not specified
+    if num_colors is None:
+        num_colors = config.FONT_CONFIG["DYNAMIC_TITLE_COLOR_CLUSTERS"]
     """
     Extract dominant colors from a list of images.
 
@@ -286,6 +301,25 @@ def adjust_color_for_contrast(
 def generate_color_palette(
     base_colors: List[Tuple[int, int, int]],
 ) -> Dict[str, Tuple[int, int, int, int]]:
+    """Generate a color palette from base colors.
+
+    Args:
+        base_colors: List of base RGB color tuples
+
+    Returns:
+        Dictionary with color roles and RGB values
+    """
+    # Skip dynamic color generation if disabled in config
+    if not config.FONT_CONFIG["USE_DYNAMIC_TITLE_COLORS"]:
+        # Return a default palette with neutral colors
+        return {
+            "background": (240, 240, 240),
+            "divider": (180, 180, 180),
+            "divider_border": (150, 150, 150),
+            "text_bg": (240, 240, 240, 200),  # Semi-transparent background
+            "title_text": (50, 50, 50),
+            "subtitle_text": (80, 80, 80),
+        }
     """
     Generate a color palette from base colors.
 
@@ -297,7 +331,9 @@ def generate_color_palette(
     """
     # Define contrast thresholds according to WCAG standards
     # These are used throughout the function
-    min_contrast_normal = 4.5  # For normal text (WCAG AA)
+    min_contrast_normal = config.FONT_CONFIG[
+        "DYNAMIC_TITLE_CONTRAST_THRESHOLD"
+    ]  # For normal text (WCAG AA)
     min_contrast_large = 3.0  # For large text (WCAG AA)
 
     if not base_colors:
@@ -594,17 +630,37 @@ def create_dynamic_overlay(
         fill=palette["divider_border"],
     )
 
-    # Load fonts and prepare text elements
-    top_subtitle_font_size = (
-        divider_height // 2
-    )  # Larger size for top subtitle, but not too large
-    bottom_subtitle_font_size = divider_height // 3  # Smaller size for bottom subtitle
-    top_subtitle_font = get_font("Poppins-SemiBold.ttf", size=top_subtitle_font_size)
-    bottom_subtitle_font = get_font(
-        "Poppins-SemiBold.ttf", size=bottom_subtitle_font_size
+    # Load fonts and prepare text elements using the font configuration
+    # Calculate default font sizes based on divider height if not specified in config
+    top_subtitle_font_size = config.FONT_CONFIG["TOP_SUBTITLE_FONT_SIZE"]
+    if top_subtitle_font_size <= 0:
+        top_subtitle_font_size = divider_height // 2  # Larger size for top subtitle
+
+    bottom_subtitle_font_size = config.FONT_CONFIG["BOTTOM_SUBTITLE_FONT_SIZE"]
+    if bottom_subtitle_font_size <= 0:
+        bottom_subtitle_font_size = (
+            divider_height // 3
+        )  # Smaller size for bottom subtitle
+
+    title_font_size = config.FONT_CONFIG["TITLE_FONT_SIZE"]
+    if title_font_size <= 0:
+        title_font_size = divider_height // 1.0
+
+    # Get font names from configuration
+    title_font_name = config.FONT_CONFIG["TITLE_FONT"]
+    subtitle_font_name = config.FONT_CONFIG["SUBTITLE_FONT"]
+
+    # Load the fonts
+    top_subtitle_font = get_font(subtitle_font_name, size=top_subtitle_font_size)
+    bottom_subtitle_font = get_font(subtitle_font_name, size=bottom_subtitle_font_size)
+    title_font = get_font(title_font_name, size=title_font_size)
+
+    logger.info(
+        f"Using title font: {config.FONT_CONFIG['TITLE_FONT']} (size: {title_font_size})"
     )
-    title_font_size = divider_height // 1.0
-    title_font = get_font("Free Version Angelina.ttf", size=title_font_size)
+    logger.info(
+        f"Using subtitle font: {config.FONT_CONFIG['SUBTITLE_FONT']} (sizes: {top_subtitle_font_size}, {bottom_subtitle_font_size})"
+    )
 
     # Top subtitle
     subtitle_text = "Commercial Use"
@@ -617,7 +673,7 @@ def create_dynamic_overlay(
     title_width, title_height = draw.textbbox((0, 0), title, font=title_font)[2:4]
     while title_width > max_title_width and title_font_size > 20:
         title_font_size -= 5
-        title_font = get_font("Free Version Angelina.ttf", size=title_font_size)
+        title_font = get_font(title_font_name, size=title_font_size)
         title_width, title_height = draw.textbbox((0, 0), title, font=title_font)[2:4]
 
     # Bottom subtitle
@@ -629,14 +685,22 @@ def create_dynamic_overlay(
     # Calculate text dimensions and padding
     padding_x = 40  # Horizontal padding
     padding_y = 30  # Vertical padding
-    vertical_spacing = 20  # Space between text elements
+
+    # Get spacing values from configuration
+    vertical_spacing = config.FONT_CONFIG[
+        "VERTICAL_SPACING"
+    ]  # Default space between text elements
+    title_bottom_subtitle_spacing = config.FONT_CONFIG[
+        "TITLE_BOTTOM_SUBTITLE_SPACING"
+    ]  # Reduced spacing between title and bottom subtitle
 
     # Calculate total text height with spacing
+    # Use reduced spacing between title and bottom subtitle
     total_text_height = (
         subtitle_height
-        + vertical_spacing
+        + vertical_spacing  # Space between top subtitle and title
         + title_height
-        + vertical_spacing
+        + title_bottom_subtitle_spacing  # Reduced space between title and bottom subtitle
         + bottom_subtitle_height
     )
 
@@ -782,10 +846,9 @@ def create_dynamic_overlay(
     title_x = (width - title_width) // 2
     title_y = subtitle_y + subtitle_height + vertical_spacing - title_offset_up
 
-    # Keep the bottom subtitle position relative to the bottom of the rectangle
-    # rather than relative to the title
+    # Position the bottom subtitle relative to the title with reduced spacing
     bottom_subtitle_x = (width - bottom_subtitle_width) // 2
-    bottom_subtitle_y = text_y + text_height - padding_y - bottom_subtitle_height
+    bottom_subtitle_y = title_y + title_height + title_bottom_subtitle_spacing
 
     # Draw text elements with dynamic color selection for readability
     # Top subtitle
@@ -818,7 +881,18 @@ def create_dynamic_overlay(
     return overlay
 
 
-def create_main_mockup(input_folder: str, title: str) -> Optional[str]:
+def create_main_mockup(
+    input_folder: str,
+    title: str,
+    title_font: str = None,
+    subtitle_font: str = None,
+    title_font_size: int = None,
+    top_subtitle_font_size: int = None,
+    bottom_subtitle_font_size: int = None,
+    use_dynamic_title_colors: bool = None,
+    vertical_spacing: int = None,
+    title_bottom_subtitle_spacing: int = None,
+) -> Optional[str]:
     """
     Creates the main 2x6 grid mockup with a dynamic overlay.
 
@@ -830,6 +904,34 @@ def create_main_mockup(input_folder: str, title: str) -> Optional[str]:
         Path to the created main mockup file, or None if creation failed
     """
     logger.info(f"Creating dynamic main mockup for '{title}'...")
+
+    # Update font, color, and spacing configuration if custom settings are provided
+    if (
+        title_font
+        or subtitle_font
+        or title_font_size is not None
+        or top_subtitle_font_size is not None
+        or bottom_subtitle_font_size is not None
+        or use_dynamic_title_colors is not None
+        or vertical_spacing is not None
+        or title_bottom_subtitle_spacing is not None
+    ):
+        config.update_font_config(
+            title_font=title_font,
+            subtitle_font=subtitle_font,
+            title_font_size=title_font_size,
+            top_subtitle_font_size=top_subtitle_font_size,
+            bottom_subtitle_font_size=bottom_subtitle_font_size,
+            use_dynamic_title_colors=use_dynamic_title_colors,
+            vertical_spacing=vertical_spacing,
+            title_bottom_subtitle_spacing=title_bottom_subtitle_spacing,
+        )
+
+    # Log whether dynamic title colors are enabled
+    if config.FONT_CONFIG["USE_DYNAMIC_TITLE_COLORS"]:
+        logger.info("Using dynamic title colors based on input image")
+    else:
+        logger.info("Using default title colors (dynamic colors disabled)")
     output_folder = os.path.join(input_folder, "mocks")
     ensure_dir_exists(output_folder)
 

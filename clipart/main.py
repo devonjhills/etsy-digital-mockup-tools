@@ -151,25 +151,28 @@ def grid_mockup(
                     "RGBA"
                 )
 
-        # Find input images
+        # Find input images - support both PNG and JPG/JPEG formats
         try:
-            input_image_paths = sorted(
-                glob.glob(os.path.join(input_folder_path, "*.png"))
-            )
+            png_paths = sorted(glob.glob(os.path.join(input_folder_path, "*.png")))
+            jpg_paths = sorted(glob.glob(os.path.join(input_folder_path, "*.jpg")))
+            jpeg_paths = sorted(glob.glob(os.path.join(input_folder_path, "*.jpeg")))
+
+            # Combine all image paths
+            input_image_paths = png_paths + jpg_paths + jpeg_paths
         except Exception as e:
             logger.error(
-                f"Error searching for PNG files in {input_folder_path}: {e}. Skipping folder."
+                f"Error searching for image files in {input_folder_path}: {e}. Skipping folder."
             )
             continue
 
         num_images = len(input_image_paths)
         if not input_image_paths:
             logger.warning(
-                f"No PNG images found in {input_folder_path}. Skipping mockup generation."
+                f"No PNG or JPG images found in {input_folder_path}. Skipping mockup generation."
             )
             continue
 
-        logger.info(f"Found {num_images} PNG images for mockup generation.")
+        logger.info(f"Found {num_images} images for mockup generation.")
 
         # 1. Main Mockup Generation
         try:
@@ -186,6 +189,7 @@ def grid_mockup(
             logger.info(
                 "Creating square mockup with 2x3 grid (2 columns, 3 rows) and title overlay..."
             )
+            # Use the centralized font configuration
             final_main_mockup, _ = create_square_mockup(
                 input_image_paths=input_image_paths,
                 canvas_bg_image=canvas_bg_2x2_copy,
@@ -194,13 +198,15 @@ def grid_mockup(
                 subtitle_bottom=subtitle_bottom_text,
                 grid_size=config.GRID_2x2_SIZE,
                 padding=config.CELL_PADDING,
-                # Shadow parameters removed
-                title_max_font_size=140,  # Smaller than default
-                subtitle_font_size=60,  # Smaller than default
+                # Use font configuration from config
+                title_font_name=config.FONT_CONFIG["TITLE_FONT"],
+                subtitle_font_name=config.FONT_CONFIG["SUBTITLE_FONT"],
+                # Use font sizes from config
+                title_max_font_size=config.FONT_CONFIG["TITLE_MAX_FONT_SIZE"],
+                title_min_font_size=config.FONT_CONFIG["TITLE_MIN_FONT_SIZE"],
+                subtitle_font_size=config.FONT_CONFIG["SUBTITLE_FONT_SIZE"],
+                # Other settings
                 title_padding_x=60,  # Smaller than default
-                backdrop_padding_x=50,  # Smaller than default
-                backdrop_padding_y=25,  # Smaller than default
-                backdrop_opacity=180,  # Reduced opacity for transparency
             )
 
             # Save main mockup
@@ -394,7 +400,14 @@ def get_resampling_filter():
 
 
 def process_clipart(
-    input_dir: str, title_override: str = None, create_video: bool = False
+    input_dir: str,
+    title_override: str = None,
+    create_video: bool = False,
+    title_font: str = None,
+    subtitle_font: str = None,
+    title_font_size: int = None,
+    subtitle_font_size: int = None,
+    subtitle_spacing: int = None,
 ) -> List[str]:
     """
     Process clipart images and generate mockups.
@@ -425,6 +438,27 @@ def process_clipart(
 
     # Generate mockups
     try:
+        # Use the update_font_config function to update font settings
+        config.update_font_config(
+            title_font=title_font,
+            subtitle_font=subtitle_font,
+            title_max_size=title_font_size,
+            subtitle_size=subtitle_font_size,
+            subtitle_spacing=subtitle_spacing,
+        )
+
+        # Log the font settings being used
+        if title_font:
+            logger.info(f"Using custom title font: {title_font}")
+        if subtitle_font:
+            logger.info(f"Using custom subtitle font: {subtitle_font}")
+        if title_font_size:
+            logger.info(f"Using custom title font size: {title_font_size}")
+        if subtitle_font_size:
+            logger.info(f"Using custom subtitle font size: {subtitle_font_size}")
+        if subtitle_spacing:
+            logger.info(f"Using custom subtitle spacing: {subtitle_spacing}")
+
         return grid_mockup(
             input_dir_base=input_dir,
             title_override=title_override,
@@ -451,6 +485,28 @@ if __name__ == "__main__":
         default=None,
         help="Optional override title for all generated mockups.",
     )
+    parser.add_argument(
+        "--title_font",
+        default=None,
+        help="Font to use for the title text (e.g., Angelina, Clattering, MarkerFelt, Poppins)",
+    )
+    parser.add_argument(
+        "--subtitle_font",
+        default=None,
+        help="Font to use for the subtitle text (e.g., MarkerFelt, Angelina, Clattering, Poppins)",
+    )
+    parser.add_argument(
+        "--title_font_size",
+        type=int,
+        default=None,
+        help="Maximum font size for the title text (default: 170)",
+    )
+    parser.add_argument(
+        "--subtitle_font_size",
+        type=int,
+        default=None,
+        help="Font size for the subtitle text (default: 70)",
+    )
 
     args = parser.parse_args()
 
@@ -463,6 +519,15 @@ if __name__ == "__main__":
     if args.title:
         logger.info(f"Using override title: {args.title}")
 
-    process_clipart(args.input_dir, args.title)
+    process_clipart(
+        args.input_dir,
+        args.title,
+        False,
+        args.title_font if hasattr(args, "title_font") else None,
+        args.subtitle_font if hasattr(args, "subtitle_font") else None,
+        args.title_font_size if hasattr(args, "title_font_size") else None,
+        args.subtitle_font_size if hasattr(args, "subtitle_font_size") else None,
+        args.subtitle_spacing if hasattr(args, "subtitle_spacing") else None,
+    )
 
     logger.info("Mockup generation process finished.")

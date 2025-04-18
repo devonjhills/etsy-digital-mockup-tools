@@ -48,6 +48,55 @@ def main():
         help="AI provider to use for content generation (overrides environment variable)",
     )
 
+    # Font options
+    all_parser.add_argument(
+        "--title_font",
+        choices=["Angelina", "MarkerFelt", "Clattering", "Cravelo", "Poppins"],
+        help="Font to use for the title text",
+    )
+    all_parser.add_argument(
+        "--subtitle_font",
+        choices=["Poppins", "MarkerFelt", "Angelina", "Clattering", "Cravelo"],
+        help="Font to use for the subtitle text",
+    )
+    all_parser.add_argument(
+        "--title_font_size",
+        type=int,
+        help="Font size for the title (0 for auto-sizing)",
+    )
+    all_parser.add_argument(
+        "--top_subtitle_font_size",
+        type=int,
+        help="Font size for the top subtitle (0 for auto-sizing)",
+    )
+    all_parser.add_argument(
+        "--bottom_subtitle_font_size",
+        type=int,
+        help="Font size for the bottom subtitle (0 for auto-sizing)",
+    )
+    # Color options
+    all_parser.add_argument(
+        "--use_dynamic_title_colors",
+        action="store_true",
+        help="Use dynamic title colors based on input image",
+    )
+    all_parser.add_argument(
+        "--no_dynamic_title_colors",
+        action="store_true",
+        help="Disable dynamic title colors",
+    )
+    # Spacing options
+    all_parser.add_argument(
+        "--vertical_spacing",
+        type=int,
+        help="Vertical spacing between text elements (default: 20)",
+    )
+    all_parser.add_argument(
+        "--title_bottom_spacing",
+        type=int,
+        help="Spacing between title and bottom subtitle (default: 10)",
+    )
+
     # Resize command
     resize_parser = subparsers.add_parser("resize", help="Resize pattern images")
     resize_parser.add_argument(
@@ -68,6 +117,55 @@ def main():
         "--input_dir",
         default="input",
         help="Path to the base input directory containing pattern subfolders",
+    )
+
+    # Font options
+    mockup_parser.add_argument(
+        "--title_font",
+        choices=["Angelina", "MarkerFelt", "Clattering", "Cravelo", "Poppins"],
+        help="Font to use for the title text",
+    )
+    mockup_parser.add_argument(
+        "--subtitle_font",
+        choices=["Poppins", "MarkerFelt", "Angelina", "Clattering", "Cravelo"],
+        help="Font to use for the subtitle text",
+    )
+    mockup_parser.add_argument(
+        "--title_font_size",
+        type=int,
+        help="Font size for the title (0 for auto-sizing)",
+    )
+    mockup_parser.add_argument(
+        "--top_subtitle_font_size",
+        type=int,
+        help="Font size for the top subtitle (0 for auto-sizing)",
+    )
+    mockup_parser.add_argument(
+        "--bottom_subtitle_font_size",
+        type=int,
+        help="Font size for the bottom subtitle (0 for auto-sizing)",
+    )
+    # Color options
+    mockup_parser.add_argument(
+        "--use_dynamic_title_colors",
+        action="store_true",
+        help="Use dynamic title colors based on input image",
+    )
+    mockup_parser.add_argument(
+        "--no_dynamic_title_colors",
+        action="store_true",
+        help="Disable dynamic title colors",
+    )
+    # Spacing options
+    mockup_parser.add_argument(
+        "--vertical_spacing",
+        type=int,
+        help="Vertical spacing between text elements (default: 20)",
+    )
+    mockup_parser.add_argument(
+        "--title_bottom_spacing",
+        type=int,
+        help="Spacing between title and bottom subtitle (default: 10)",
     )
 
     # Zip command
@@ -99,7 +197,52 @@ def main():
 
         # Step 2: Create mockups
         logger.info("Step 2: Creating pattern mockups...")
-        if not process_all_patterns(args.input_dir, args.create_video):
+        # Determine dynamic title colors setting
+        use_dynamic_title_colors = None
+        if hasattr(args, "use_dynamic_title_colors") and args.use_dynamic_title_colors:
+            use_dynamic_title_colors = True
+            logger.info("Using dynamic title colors based on input image")
+        elif hasattr(args, "no_dynamic_title_colors") and args.no_dynamic_title_colors:
+            use_dynamic_title_colors = False
+            logger.info("Using default title colors (dynamic colors disabled)")
+
+        # Get spacing settings
+        vertical_spacing = (
+            args.vertical_spacing if hasattr(args, "vertical_spacing") else None
+        )
+        title_bottom_spacing = (
+            args.title_bottom_spacing if hasattr(args, "title_bottom_spacing") else None
+        )
+
+        if vertical_spacing is not None:
+            logger.info(f"Using custom vertical spacing: {vertical_spacing}")
+        if title_bottom_spacing is not None:
+            logger.info(f"Using custom title-bottom spacing: {title_bottom_spacing}")
+
+        if not process_all_patterns(
+            args.input_dir,
+            args.create_video,
+            title_font=args.title_font if hasattr(args, "title_font") else None,
+            subtitle_font=(
+                args.subtitle_font if hasattr(args, "subtitle_font") else None
+            ),
+            title_font_size=(
+                args.title_font_size if hasattr(args, "title_font_size") else None
+            ),
+            top_subtitle_font_size=(
+                args.top_subtitle_font_size
+                if hasattr(args, "top_subtitle_font_size")
+                else None
+            ),
+            bottom_subtitle_font_size=(
+                args.bottom_subtitle_font_size
+                if hasattr(args, "bottom_subtitle_font_size")
+                else None
+            ),
+            use_dynamic_title_colors=use_dynamic_title_colors,
+            vertical_spacing=vertical_spacing,
+            title_bottom_subtitle_spacing=title_bottom_spacing,
+        ):
             logger.error("Error creating pattern mockups")
             sys.exit(1)
 
@@ -131,7 +274,52 @@ def main():
         process_images(args.input_dir, (args.max_width, args.max_height))
 
     elif args.command == "mockup":
-        if not process_all_patterns(args.input_dir):
+        # Determine dynamic title colors setting
+        use_dynamic_title_colors = None
+        if hasattr(args, "use_dynamic_title_colors") and args.use_dynamic_title_colors:
+            use_dynamic_title_colors = True
+            logger.info("Using dynamic title colors based on input image")
+        elif hasattr(args, "no_dynamic_title_colors") and args.no_dynamic_title_colors:
+            use_dynamic_title_colors = False
+            logger.info("Using default title colors (dynamic colors disabled)")
+
+        # Get spacing settings
+        vertical_spacing = (
+            args.vertical_spacing if hasattr(args, "vertical_spacing") else None
+        )
+        title_bottom_spacing = (
+            args.title_bottom_spacing if hasattr(args, "title_bottom_spacing") else None
+        )
+
+        if vertical_spacing is not None:
+            logger.info(f"Using custom vertical spacing: {vertical_spacing}")
+        if title_bottom_spacing is not None:
+            logger.info(f"Using custom title-bottom spacing: {title_bottom_spacing}")
+
+        if not process_all_patterns(
+            args.input_dir,
+            False,  # create_video
+            title_font=args.title_font if hasattr(args, "title_font") else None,
+            subtitle_font=(
+                args.subtitle_font if hasattr(args, "subtitle_font") else None
+            ),
+            title_font_size=(
+                args.title_font_size if hasattr(args, "title_font_size") else None
+            ),
+            top_subtitle_font_size=(
+                args.top_subtitle_font_size
+                if hasattr(args, "top_subtitle_font_size")
+                else None
+            ),
+            bottom_subtitle_font_size=(
+                args.bottom_subtitle_font_size
+                if hasattr(args, "bottom_subtitle_font_size")
+                else None
+            ),
+            use_dynamic_title_colors=use_dynamic_title_colors,
+            vertical_spacing=vertical_spacing,
+            title_bottom_subtitle_spacing=title_bottom_spacing,
+        ):
             logger.error("Error creating pattern mockups")
             sys.exit(1)
 

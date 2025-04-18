@@ -2,10 +2,9 @@
 Module for adding titles to images.
 """
 
-import os
 import textwrap
-from typing import List, Tuple, Dict, Optional, Any
-from PIL import Image, ImageDraw, ImageFont
+from typing import Tuple, Optional
+from PIL import Image, ImageDraw
 
 from utils.common import setup_logging, get_resampling_filter, get_font
 
@@ -26,20 +25,14 @@ def add_title_bar_and_text(
     title_font_step: int = 5,
     subtitle_font_size: int = 70,
     title_max_lines: int = 3,
-    title_line_spacing: int = 15,
-    subtitle_spacing: int = 25,
+    title_line_spacing: int = 8,
+    subtitle_spacing: int = 15,
     title_padding_x: int = 80,
-    backdrop_padding_x: int = 60,
-    backdrop_padding_y: int = 30,
-    backdrop_corner_radius: int = 40,
-    backdrop_opacity: int = 255,
-    border_width: int = 5,
-    border_color: Tuple = (218, 165, 32, 255),
     text_color: Tuple = (50, 50, 50, 255),
     subtitle_text_color: Tuple = (80, 80, 80, 255),
 ) -> Tuple[Optional[Image.Image], Optional[Tuple[int, int, int, int]]]:
     """
-    Add a centered text block with a soft, semi-transparent backdrop.
+    Add centered text directly on the background image.
 
     Args:
         image: The image to add the title to
@@ -97,8 +90,8 @@ def add_title_bar_and_text(
     # Create a draw object
     draw = ImageDraw.Draw(output_image)
 
-    # Get fonts - always use Angelina for title regardless of what's passed in
-    title_font = get_font("Angelina", title_max_font_size)
+    # Get fonts using the provided font names
+    title_font = get_font(title_font_name, title_max_font_size)
     subtitle_font = get_font(subtitle_font_name, subtitle_font_size)
 
     # Calculate title text dimensions and wrap if needed
@@ -107,8 +100,8 @@ def add_title_bar_and_text(
     max_title_width = canvas_w - (2 * title_padding_x)
 
     while title_font_size >= title_min_font_size:
-        # Always use Angelina font regardless of what's passed in
-        title_font = get_font("Angelina", title_font_size)
+        # Use the specified title font
+        title_font = get_font(title_font_name, title_font_size)
 
         # Try to wrap the text
         wrapped_lines = textwrap.wrap(
@@ -209,18 +202,27 @@ def add_title_bar_and_text(
     if subtitle_bottom:
         title_block_height += subtitle_spacing + subtitle_bottom_height
 
-    # Calculate backdrop dimensions with extra padding to ensure all text fits
-    backdrop_width = title_block_width + (2 * backdrop_padding_x)
+    # Calculate text area dimensions
+    text_width = title_block_width + (2 * title_padding_x)
 
-    # Add extra vertical padding to ensure text doesn't overlap
-    extra_padding = 120  # Additional padding to prevent overlap
-    backdrop_height = title_block_height + (2 * backdrop_padding_y) + extra_padding
+    # Calculate total height needed for all elements
+    total_height = title_height  # Start with title height
 
-    # Calculate backdrop position (centered)
-    backdrop_x = (canvas_w - backdrop_width) // 2
-    backdrop_y = (canvas_h - backdrop_height) // 2
+    # Add subtitle heights if present
+    if subtitle_top:
+        total_height += subtitle_top_height + subtitle_spacing
+    if subtitle_bottom:
+        total_height += subtitle_bottom_height + subtitle_spacing
 
-    # Sample background color from the center of the background image
+    # Add some padding to ensure text doesn't overlap
+    padding_factor = 1.2  # 20% extra space
+    text_height = int(total_height * padding_factor)
+
+    # Calculate text position (centered)
+    text_x = (canvas_w - text_width) // 2
+    text_y = (canvas_h - text_height) // 2
+
+    # Sample background color from the center of the background image to determine text color
     bg_sample_x = canvas_w // 2
     bg_sample_y = canvas_h // 2
     bg_sample_size = 100
@@ -236,44 +238,19 @@ def add_title_bar_and_text(
     bg_sample = bg_sample.resize((1, 1), get_resampling_filter())
     bg_color = bg_sample.getpixel((0, 0))
 
-    # Ensure bg_color has alpha
-    if len(bg_color) == 3:
-        bg_color = (*bg_color, backdrop_opacity)
-    else:
-        bg_color = (*bg_color[:3], backdrop_opacity)
+    # Determine if we need light or dark text based on background brightness
+    brightness = sum(bg_color[:3]) / 3 if len(bg_color) >= 3 else 127
 
-    # Create a new layer for the backdrop
-    backdrop_layer = Image.new("RGBA", output_image.size, (0, 0, 0, 0))
-    backdrop_draw = ImageDraw.Draw(backdrop_layer)
-
-    # Draw rounded rectangle backdrop
-    backdrop_draw.rounded_rectangle(
-        [
-            backdrop_x,
-            backdrop_y,
-            backdrop_x + backdrop_width,
-            backdrop_y + backdrop_height,
-        ],
-        radius=backdrop_corner_radius,
-        fill=bg_color,
-    )
-
-    # Draw border if specified
-    if border_width > 0:
-        backdrop_draw.rounded_rectangle(
-            [
-                backdrop_x,
-                backdrop_y,
-                backdrop_x + backdrop_width,
-                backdrop_y + backdrop_height,
-            ],
-            radius=backdrop_corner_radius,
-            outline=border_color,
-            width=border_width,
-        )
-
-    # Composite backdrop onto output image
-    output_image = Image.alpha_composite(output_image, backdrop_layer)
+    # Only override text colors if they weren't explicitly provided
+    # This allows our color extraction to take precedence
+    if text_color == (50, 50, 50, 255) and subtitle_text_color == (80, 80, 80, 255):
+        # Use white text on dark backgrounds, black text on light backgrounds
+        if brightness < 128:
+            text_color = (255, 255, 255, 255)  # White text for dark backgrounds
+            subtitle_text_color = (220, 220, 220, 255)  # Light gray for subtitles
+        else:
+            text_color = (0, 0, 0, 255)  # Black text for light backgrounds
+            subtitle_text_color = (50, 50, 50, 255)  # Dark gray for subtitles
 
     # Calculate text positions - center vertically within the backdrop with a slight upward adjustment
     total_content_height = 0
@@ -292,28 +269,28 @@ def add_title_bar_and_text(
     # Create a draw object for the output image
     draw = ImageDraw.Draw(output_image)
 
-    # SUPER SIMPLE APPROACH
-    # Different fixed spacing values for top and bottom
-    TOP_SPACING = 10  # Minimal space between top subtitle and title
-    BOTTOM_SPACING = 150  # More space between title and bottom subtitle
+    # Calculate vertical positions to center everything
+    # First, determine the total height of all elements with spacing
+    total_content_height = title_height
+    if subtitle_top:
+        total_content_height += subtitle_top_height + subtitle_spacing
+    if subtitle_bottom:
+        total_content_height += subtitle_bottom_height + subtitle_spacing
 
-    # Start positioning from the top of the backdrop
-    current_y = backdrop_y + backdrop_padding_y
+    # Calculate the starting y-position to center all content vertically
+    start_y = text_y + (text_height - total_content_height) // 2
+    current_y = start_y
 
     # Draw subtitle top
     if subtitle_top:
-        subtitle_top_x = (
-            backdrop_x
-            + backdrop_padding_x
-            + (title_block_width - subtitle_top_width) // 2
-        )
+        subtitle_top_x = text_x + (text_width - subtitle_top_width) // 2
         draw.text(
             (subtitle_top_x, current_y),
             subtitle_top,
             font=subtitle_font,
             fill=subtitle_text_color,
         )
-        current_y += subtitle_top_height + TOP_SPACING
+        current_y += subtitle_top_height + subtitle_spacing
 
     # Draw title lines
     for i, line in enumerate(title_lines):
@@ -324,22 +301,40 @@ def add_title_bar_and_text(
         except AttributeError:
             line_width, line_height = draw.textsize(line, font=title_font)
 
-        line_x = backdrop_x + backdrop_padding_x + (title_block_width - line_width) // 2
+        line_x = text_x + (text_width - line_width) // 2
+
+        # Add a subtle text shadow for better readability
+        shadow_offset = 2
+        draw.text(
+            (line_x + shadow_offset, current_y + shadow_offset),
+            line,
+            font=title_font,
+            fill=(0, 0, 0, 100),
+        )
+
+        # Draw the main text
         draw.text((line_x, current_y), line, font=title_font, fill=text_color)
 
         # Add spacing after each line except the last one
         if i < len(title_lines) - 1:
             current_y += line_height + title_line_spacing
         else:
-            current_y += line_height + BOTTOM_SPACING
+            current_y += line_height + subtitle_spacing
 
     # Draw subtitle bottom
     if subtitle_bottom:
-        subtitle_bottom_x = (
-            backdrop_x
-            + backdrop_padding_x
-            + (title_block_width - subtitle_bottom_width) // 2
+        subtitle_bottom_x = text_x + (text_width - subtitle_bottom_width) // 2
+
+        # Add a subtle text shadow for better readability
+        shadow_offset = 1
+        draw.text(
+            (subtitle_bottom_x + shadow_offset, current_y + shadow_offset),
+            subtitle_bottom,
+            font=subtitle_font,
+            fill=(0, 0, 0, 100),
         )
+
+        # Draw the main text
         draw.text(
             (subtitle_bottom_x, current_y),
             subtitle_bottom,
@@ -347,12 +342,12 @@ def add_title_bar_and_text(
             fill=subtitle_text_color,
         )
 
-    # Return the modified image and backdrop bounds
-    backdrop_bounds = (
-        backdrop_x,
-        backdrop_y,
-        backdrop_x + backdrop_width,
-        backdrop_y + backdrop_height,
+    # Return the modified image and text bounds
+    text_bounds = (
+        text_x,
+        text_y,
+        text_x + text_width,
+        text_y + text_height,
     )
 
-    return output_image, backdrop_bounds
+    return output_image, text_bounds

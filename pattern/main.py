@@ -19,7 +19,18 @@ from pattern.video import create_seamless_zoom_video
 logger = setup_logging(__name__)
 
 
-def process_pattern_folder(input_folder: str, create_video: bool = False) -> bool:
+def process_pattern_folder(
+    input_folder: str,
+    create_video: bool = False,
+    title_font: str = None,
+    subtitle_font: str = None,
+    title_font_size: int = None,
+    top_subtitle_font_size: int = None,
+    bottom_subtitle_font_size: int = None,
+    use_dynamic_title_colors: bool = None,
+    vertical_spacing: int = None,
+    title_bottom_subtitle_spacing: int = None,
+) -> bool:
     """
     Process a single pattern folder.
 
@@ -60,8 +71,19 @@ def process_pattern_folder(input_folder: str, create_video: bool = False) -> boo
         # This uses canvas2.png and should only be used for patterns
         create_seamless_mockup(input_folder)
 
-        # Create main mockup
-        create_main_mockup(input_folder, title)
+        # Create main mockup with font, color, and spacing settings
+        create_main_mockup(
+            input_folder,
+            title,
+            title_font=title_font,
+            subtitle_font=subtitle_font,
+            title_font_size=title_font_size,
+            top_subtitle_font_size=top_subtitle_font_size,
+            bottom_subtitle_font_size=bottom_subtitle_font_size,
+            use_dynamic_title_colors=use_dynamic_title_colors,
+            vertical_spacing=vertical_spacing,
+            title_bottom_subtitle_spacing=title_bottom_subtitle_spacing,
+        )
 
         # Create grid mockup with borders
         create_grid_mockup_with_borders(input_folder)
@@ -77,13 +99,30 @@ def process_pattern_folder(input_folder: str, create_video: bool = False) -> boo
         return False
 
 
-def process_all_patterns(base_input_dir: str, create_video: bool = False) -> bool:
+def process_all_patterns(
+    base_input_dir: str,
+    create_video: bool = False,
+    title_font: str = None,
+    subtitle_font: str = None,
+    title_font_size: int = None,
+    top_subtitle_font_size: int = None,
+    bottom_subtitle_font_size: int = None,
+    use_dynamic_title_colors: bool = None,
+    vertical_spacing: int = None,
+    title_bottom_subtitle_spacing: int = None,
+) -> bool:
     """
     Process all pattern folders in the base input directory.
 
     Args:
         base_input_dir: Path to the base input directory
         create_video: Whether to create video mockups
+        title_font: Font to use for the title text
+        subtitle_font: Font to use for the subtitle text
+        title_font_size: Font size for the title
+        top_subtitle_font_size: Font size for the top subtitle
+        bottom_subtitle_font_size: Font size for the bottom subtitle
+        use_dynamic_title_colors: Whether to use dynamic title colors based on input image
 
     Returns:
         True if processing was successful, False otherwise
@@ -108,7 +147,18 @@ def process_all_patterns(base_input_dir: str, create_video: bool = False) -> boo
 
     success = True
     for subfolder in subfolders:
-        if not process_pattern_folder(subfolder, create_video):
+        if not process_pattern_folder(
+            subfolder,
+            create_video,
+            title_font=title_font,
+            subtitle_font=subtitle_font,
+            title_font_size=title_font_size,
+            top_subtitle_font_size=top_subtitle_font_size,
+            bottom_subtitle_font_size=bottom_subtitle_font_size,
+            use_dynamic_title_colors=use_dynamic_title_colors,
+            vertical_spacing=vertical_spacing,
+            title_bottom_subtitle_spacing=title_bottom_subtitle_spacing,
+        ):
             success = False
 
     return success
@@ -141,6 +191,53 @@ if __name__ == "__main__":
         help="Maximum height for resizing (if --resize is specified)",
     )
 
+    # Font options
+    parser.add_argument(
+        "--title_font",
+        choices=["Angelina", "MarkerFelt", "Clattering", "Cravelo", "Poppins"],
+        help="Font to use for the title text",
+    )
+    parser.add_argument(
+        "--subtitle_font",
+        choices=["Poppins", "MarkerFelt", "Angelina", "Clattering", "Cravelo"],
+        help="Font to use for the subtitle text",
+    )
+    parser.add_argument(
+        "--title_font_size",
+        type=int,
+        help="Font size for the title (0 for auto-sizing)",
+    )
+    parser.add_argument(
+        "--top_subtitle_font_size",
+        type=int,
+        help="Font size for the top subtitle (0 for auto-sizing)",
+    )
+    parser.add_argument(
+        "--bottom_subtitle_font_size",
+        type=int,
+        help="Font size for the bottom subtitle (0 for auto-sizing)",
+    )
+    parser.add_argument(
+        "--use_dynamic_title_colors",
+        action="store_true",
+        help="Use dynamic title colors based on input image",
+    )
+    parser.add_argument(
+        "--no_dynamic_title_colors",
+        action="store_true",
+        help="Disable dynamic title colors",
+    )
+    parser.add_argument(
+        "--vertical_spacing",
+        type=int,
+        help="Vertical spacing between text elements (default: 20)",
+    )
+    parser.add_argument(
+        "--title_bottom_spacing",
+        type=int,
+        help="Spacing between title and bottom subtitle (default: 10)",
+    )
+
     args = parser.parse_args()
 
     logger.info("Starting pattern processing")
@@ -150,8 +247,40 @@ if __name__ == "__main__":
         logger.info("Resizing images...")
         process_images(args.input_dir, (args.max_width, args.max_height))
 
-    # Process patterns
-    if process_all_patterns(args.input_dir):
+    # Determine dynamic title colors setting
+    use_dynamic_title_colors = None
+    if hasattr(args, "use_dynamic_title_colors") and args.use_dynamic_title_colors:
+        use_dynamic_title_colors = True
+    elif hasattr(args, "no_dynamic_title_colors") and args.no_dynamic_title_colors:
+        use_dynamic_title_colors = False
+
+    # Process patterns with font, color, and spacing settings
+    if process_all_patterns(
+        args.input_dir,
+        False,  # create_video
+        title_font=args.title_font if hasattr(args, "title_font") else None,
+        subtitle_font=args.subtitle_font if hasattr(args, "subtitle_font") else None,
+        title_font_size=(
+            args.title_font_size if hasattr(args, "title_font_size") else None
+        ),
+        top_subtitle_font_size=(
+            args.top_subtitle_font_size
+            if hasattr(args, "top_subtitle_font_size")
+            else None
+        ),
+        bottom_subtitle_font_size=(
+            args.bottom_subtitle_font_size
+            if hasattr(args, "bottom_subtitle_font_size")
+            else None
+        ),
+        use_dynamic_title_colors=use_dynamic_title_colors,
+        vertical_spacing=(
+            args.vertical_spacing if hasattr(args, "vertical_spacing") else None
+        ),
+        title_bottom_subtitle_spacing=(
+            args.title_bottom_spacing if hasattr(args, "title_bottom_spacing") else None
+        ),
+    ):
         logger.info("Pattern processing completed successfully")
     else:
         logger.error("Pattern processing completed with errors")

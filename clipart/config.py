@@ -1,5 +1,5 @@
 import os
-from typing import Tuple, Optional, Dict
+from typing import Tuple, Dict
 
 # === Directories & Paths ===
 CONFIG_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -17,8 +17,8 @@ AVAILABLE_FONTS: Dict[str, str] = {
     "Angelina": os.path.join(FONTS_DIR, "Free Version Angelina.ttf"),
     "Poppins": os.path.join(FONTS_DIR, "Poppins-SemiBold.ttf"),
 }
-DEFAULT_TITLE_FONT = "Angelina"
-DEFAULT_SUBTITLE_FONT = "MarkerFelt"
+DEFAULT_TITLE_FONT = "Clattering"
+DEFAULT_SUBTITLE_FONT = "Poppins"
 
 # === Dimensions & Appearance ===
 OUTPUT_SIZE: Tuple[int, int] = (3000, 2250)
@@ -27,30 +27,23 @@ CELL_PADDING: int = 30
 
 # Title & Subtitle Settings
 SUBTITLE_TEXT_TOP = "Commercial Use"
-SUBTITLE_FONT_SIZE = 70
+SUBTITLE_FONT_SIZE = 60
 SUBTITLE_TEXT_COLOR: Tuple[int, int, int, int] = (80, 80, 80, 255)
-SUBTITLE_SPACING: int = 25
+SUBTITLE_SPACING: int = 35
 
 
 TITLE_TEXT_COLOR: Tuple[int, int, int, int] = (50, 50, 50, 255)
 TITLE_PADDING_X: int = 80
 TITLE_PADDING_Y: int = 40
-TITLE_MAX_FONT_SIZE: int = 170
+TITLE_MAX_FONT_SIZE: int = 250
 TITLE_MIN_FONT_SIZE: int = 40
 TITLE_LINE_SPACING: int = 15
 TITLE_FONT_STEP: int = 5
 TITLE_MAX_LINES: int = 3
 
-# Title Backdrop & Shadow
-TITLE_BACKDROP_PADDING_X: int = 60
-TITLE_BACKDROP_PADDING_Y: int = 30
-TITLE_BACKDROP_CORNER_RADIUS: int = 40
-TITLE_BACKDROP_OPACITY: int = 255
-TITLE_BACKDROP_BORDER_WIDTH: int = 5
-TITLE_BACKDROP_BORDER_COLOR: Tuple[int, int, int, int] = (218, 165, 32, 255)
-
 # Background Color
 DEFAULT_BG_COLOR: Tuple[int, int, int] = (248, 248, 248)
+
 
 # === Collage Layout Settings ===
 COLLAGE_SURROUND_MIN_WIDTH_FACTOR: float = 0.25
@@ -71,9 +64,6 @@ CHECKERBOARD_COLOR1: Tuple[int, int, int] = (255, 255, 255)
 CHECKERBOARD_COLOR2: Tuple[int, int, int] = (200, 200, 200)
 TRANSPARENCY_DEMO_SCALE: float = 0.7
 
-# === Grid Appearance (2x2) ===
-GRID_ITEM_SHADOW_COLOR: Tuple[int, int, int, int] = (100, 100, 100, 80)
-GRID_ITEM_SHADOW_OFFSET: Tuple[int, int] = (8, 8)
 
 # === Watermark Settings ===
 WATERMARK_DEFAULT_OPACITY: int = 100
@@ -91,30 +81,86 @@ VIDEO_FPS: int = 30
 VIDEO_TRANSITION_FRAMES: int = 20
 VIDEO_DISPLAY_FRAMES: int = 50
 
-# === Dynamic Title Color Settings ===
-USE_DYNAMIC_TITLE_COLORS = True
-DYNAMIC_TITLE_CONTRAST_THRESHOLD = 4.5
-DYNAMIC_TITLE_COLOR_CLUSTERS = 5
 
 # === Main Execution Settings ===
 DELETE_IDENTIFIERS_ON_START: bool = True
+
+# === Font Configuration ===
+# Centralized font configuration for easy modification
+FONT_CONFIG = {
+    # Main font settings
+    "TITLE_FONT": DEFAULT_TITLE_FONT,  # Default title font
+    "SUBTITLE_FONT": DEFAULT_SUBTITLE_FONT,  # Default subtitle font
+    # Font sizes
+    "TITLE_MAX_FONT_SIZE": TITLE_MAX_FONT_SIZE,
+    "TITLE_MIN_FONT_SIZE": TITLE_MIN_FONT_SIZE,
+    "SUBTITLE_FONT_SIZE": SUBTITLE_FONT_SIZE,
+    # Font spacing
+    "TITLE_LINE_SPACING": TITLE_LINE_SPACING,
+    "SUBTITLE_SPACING": SUBTITLE_SPACING,
+    # Font colors
+    "TITLE_TEXT_COLOR": TITLE_TEXT_COLOR,
+    "SUBTITLE_TEXT_COLOR": SUBTITLE_TEXT_COLOR,
+}
+
+
+# Function to update font configuration
+def update_font_config(
+    title_font=None,
+    subtitle_font=None,
+    title_max_size=None,
+    title_min_size=None,
+    subtitle_size=None,
+    subtitle_spacing=None,
+    title_line_spacing=None,
+):
+    """Update font configuration with custom values.
+
+    Args:
+        title_font: Custom title font name
+        subtitle_font: Custom subtitle font name
+        title_max_size: Custom maximum title font size
+        title_min_size: Custom minimum title font size
+        subtitle_size: Custom subtitle font size
+        subtitle_spacing: Custom spacing between title and subtitles
+        title_line_spacing: Custom spacing between title lines
+    """
+    if title_font:
+        FONT_CONFIG["TITLE_FONT"] = title_font
+    if subtitle_font:
+        FONT_CONFIG["SUBTITLE_FONT"] = subtitle_font
+    if title_max_size:
+        FONT_CONFIG["TITLE_MAX_FONT_SIZE"] = title_max_size
+    if title_min_size:
+        FONT_CONFIG["TITLE_MIN_FONT_SIZE"] = title_min_size
+    if subtitle_size:
+        FONT_CONFIG["SUBTITLE_FONT_SIZE"] = subtitle_size
+    if subtitle_spacing:
+        FONT_CONFIG["SUBTITLE_SPACING"] = subtitle_spacing
+    if title_line_spacing:
+        FONT_CONFIG["TITLE_LINE_SPACING"] = title_line_spacing
+
 
 # === Title Style Arguments ===
 # These arguments are passed to the add_title_bar_and_text function
 # Include both parameter names to support both implementations
 TITLE_STYLE_ARGS = {
     # Font names
-    "font_name": "Angelina",  # For image_processing.py
-    "title_font_name": "Angelina",  # For processing/title.py
-    "subtitle_font_name": "MarkerFelt",
+    "font_name": FONT_CONFIG["TITLE_FONT"],  # For image_processing.py
+    "title_font_name": FONT_CONFIG["TITLE_FONT"],  # For processing/title.py
+    "subtitle_font_name": FONT_CONFIG["SUBTITLE_FONT"],
     # Font sizes
-    "max_font_size": TITLE_MAX_FONT_SIZE,  # For image_processing.py
-    "title_max_font_size": TITLE_MAX_FONT_SIZE,  # For processing/title.py
-    "min_font_size": TITLE_MIN_FONT_SIZE,  # For image_processing.py
-    "title_min_font_size": TITLE_MIN_FONT_SIZE,  # For processing/title.py
+    "max_font_size": FONT_CONFIG["TITLE_MAX_FONT_SIZE"],  # For image_processing.py
+    "title_max_font_size": FONT_CONFIG[
+        "TITLE_MAX_FONT_SIZE"
+    ],  # For processing/title.py
+    "min_font_size": FONT_CONFIG["TITLE_MIN_FONT_SIZE"],  # For image_processing.py
+    "title_min_font_size": FONT_CONFIG[
+        "TITLE_MIN_FONT_SIZE"
+    ],  # For processing/title.py
     # Line spacing and steps
-    "line_spacing": TITLE_LINE_SPACING,  # For image_processing.py
-    "title_line_spacing": TITLE_LINE_SPACING,  # For processing/title.py
+    "line_spacing": FONT_CONFIG["TITLE_LINE_SPACING"],  # For image_processing.py
+    "title_line_spacing": FONT_CONFIG["TITLE_LINE_SPACING"],  # For processing/title.py
     "font_step": TITLE_FONT_STEP,  # For image_processing.py
     "title_font_step": TITLE_FONT_STEP,  # For processing/title.py
     "max_lines": TITLE_MAX_LINES,  # For image_processing.py
@@ -124,16 +170,9 @@ TITLE_STYLE_ARGS = {
     "title_padding_x": TITLE_PADDING_X,  # For processing/title.py
     "title_padding_y": TITLE_PADDING_Y,  # For processing/title.py
     # Subtitle settings
-    "subtitle_spacing": SUBTITLE_SPACING,
-    "subtitle_font_size": SUBTITLE_FONT_SIZE,
+    "subtitle_spacing": FONT_CONFIG["SUBTITLE_SPACING"],
+    "subtitle_font_size": FONT_CONFIG["SUBTITLE_FONT_SIZE"],
     # Colors
-    "text_color": TITLE_TEXT_COLOR,
-    "subtitle_text_color": SUBTITLE_TEXT_COLOR,
-    # Backdrop settings
-    "backdrop_padding_x": TITLE_BACKDROP_PADDING_X,
-    "backdrop_padding_y": TITLE_BACKDROP_PADDING_Y,
-    "backdrop_corner_radius": TITLE_BACKDROP_CORNER_RADIUS,
-    "backdrop_opacity": TITLE_BACKDROP_OPACITY,
-    "border_width": TITLE_BACKDROP_BORDER_WIDTH,
-    "border_color": TITLE_BACKDROP_BORDER_COLOR,
+    "text_color": FONT_CONFIG["TITLE_TEXT_COLOR"],
+    "subtitle_text_color": FONT_CONFIG["SUBTITLE_TEXT_COLOR"],
 }

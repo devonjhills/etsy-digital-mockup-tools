@@ -56,6 +56,34 @@ def main():
         choices=["gemini", "openai"],
         help="AI provider to use for content generation (overrides environment variable)",
     )
+    all_parser.add_argument(
+        "--title_font",
+        default=None,
+        help="Font to use for the title text (e.g., Angelina, Clattering, MarkerFelt, Poppins)",
+    )
+    all_parser.add_argument(
+        "--subtitle_font",
+        default=None,
+        help="Font to use for the subtitle text (e.g., MarkerFelt, Angelina, Clattering, Poppins)",
+    )
+    all_parser.add_argument(
+        "--title_font_size",
+        type=int,
+        default=None,
+        help="Maximum font size for the title text (default: 170)",
+    )
+    all_parser.add_argument(
+        "--subtitle_font_size",
+        type=int,
+        default=None,
+        help="Font size for the subtitle text (default: 70)",
+    )
+    all_parser.add_argument(
+        "--subtitle_spacing",
+        type=int,
+        default=None,
+        help="Spacing between title and subtitles (default: 35)",
+    )
 
     # Resize command
     resize_parser = subparsers.add_parser("resize", help="Resize clipart images")
@@ -86,6 +114,34 @@ def main():
     mockup_parser.add_argument(
         "--create_video", action="store_true", help="Create video mockups"
     )
+    mockup_parser.add_argument(
+        "--title_font",
+        default=None,
+        help="Font to use for the title text (e.g., Angelina, Clattering, MarkerFelt, Poppins)",
+    )
+    mockup_parser.add_argument(
+        "--subtitle_font",
+        default=None,
+        help="Font to use for the subtitle text (e.g., MarkerFelt, Angelina, Clattering, Poppins)",
+    )
+    mockup_parser.add_argument(
+        "--title_font_size",
+        type=int,
+        default=None,
+        help="Maximum font size for the title text (default: 170)",
+    )
+    mockup_parser.add_argument(
+        "--subtitle_font_size",
+        type=int,
+        default=None,
+        help="Font size for the subtitle text (default: 70)",
+    )
+    mockup_parser.add_argument(
+        "--subtitle_spacing",
+        type=int,
+        default=None,
+        help="Spacing between title and subtitles (default: 35)",
+    )
 
     # Zip command
     zip_parser = subparsers.add_parser("zip", help="Create zip files of clipart images")
@@ -114,7 +170,16 @@ def main():
 
         # Step 2: Create mockups
         logger.info("Step 2: Creating clipart mockups...")
-        process_clipart(args.input_dir, args.title, args.create_video)
+        process_clipart(
+            args.input_dir,
+            args.title,
+            args.create_video,
+            args.title_font if hasattr(args, "title_font") else None,
+            args.subtitle_font if hasattr(args, "subtitle_font") else None,
+            args.title_font_size if hasattr(args, "title_font_size") else None,
+            args.subtitle_font_size if hasattr(args, "subtitle_font_size") else None,
+            args.subtitle_spacing if hasattr(args, "subtitle_spacing") else None,
+        )
 
         # Set AI provider if specified
         if hasattr(args, "provider") and args.provider:
@@ -148,6 +213,11 @@ def main():
             args.input_dir,
             args.title,
             args.create_video if hasattr(args, "create_video") else False,
+            args.title_font if hasattr(args, "title_font") else None,
+            args.subtitle_font if hasattr(args, "subtitle_font") else None,
+            args.title_font_size if hasattr(args, "title_font_size") else None,
+            args.subtitle_font_size if hasattr(args, "subtitle_font_size") else None,
+            args.subtitle_spacing if hasattr(args, "subtitle_spacing") else None,
         )
 
     elif args.command == "zip":
