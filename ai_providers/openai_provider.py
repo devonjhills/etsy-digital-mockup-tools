@@ -145,19 +145,53 @@ class OpenAIProvider(AIProvider):
                     title = title_match.group(1).strip()
                     logger.info(f"Extracted title: {title}")
 
+                # First, find the position of 'Tags:' to properly split the content
+                tags_pos = content.find("\nTags:")
+                if tags_pos == -1:
+                    tags_pos = content.find("\nTags ")
+
+                # Initialize description
+                description = ""
+
                 # Look for description - capture everything between Description: and Tags:
-                desc_match = re.search(
-                    r"(?:^|\n)Description:?\s*([\s\S]*?)(?:\n(?:Tags:|$))",
-                    content,
-                    re.IGNORECASE,
+                if tags_pos != -1:
+                    # If we found Tags:, extract description up to that point
+                    # First find where Description: starts
+                    desc_pos = content.find("Description:")
+                    if desc_pos == -1:
+                        desc_pos = content.find("Description ")
+
+                    if desc_pos != -1 and desc_pos < tags_pos:
+                        # Extract from after 'Description:' to before '\nTags:'
+                        desc_start = desc_pos + len("Description:")
+                        description = content[desc_start:tags_pos].strip()
+                    else:
+                        # Fallback to regex if we can't find Description: or it's after Tags:
+                        desc_match = re.search(
+                            r"(?:^|\n)Description:?\s*([\s\S]*?)\nTags:",
+                            content,
+                            re.IGNORECASE,
+                        )
+                        if desc_match:
+                            description = desc_match.group(1).strip()
+                else:
+                    # If no Tags: section, use regex to capture until the end
+                    desc_match = re.search(
+                        r"(?:^|\n)Description:?\s*([\s\S]*?)$",
+                        content,
+                        re.IGNORECASE,
+                    )
+                    if desc_match:
+                        description = desc_match.group(1).strip()
+
+                # Log the extracted description
+                logger.info(
+                    f"Extracted description: {description[:50] if description else 'None'}..."
                 )
-                if desc_match:
-                    description = desc_match.group(1).strip()
-                    logger.info(f"Extracted description: {description[:50]}...")
 
                 # Look for tags
                 tags_match = re.search(
-                    r"(?:^|\n)Tags:?\s*([\s\S]*?)(?:\n\n|\n(?:[A-Za-z]+:)|\Z)",
+                    r"(?:^|\n)Tags:?\s*([\s\S]*?)$",
                     content,
                     re.IGNORECASE,
                 )

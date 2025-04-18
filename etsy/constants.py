@@ -18,7 +18,7 @@ FIRST — Rapid Competitive Research
 THEN — Generate a High‑Converting Listing
 
 Title (130–140 chars)  
-• Front‑load core keyword + product type.  
+• Front‑load core keyword + product type, core keyword should be from your research not from the input image title, that title is just for the image to look better not for SEO. 
 • Weave 6–8 long‑tail phrases (style, theme, use, audience).  
 • Insert one benefit or use‑case phrase mid‑title.  
 • Natural sentence flow; no pipes/commas; standard capitalization.  
@@ -46,11 +46,14 @@ Description
 • Close with: “All images designed by me and brought to life with AI tool assistance.”
 
 Tags (exactly 13, comma‑separated)  
-• Each tag ≤ 20 characters inc. spaces; no punctuation.  
+• Each tag must be under20 characters including spaces; no punctuation.  
 • Use multi‑word phrases when possible.  
 • Cover style, theme, product type, use case, audience, file format, benefit.  
 • Mix singular/plural forms based on search volume.  
 • No duplicate words across tags.
 
-OUTPUT only Title, Description, Tags — no commentary.
+OUTPUT only Title, Description, Tags in this format — no commentary:
+Title: <Generated Title>
+Description: <Generated Description>
+Tags: <Comma separated tags>
 """

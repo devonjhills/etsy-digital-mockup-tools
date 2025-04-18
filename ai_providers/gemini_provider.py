@@ -183,20 +183,49 @@ class GeminiProvider(AIProvider):
             else:
                 logger.warning("Failed to extract title from Gemini API response")
 
-            # Extract description
-            desc_match = re.search(
-                r"Description:\s*([\s\S]+?)(?:\n\s*Tags:|$)", content, re.DOTALL
-            )
-            if desc_match:
-                description = desc_match.group(1).strip()
+            # First, find the position of 'Tags:' to properly split the content
+            tags_pos = content.find("\nTags:")
+            if tags_pos == -1:
+                tags_pos = content.find("\nTags ")
+
+            # Initialize description
+            description = ""
+
+            # Look for description - capture everything between Description: and Tags:
+            if tags_pos != -1:
+                # If we found Tags:, extract description up to that point
+                # First find where Description: starts
+                desc_pos = content.find("Description:")
+                if desc_pos == -1:
+                    desc_pos = content.find("Description ")
+
+                if desc_pos != -1 and desc_pos < tags_pos:
+                    # Extract from after 'Description:' to before '\nTags:'
+                    desc_start = desc_pos + len("Description:")
+                    description = content[desc_start:tags_pos].strip()
+                else:
+                    # Fallback to regex if we can't find Description: or it's after Tags:
+                    desc_match = re.search(
+                        r"Description:\s*([\s\S]*?)\nTags:", content, re.DOTALL
+                    )
+                    if desc_match:
+                        description = desc_match.group(1).strip()
+            else:
+                # If no Tags: section, use regex to capture until the end
+                desc_match = re.search(
+                    r"Description:\s*([\s\S]*?)$", content, re.DOTALL
+                )
+                if desc_match:
+                    description = desc_match.group(1).strip()
+
+            # Log the extracted description
+            if description:
                 logger.info(f"Extracted description with length: {len(description)}")
             else:
                 logger.warning("Failed to extract description from Gemini API response")
 
             # Extract tags
-            tags_match = re.search(
-                r"Tags:\s*(.+?)(?:\n\d{4}-\d{2}-\d{2}|$)", content, re.DOTALL
-            )
+            tags_match = re.search(r"Tags:\s*([\s\S]*?)$", content, re.DOTALL)
             if tags_match:
                 tags_text = tags_match.group(1).strip()
                 # Split by comma and clean up
