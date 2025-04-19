@@ -28,8 +28,8 @@ def process_pattern_folder(
     top_subtitle_font_size: int = None,
     bottom_subtitle_font_size: int = None,
     use_dynamic_title_colors: bool = None,
-    vertical_spacing: int = None,
-    title_bottom_subtitle_spacing: int = None,
+    top_subtitle_padding: int = None,
+    bottom_subtitle_padding: int = None,
 ) -> bool:
     """
     Process a single pattern folder.
@@ -81,8 +81,8 @@ def process_pattern_folder(
             top_subtitle_font_size=top_subtitle_font_size,
             bottom_subtitle_font_size=bottom_subtitle_font_size,
             use_dynamic_title_colors=use_dynamic_title_colors,
-            vertical_spacing=vertical_spacing,
-            title_bottom_subtitle_spacing=title_bottom_subtitle_spacing,
+            top_subtitle_padding=top_subtitle_padding,
+            bottom_subtitle_padding=bottom_subtitle_padding,
         )
 
         # Create grid mockup with borders
@@ -108,8 +108,8 @@ def process_all_patterns(
     top_subtitle_font_size: int = None,
     bottom_subtitle_font_size: int = None,
     use_dynamic_title_colors: bool = None,
-    vertical_spacing: int = None,
-    title_bottom_subtitle_spacing: int = None,
+    top_subtitle_padding: int = None,
+    bottom_subtitle_padding: int = None,
 ) -> bool:
     """
     Process all pattern folders in the base input directory.
@@ -156,8 +156,8 @@ def process_all_patterns(
             top_subtitle_font_size=top_subtitle_font_size,
             bottom_subtitle_font_size=bottom_subtitle_font_size,
             use_dynamic_title_colors=use_dynamic_title_colors,
-            vertical_spacing=vertical_spacing,
-            title_bottom_subtitle_spacing=title_bottom_subtitle_spacing,
+            top_subtitle_padding=top_subtitle_padding,
+            bottom_subtitle_padding=bottom_subtitle_padding,
         ):
             success = False
 
@@ -228,14 +228,14 @@ if __name__ == "__main__":
         help="Disable dynamic title colors",
     )
     parser.add_argument(
-        "--vertical_spacing",
+        "--top_subtitle_padding",
         type=int,
-        help="Vertical spacing between text elements (default: 20)",
+        help="Padding above the top subtitle (default: 30)",
     )
     parser.add_argument(
-        "--title_bottom_spacing",
+        "--bottom_subtitle_padding",
         type=int,
-        help="Spacing between title and bottom subtitle (default: 10)",
+        help="Padding below the bottom subtitle (default: 30)",
     )
 
     args = parser.parse_args()
@@ -274,11 +274,13 @@ if __name__ == "__main__":
             else None
         ),
         use_dynamic_title_colors=use_dynamic_title_colors,
-        vertical_spacing=(
-            args.vertical_spacing if hasattr(args, "vertical_spacing") else None
+        top_subtitle_padding=(
+            args.top_subtitle_padding if hasattr(args, "top_subtitle_padding") else None
         ),
-        title_bottom_subtitle_spacing=(
-            args.title_bottom_spacing if hasattr(args, "title_bottom_spacing") else None
+        bottom_subtitle_padding=(
+            args.bottom_subtitle_padding
+            if hasattr(args, "bottom_subtitle_padding")
+            else None
         ),
     ):
         logger.info("Pattern processing completed successfully")

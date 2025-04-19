@@ -686,22 +686,17 @@ def create_dynamic_overlay(
     padding_x = 40  # Horizontal padding
     padding_y = 30  # Vertical padding
 
-    # Get spacing values from configuration
-    vertical_spacing = config.FONT_CONFIG[
-        "VERTICAL_SPACING"
-    ]  # Default space between text elements
-    title_bottom_subtitle_spacing = config.FONT_CONFIG[
-        "TITLE_BOTTOM_SUBTITLE_SPACING"
-    ]  # Reduced spacing between title and bottom subtitle
+    # Get padding values from configuration
+    top_subtitle_padding = config.FONT_CONFIG["TOP_SUBTITLE_PADDING"]
+    bottom_subtitle_padding = config.FONT_CONFIG["BOTTOM_SUBTITLE_PADDING"]
 
-    # Calculate total text height with spacing
-    # Use reduced spacing between title and bottom subtitle
+    # Calculate total text height with padding
     total_text_height = (
-        subtitle_height
-        + vertical_spacing  # Space between top subtitle and title
-        + title_height
-        + title_bottom_subtitle_spacing  # Reduced space between title and bottom subtitle
-        + bottom_subtitle_height
+        top_subtitle_padding  # Padding above top subtitle
+        + subtitle_height  # Top subtitle height
+        + title_height  # Title height (centered)
+        + bottom_subtitle_height  # Bottom subtitle height
+        + bottom_subtitle_padding  # Padding below bottom subtitle
     )
 
     # Calculate text backdrop dimensions based on text content
@@ -835,20 +830,19 @@ def create_dynamic_overlay(
     )
 
     # Add text
-    # Position text elements
-    subtitle_x = (width - subtitle_width) // 2
-    # Move the top subtitle up to compensate for larger font size
-    subtitle_offset_up = 15  # Pixels to move the subtitle up
-    subtitle_y = text_y + padding_y - subtitle_offset_up
+    # Position text elements with perfect centering
 
-    # Move the title up by reducing the space between top subtitle and title
-    title_offset_up = 20  # Pixels to move the title up
+    # Center the title vertically and horizontally
     title_x = (width - title_width) // 2
-    title_y = subtitle_y + subtitle_height + vertical_spacing - title_offset_up
+    title_y = text_y + (text_height - title_height) // 2
 
-    # Position the bottom subtitle relative to the title with reduced spacing
+    # Position top subtitle above the title with padding
+    subtitle_x = (width - subtitle_width) // 2
+    subtitle_y = title_y - subtitle_height - top_subtitle_padding // 2
+
+    # Position bottom subtitle below the title with padding
     bottom_subtitle_x = (width - bottom_subtitle_width) // 2
-    bottom_subtitle_y = title_y + title_height + title_bottom_subtitle_spacing
+    bottom_subtitle_y = title_y + title_height + bottom_subtitle_padding // 2
 
     # Draw text elements with dynamic color selection for readability
     # Top subtitle
@@ -890,8 +884,8 @@ def create_main_mockup(
     top_subtitle_font_size: int = None,
     bottom_subtitle_font_size: int = None,
     use_dynamic_title_colors: bool = None,
-    vertical_spacing: int = None,
-    title_bottom_subtitle_spacing: int = None,
+    top_subtitle_padding: int = None,
+    bottom_subtitle_padding: int = None,
 ) -> Optional[str]:
     """
     Creates the main 2x6 grid mockup with a dynamic overlay.
@@ -913,8 +907,8 @@ def create_main_mockup(
         or top_subtitle_font_size is not None
         or bottom_subtitle_font_size is not None
         or use_dynamic_title_colors is not None
-        or vertical_spacing is not None
-        or title_bottom_subtitle_spacing is not None
+        or top_subtitle_padding is not None
+        or bottom_subtitle_padding is not None
     ):
         config.update_font_config(
             title_font=title_font,
@@ -923,8 +917,8 @@ def create_main_mockup(
             top_subtitle_font_size=top_subtitle_font_size,
             bottom_subtitle_font_size=bottom_subtitle_font_size,
             use_dynamic_title_colors=use_dynamic_title_colors,
-            vertical_spacing=vertical_spacing,
-            title_bottom_subtitle_spacing=title_bottom_subtitle_spacing,
+            top_subtitle_padding=top_subtitle_padding,
+            bottom_subtitle_padding=bottom_subtitle_padding,
         )
 
     # Log whether dynamic title colors are enabled

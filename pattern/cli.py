@@ -87,14 +87,14 @@ def main():
     )
     # Spacing options
     all_parser.add_argument(
-        "--vertical_spacing",
+        "--top_subtitle_padding",
         type=int,
-        help="Vertical spacing between text elements (default: 20)",
+        help="Padding above the top subtitle (default: 30)",
     )
     all_parser.add_argument(
-        "--title_bottom_spacing",
+        "--bottom_subtitle_padding",
         type=int,
-        help="Spacing between title and bottom subtitle (default: 10)",
+        help="Padding below the bottom subtitle (default: 30)",
     )
 
     # Resize command
@@ -158,14 +158,14 @@ def main():
     )
     # Spacing options
     mockup_parser.add_argument(
-        "--vertical_spacing",
+        "--top_subtitle_padding",
         type=int,
-        help="Vertical spacing between text elements (default: 20)",
+        help="Padding above the top subtitle (default: 30)",
     )
     mockup_parser.add_argument(
-        "--title_bottom_spacing",
+        "--bottom_subtitle_padding",
         type=int,
-        help="Spacing between title and bottom subtitle (default: 10)",
+        help="Padding below the bottom subtitle (default: 30)",
     )
 
     # Zip command
@@ -206,18 +206,22 @@ def main():
             use_dynamic_title_colors = False
             logger.info("Using default title colors (dynamic colors disabled)")
 
-        # Get spacing settings
-        vertical_spacing = (
-            args.vertical_spacing if hasattr(args, "vertical_spacing") else None
+        # Get padding settings
+        top_subtitle_padding = (
+            args.top_subtitle_padding if hasattr(args, "top_subtitle_padding") else None
         )
-        title_bottom_spacing = (
-            args.title_bottom_spacing if hasattr(args, "title_bottom_spacing") else None
+        bottom_subtitle_padding = (
+            args.bottom_subtitle_padding
+            if hasattr(args, "bottom_subtitle_padding")
+            else None
         )
 
-        if vertical_spacing is not None:
-            logger.info(f"Using custom vertical spacing: {vertical_spacing}")
-        if title_bottom_spacing is not None:
-            logger.info(f"Using custom title-bottom spacing: {title_bottom_spacing}")
+        if top_subtitle_padding is not None:
+            logger.info(f"Using custom top subtitle padding: {top_subtitle_padding}")
+        if bottom_subtitle_padding is not None:
+            logger.info(
+                f"Using custom bottom subtitle padding: {bottom_subtitle_padding}"
+            )
 
         if not process_all_patterns(
             args.input_dir,
@@ -240,8 +244,8 @@ def main():
                 else None
             ),
             use_dynamic_title_colors=use_dynamic_title_colors,
-            vertical_spacing=vertical_spacing,
-            title_bottom_subtitle_spacing=title_bottom_spacing,
+            top_subtitle_padding=top_subtitle_padding,
+            bottom_subtitle_padding=bottom_subtitle_padding,
         ):
             logger.error("Error creating pattern mockups")
             sys.exit(1)
@@ -283,18 +287,22 @@ def main():
             use_dynamic_title_colors = False
             logger.info("Using default title colors (dynamic colors disabled)")
 
-        # Get spacing settings
-        vertical_spacing = (
-            args.vertical_spacing if hasattr(args, "vertical_spacing") else None
+        # Get padding settings
+        top_subtitle_padding = (
+            args.top_subtitle_padding if hasattr(args, "top_subtitle_padding") else None
         )
-        title_bottom_spacing = (
-            args.title_bottom_spacing if hasattr(args, "title_bottom_spacing") else None
+        bottom_subtitle_padding = (
+            args.bottom_subtitle_padding
+            if hasattr(args, "bottom_subtitle_padding")
+            else None
         )
 
-        if vertical_spacing is not None:
-            logger.info(f"Using custom vertical spacing: {vertical_spacing}")
-        if title_bottom_spacing is not None:
-            logger.info(f"Using custom title-bottom spacing: {title_bottom_spacing}")
+        if top_subtitle_padding is not None:
+            logger.info(f"Using custom top subtitle padding: {top_subtitle_padding}")
+        if bottom_subtitle_padding is not None:
+            logger.info(
+                f"Using custom bottom subtitle padding: {bottom_subtitle_padding}"
+            )
 
         if not process_all_patterns(
             args.input_dir,
@@ -317,8 +325,8 @@ def main():
                 else None
             ),
             use_dynamic_title_colors=use_dynamic_title_colors,
-            vertical_spacing=vertical_spacing,
-            title_bottom_subtitle_spacing=title_bottom_spacing,
+            top_subtitle_padding=top_subtitle_padding,
+            bottom_subtitle_padding=bottom_subtitle_padding,
         ):
             logger.error("Error creating pattern mockups")
             sys.exit(1)

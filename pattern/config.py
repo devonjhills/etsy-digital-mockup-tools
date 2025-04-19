@@ -34,9 +34,9 @@ DYNAMIC_TITLE_CONTRAST_THRESHOLD = 4.5  # WCAG AA standard for normal text
 DYNAMIC_TITLE_COLOR_CLUSTERS = 5  # Number of color clusters to extract from images
 
 # === Spacing Settings ===
-# Vertical spacing between text elements
-VERTICAL_SPACING = 20  # Default spacing between text elements
-TITLE_BOTTOM_SUBTITLE_SPACING = 10  # Reduced spacing between title and bottom subtitle
+# Padding for subtitles
+TOP_SUBTITLE_PADDING = 30  # Padding above the top subtitle
+BOTTOM_SUBTITLE_PADDING = 30  # Padding below the bottom subtitle
 
 # === Font Configuration ===
 # Centralized font configuration for easy modification
@@ -53,8 +53,8 @@ FONT_CONFIG = {
     "DYNAMIC_TITLE_CONTRAST_THRESHOLD": DYNAMIC_TITLE_CONTRAST_THRESHOLD,
     "DYNAMIC_TITLE_COLOR_CLUSTERS": DYNAMIC_TITLE_COLOR_CLUSTERS,
     # Spacing settings
-    "VERTICAL_SPACING": VERTICAL_SPACING,
-    "TITLE_BOTTOM_SUBTITLE_SPACING": TITLE_BOTTOM_SUBTITLE_SPACING,
+    "TOP_SUBTITLE_PADDING": TOP_SUBTITLE_PADDING,
+    "BOTTOM_SUBTITLE_PADDING": BOTTOM_SUBTITLE_PADDING,
 }
 
 
@@ -67,8 +67,8 @@ def update_font_config(
     use_dynamic_title_colors=None,
     dynamic_title_contrast_threshold=None,
     dynamic_title_color_clusters=None,
-    vertical_spacing=None,
-    title_bottom_subtitle_spacing=None,
+    top_subtitle_padding=None,
+    bottom_subtitle_padding=None,
 ):
     """Update font and color configuration with custom values.
 
@@ -108,8 +108,8 @@ def update_font_config(
     if dynamic_title_color_clusters is not None:
         FONT_CONFIG["DYNAMIC_TITLE_COLOR_CLUSTERS"] = dynamic_title_color_clusters
 
-    if vertical_spacing is not None:
-        FONT_CONFIG["VERTICAL_SPACING"] = vertical_spacing
+    if top_subtitle_padding is not None:
+        FONT_CONFIG["TOP_SUBTITLE_PADDING"] = top_subtitle_padding
 
-    if title_bottom_subtitle_spacing is not None:
-        FONT_CONFIG["TITLE_BOTTOM_SUBTITLE_SPACING"] = title_bottom_subtitle_spacing
+    if bottom_subtitle_padding is not None:
+        FONT_CONFIG["BOTTOM_SUBTITLE_PADDING"] = bottom_subtitle_padding
