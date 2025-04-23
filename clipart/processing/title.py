@@ -2,7 +2,7 @@
 Module for adding titles to images.
 """
 
-import textwrap
+# No need for textwrap since we're not wrapping text anymore
 from typing import Tuple, Optional
 from PIL import Image, ImageDraw
 
@@ -18,13 +18,13 @@ def add_title_bar_and_text(
     title: str,
     subtitle_top: str = "",
     subtitle_bottom: str = "",
-    title_font_name: str = "Angelina",
-    subtitle_font_name: str = "MarkerFelt",
-    title_max_font_size: int = 200,
-    title_min_font_size: int = 40,
-    title_font_step: int = 5,
-    subtitle_font_size: int = 70,
-    title_max_lines: int = 3,
+    title_font_name: str = None,
+    subtitle_font_name: str = None,
+    title_max_font_size: int = None,
+    title_min_font_size: int = None,
+    title_font_step: int = None,
+    subtitle_font_size: int = None,
+    # title_max_lines parameter removed as we always use a single line
     title_line_spacing: int = 8,
     subtitle_spacing: int = 15,
     title_padding_x: int = 80,
@@ -46,7 +46,7 @@ def add_title_bar_and_text(
         title_min_font_size: The minimum font size for the title
         title_font_step: The step size for reducing the title font size
         subtitle_font_size: The font size for the subtitle
-        title_max_lines: The maximum number of lines for the title
+        # title_max_lines parameter removed as we always use a single line
         title_line_spacing: The spacing between title lines
         subtitle_spacing: The spacing between title and subtitle
         title_padding_x: The horizontal padding for the title
@@ -87,6 +87,27 @@ def add_title_bar_and_text(
         except Exception as resize_err:
             logger.error(f"Error resizing background image: {resize_err}.")
 
+    # Import config here to avoid circular imports
+    from clipart import config
+
+    # Use provided values or fall back to config values
+    if title_font_name is None:
+        title_font_name = config.FONT_CONFIG["TITLE_FONT"]
+    if subtitle_font_name is None:
+        subtitle_font_name = config.FONT_CONFIG["SUBTITLE_FONT"]
+    if title_max_font_size is None:
+        title_max_font_size = config.FONT_CONFIG["TITLE_MAX_FONT_SIZE"]
+    if title_min_font_size is None:
+        title_min_font_size = config.FONT_CONFIG["TITLE_MIN_FONT_SIZE"]
+    if title_font_step is None:
+        title_font_step = config.TITLE_FONT_STEP
+    if subtitle_font_size is None:
+        subtitle_font_size = config.FONT_CONFIG["SUBTITLE_FONT_SIZE"]
+
+    # Log the font settings being used
+    logger.info(f"Using title font: {title_font_name}")
+    logger.info(f"Using subtitle font: {subtitle_font_name}")
+
     # Create a draw object
     draw = ImageDraw.Draw(output_image)
 
@@ -94,55 +115,39 @@ def add_title_bar_and_text(
     title_font = get_font(title_font_name, title_max_font_size)
     subtitle_font = get_font(subtitle_font_name, subtitle_font_size)
 
-    # Calculate title text dimensions and wrap if needed
-    title_lines = []
+    # Calculate title text dimensions - always keep on a single line
+    title_lines = [title]  # Always use a single line
     title_font_size = title_max_font_size
-    max_title_width = canvas_w - (2 * title_padding_x)
+    # Reduce the title width to make images next to it more visible
+    max_title_width = int(canvas_w * 0.7) - (2 * title_padding_x)
 
+    # Find the largest font size that fits the title on one line
     while title_font_size >= title_min_font_size:
         # Use the specified title font
         title_font = get_font(title_font_name, title_font_size)
 
-        # Try to wrap the text
-        wrapped_lines = textwrap.wrap(
-            title, width=int(max_title_width / (title_font_size * 0.5))
-        )
+        # Calculate the width of the title at this font size
+        try:
+            bbox = draw.textbbox((0, 0), title, font=title_font)
+            title_width = bbox[2] - bbox[0]
+        except AttributeError:
+            title_width, _ = draw.textsize(title, font=title_font)
 
-        # Limit to max lines
-        if len(wrapped_lines) <= title_max_lines:
-            # Calculate total width and height
-            max_line_width = 0
-            total_height = 0
-
-            for line in wrapped_lines:
-                try:
-                    bbox = draw.textbbox((0, 0), line, font=title_font)
-                    line_width = bbox[2] - bbox[0]
-                    line_height = bbox[3] - bbox[1]
-                except AttributeError:
-                    line_width, line_height = draw.textsize(line, font=title_font)
-
-                max_line_width = max(max_line_width, line_width)
-                total_height += line_height
-
-            # Add line spacing
-            if len(wrapped_lines) > 1:
-                total_height += title_line_spacing * (len(wrapped_lines) - 1)
-
-            # Check if it fits
-            if max_line_width <= max_title_width:
-                title_lines = wrapped_lines
-                break
+        # Check if it fits on one line
+        if title_width <= max_title_width:
+            # It fits! We can use this font size
+            logger.info(f"Title fits on one line with font size {title_font_size}")
+            break
 
         # Reduce font size and try again
         title_font_size -= title_font_step
+        logger.info(f"Reducing title font size to {title_font_size}")
 
     # If we couldn't fit the text, use the smallest font size
-    if not title_lines:
+    if title_font_size < title_min_font_size:
+        title_font_size = title_min_font_size
         title_font = get_font(title_font_name, title_min_font_size)
-        title_lines = textwrap.wrap(
-            title, width=int(max_title_width / (title_min_font_size * 0.5))
-        )[:title_max_lines]
+        logger.info(f"Using minimum font size {title_min_font_size} for title")
 
     # Calculate subtitle dimensions
     subtitle_top_height = 0

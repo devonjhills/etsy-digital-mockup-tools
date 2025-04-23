@@ -1024,23 +1024,32 @@ class EtsyIntegration:
 
                     # Create title text for the mockup
                     title = product_name
+                    # Import clipart config to use the shared subtitle format
+                    from clipart import config as clipart_config
+
                     subtitle_bottom_text = (
-                        f"{num_images} clip arts • 300 DPI • Transparent PNG"
+                        clipart_config.SUBTITLE_BOTTOM_TEXT_FORMAT.format(
+                            num_images=num_images
+                        )
                     )
 
-                    # Create main mockup using square_mockup (2x3 grid)
-                    logger.info("Creating 2x3 grid layout for main mockup...")
+                    # Create main mockup using square_mockup with 8 images
+                    logger.info(
+                        "Creating square mockup with 8 images layout for main mockup..."
+                    )
 
-                    # Create the main mockup using the square_mockup module (2x3 grid)
+                    # Create the main mockup using the square_mockup module with 8 images
                     final_main_mockup, used_images = create_square_mockup(
                         input_image_paths=input_image_paths[
-                            :6
-                        ],  # Use up to 6 images for 2x3 grid
-                        canvas_bg_image=canvas_bg_main.copy(),
+                            :8
+                        ],  # Use up to 8 images for the mockup
+                        canvas_bg_image=canvas_bg_2x2.copy(),  # Use the 2000x2000 canvas
                         title=title,
-                        subtitle_top="Commercial Use",
+                        subtitle_top=clipart_config.SUBTITLE_TEXT_TOP.format(
+                            num_images=num_images
+                        ),
                         subtitle_bottom=subtitle_bottom_text,
-                        grid_size=(3000, 2250),  # Match canvas size
+                        grid_size=(2000, 2000),  # Use square 2000x2000 size
                         padding=30,
                     )
 
@@ -1051,8 +1060,8 @@ class EtsyIntegration:
                         # Create a simple grid as fallback
                         final_main_mockup = create_2x2_grid(
                             input_image_paths=input_image_paths[:4],
-                            canvas_bg_image=canvas_bg_main.copy(),
-                            grid_size=(3000, 2250),
+                            canvas_bg_image=canvas_bg_2x2.copy(),
+                            grid_size=(2000, 2000),
                             padding=30,
                         )
                     else:

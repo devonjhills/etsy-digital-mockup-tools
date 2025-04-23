@@ -26,7 +26,10 @@ GRID_2x2_SIZE: Tuple[int, int] = (2000, 2000)
 CELL_PADDING: int = 30
 
 # Title & Subtitle Settings
-SUBTITLE_TEXT_TOP = "Commercial Use"
+# Top subtitle is a format string that will be populated with num_images at runtime
+SUBTITLE_TEXT_TOP = "{num_images} clip arts • Commercial Use"
+# Bottom subtitle format string that will be populated with num_images at runtime
+SUBTITLE_BOTTOM_TEXT_FORMAT = "300 DPI • Transparent PNG"
 SUBTITLE_FONT_SIZE = 60
 SUBTITLE_TEXT_COLOR: Tuple[int, int, int, int] = (80, 80, 80, 255)
 SUBTITLE_SPACING: int = 35

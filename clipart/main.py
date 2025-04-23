@@ -177,10 +177,12 @@ def grid_mockup(
         # 1. Main Mockup Generation
         try:
             logger.info("--- Generating Main Mockup ---")
-            subtitle_bottom_text = f"{num_images} clip arts • 300 DPI • Transparent PNG"
 
             # Create square mockup with 2x2 grid and title overlay
             output_main_filename = os.path.join(mocks_output_folder_path, "main.png")
+            subtitle_bottom_text = config.SUBTITLE_BOTTOM_TEXT_FORMAT.format(
+                num_images=num_images
+            )
 
             # Load 2x2 grid background
             canvas_bg_2x2_copy = canvas_bg_2x2.copy()
@@ -194,7 +196,7 @@ def grid_mockup(
                 input_image_paths=input_image_paths,
                 canvas_bg_image=canvas_bg_2x2_copy,
                 title=title,
-                subtitle_top=getattr(config, "SUBTITLE_TEXT_TOP", ""),
+                subtitle_top=config.SUBTITLE_TEXT_TOP.format(num_images=num_images),
                 subtitle_bottom=subtitle_bottom_text,
                 grid_size=config.GRID_2x2_SIZE,
                 padding=config.CELL_PADDING,

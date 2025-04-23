@@ -141,21 +141,32 @@ def arrange_images_around_text(
 
         positions[i] = (x1, y1, x2, y2)
 
-    # Randomize image order slightly for more organic feel
+    # Ensure we have enough images (duplicate if needed)
     image_paths = input_image_paths.copy()
+    while len(image_paths) < 8 and len(input_image_paths) > 0:
+        # Add more images by duplicating existing ones
+        image_paths.extend(
+            input_image_paths[: min(8 - len(image_paths), len(input_image_paths))]
+        )
+
+    # Randomize image order slightly for more organic feel
     if len(image_paths) > 3:
         random.shuffle(image_paths)
 
-    # Place images in the defined positions - use up to 8 images
-    for i, img_path in enumerate(
-        image_paths[: min(len(positions), len(image_paths), 8)]
-    ):
+    logger.info(f"Using {min(len(image_paths), 8)} images for the main mockup")
+
+    # Place images in the defined positions - use exactly 8 images
+    used_images = []
+    for i, img_path in enumerate(image_paths[:8]):
         try:
             # Load image
             img = safe_load_image(img_path, "RGBA")
             if not img:
                 logger.warning(f"Failed to load image: {img_path}")
                 continue
+
+            # Track successfully loaded images
+            used_images.append(img_path)
 
             # Get position
             x1, y1, x2, y2 = positions[i]
@@ -165,15 +176,21 @@ def arrange_images_around_text(
             # Resize image to fit position while maintaining aspect ratio
             img_aspect = img.width / img.height if img.height > 0 else 1
 
+            # Determine if this is a corner image (positions 0, 2, 5, 7)
+            is_corner_image = i in [0, 2, 5, 7]
+
+            # Scale factor - make corner images larger
+            scale_factor = 1.35 if is_corner_image else 1.0
+
             # For all positions, we want to fill the space completely
             # while maintaining aspect ratio
             if pos_width / pos_height > img_aspect:
                 # Position is wider than image aspect ratio, fit to width
-                img_width = pos_width
+                img_width = int(pos_width * scale_factor)
                 img_height = int(img_width / img_aspect)
             else:
                 # Position is taller than image aspect ratio, fit to height
-                img_height = pos_height
+                img_height = int(pos_height * scale_factor)
                 img_width = int(img_height * img_aspect)
 
             # Resize image
@@ -191,7 +208,10 @@ def arrange_images_around_text(
         except Exception as e:
             logger.error(f"Error processing image {img_path} for arrangement: {e}")
 
-    return result
+    # Log how many images were actually used
+    logger.info(f"Successfully placed {len(used_images)} images in the mockup")
+
+    return result, used_images
 
 
 def extract_colors_from_images(
@@ -304,13 +324,13 @@ def create_square_mockup(
     subtitle_bottom: str = "",
     grid_size: Tuple[int, int] = (2000, 2000),
     padding: int = 30,
-    title_font_name: str = "Angelina",
-    subtitle_font_name: str = "MarkerFelt",
-    title_max_font_size: int = 140,  # Smaller than the default 170
-    title_min_font_size: int = 40,
-    title_font_step: int = 5,
-    subtitle_font_size: int = 60,  # Smaller than the default 70
-    title_max_lines: int = 3,
+    title_font_name: str = None,
+    subtitle_font_name: str = None,
+    title_max_font_size: int = None,
+    title_min_font_size: int = None,
+    title_font_step: int = None,
+    subtitle_font_size: int = None,
+    # title_max_lines parameter removed as we always use a single line
     title_line_spacing: int = 15,
     subtitle_spacing: int = 25,
     title_padding_x: int = 60,  # Smaller than the default 80
@@ -332,7 +352,7 @@ def create_square_mockup(
         title_min_font_size: The minimum font size for the title
         title_font_step: The step size for reducing the title font size
         subtitle_font_size: The font size for the subtitle
-        title_max_lines: The maximum number of lines for the title
+        # title_max_lines parameter removed as we always use a single line
         title_line_spacing: The spacing between title lines
         subtitle_spacing: The spacing between title and subtitle
         title_padding_x: The horizontal padding for the title
@@ -355,6 +375,10 @@ def create_square_mockup(
     if canvas.size != grid_size:
         canvas = canvas.resize(grid_size, get_resampling_filter())
 
+    logger.info(
+        f"Creating square mockup with size {grid_size[0]}x{grid_size[1]} pixels"
+    )
+
     # Create a blank canvas for our new layout
     logger.info("Creating canvas for beautiful image arrangement...")
     grid_image = canvas.copy()
@@ -376,22 +400,52 @@ def create_square_mockup(
 
     logger.info(f"Selected text color: {selected_text_color}")
 
+    # Import config here to avoid circular imports
+    from clipart import config
+
     # Add title overlay
     logger.info("Adding title overlay...")
+
+    # Use provided values or fall back to config values
     title_style_args = {
-        "title_font_name": title_font_name,
-        "subtitle_font_name": subtitle_font_name,
-        "title_max_font_size": title_max_font_size,
-        "title_min_font_size": title_min_font_size,
-        "title_font_step": title_font_step,
-        "subtitle_font_size": subtitle_font_size,
-        "title_max_lines": title_max_lines,
+        "title_font_name": (
+            title_font_name
+            if title_font_name is not None
+            else config.FONT_CONFIG["TITLE_FONT"]
+        ),
+        "subtitle_font_name": (
+            subtitle_font_name
+            if subtitle_font_name is not None
+            else config.FONT_CONFIG["SUBTITLE_FONT"]
+        ),
+        "title_max_font_size": (
+            title_max_font_size
+            if title_max_font_size is not None
+            else config.FONT_CONFIG["TITLE_MAX_FONT_SIZE"]
+        ),
+        "title_min_font_size": (
+            title_min_font_size
+            if title_min_font_size is not None
+            else config.FONT_CONFIG["TITLE_MIN_FONT_SIZE"]
+        ),
+        "title_font_step": (
+            title_font_step if title_font_step is not None else config.TITLE_FONT_STEP
+        ),
+        "subtitle_font_size": (
+            subtitle_font_size
+            if subtitle_font_size is not None
+            else config.FONT_CONFIG["SUBTITLE_FONT_SIZE"]
+        ),
+        # title_max_lines removed as we always use a single line
         "title_line_spacing": title_line_spacing,
         "subtitle_spacing": subtitle_spacing,
         "title_padding_x": title_padding_x,
         "text_color": selected_text_color,
         "subtitle_text_color": subtitle_color,
     }
+
+    logger.info(f"Using title font: {title_style_args['title_font_name']}")
+    logger.info(f"Using subtitle font: {title_style_args['subtitle_font_name']}")
 
     # Create a blank layer for the title
     title_layer = Image.new("RGBA", grid_size, (0, 0, 0, 0))
@@ -417,7 +471,7 @@ def create_square_mockup(
 
     # Arrange images beautifully around the text
     logger.info("Arranging images beautifully around the text...")
-    arranged_image = arrange_images_around_text(
+    arranged_image, used_images = arrange_images_around_text(
         input_image_paths=input_image_paths[:8],  # Use first 8 images
         canvas=grid_image,
         text_bounds=text_bounds,
@@ -427,7 +481,9 @@ def create_square_mockup(
     if title_image:
         # Composite title onto arranged image
         final_image = Image.alpha_composite(arranged_image.convert("RGBA"), title_image)
-        return final_image, input_image_paths[:8]
+        logger.info(f"Final mockup created with {len(used_images)} images")
+        return final_image, used_images
     else:
         logger.warning("Failed to add title overlay. Returning arranged image only.")
-        return arranged_image, input_image_paths[:8]
+        logger.info(f"Final mockup created with {len(used_images)} images")
+        return arranged_image, used_images

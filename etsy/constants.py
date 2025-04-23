@@ -39,6 +39,7 @@ Tags (exactly 13, comma‑separated)
 • Cover style, theme, product type, use case, audience, file format, benefit.  
 • Mix singular/plural forms based on search volume.  
 • Avoid duplicate words across tags.  
+• Avoid generic terms, focus on SEO optimized short phrases that customers actually search for to find this listing
 
 OUTPUT only Title, Description, Tags in this format — nothing else:  
 Title: <Generated Title>  
