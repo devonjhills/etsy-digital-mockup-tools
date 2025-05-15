@@ -54,7 +54,10 @@ def load_images(image_paths: List[str]) -> List[Image.Image]:
 
 
 def get_font(font_name: str, size: int) -> Optional[ImageFont.FreeTypeFont]:
-    """Loads a font by name from AVAILABLE_FONTS, with fallback."""
+    """
+    Loads a font by name from system fonts or AVAILABLE_FONTS, with fallback.
+    Checks system fonts first, then project fonts.
+    """
     print(f"Loading font: {font_name} at size {size}")
 
     # Check if font_name is already a path
@@ -78,7 +81,46 @@ def get_font(font_name: str, size: int) -> Optional[ImageFont.FreeTypeFont]:
     else:
         print(f"Font '{font_name}' not found in config or path invalid: {font_path}")
 
-    # Try fallbacks
+    # System font directories
+    system_font_dirs = [
+        # macOS system fonts
+        "/System/Library/Fonts",
+        "/Library/Fonts",
+        # User fonts
+        os.path.expanduser("~/Library/Fonts"),
+    ]
+
+    # Try to find the font in system font directories
+    for font_dir in system_font_dirs:
+        if os.path.exists(font_dir):
+            print(f"Looking for fonts in system directory: {font_dir}")
+            try:
+                font_files = os.listdir(font_dir)
+                # Try exact match first
+                if f"{font_name}.ttf" in font_files:
+                    font_path = os.path.join(font_dir, f"{font_name}.ttf")
+                    print(f"Found exact match for system font: {font_path}")
+                    try:
+                        return ImageFont.truetype(font_path, size)
+                    except Exception as e:
+                        print(f"Error loading system font {font_path}: {e}")
+
+                # Try to find a partial match
+                for font_file in font_files:
+                    if (
+                        font_file.lower().endswith((".ttf", ".otf"))
+                        and font_name.lower() in font_file.lower()
+                    ):
+                        font_path = os.path.join(font_dir, font_file)
+                        print(f"Found matching system font: {font_path}")
+                        try:
+                            return ImageFont.truetype(font_path, size)
+                        except Exception as e:
+                            print(f"Error loading system font {font_path}: {e}")
+            except Exception as e:
+                print(f"Error accessing system font directory {font_dir}: {e}")
+
+    # Try fallbacks from config
     print("Trying fallback fonts...")
     for key, path in config.AVAILABLE_FONTS.items():
         if os.path.exists(path):

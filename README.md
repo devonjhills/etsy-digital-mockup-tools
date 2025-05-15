@@ -44,7 +44,7 @@ The toolkit streamlines the entire workflow from product creation to Etsy listin
 - **SEO Optimization**: Generate listing titles, descriptions, and tags
 - **Image Analysis**: Extract product details from mockup images
 - **Content Generation**: Create compelling marketing copy
-- **AI-Powered**: Leverages Google Gemini 2.0 Flash for intelligent content generation
+- **AI-Powered**: Leverages Google Gemini for intelligent content generation
 
 ### 🖥️ User Interface
 
@@ -76,7 +76,7 @@ mockup-tools/
 - **Flask**: Web framework for the GUI
 - **Pillow (PIL)**: Image processing and manipulation
 - **OpenCV**: Advanced image processing and video creation
-- **AI Integration**: Google Gemini 2.0 Flash for image analysis and content generation
+- **AI Integration**: Google Gemini for image analysis and content generation
 - **Etsy API v3**: E-commerce platform integration
 - **OAuth 2.0**: Secure authentication with PKCE flow
 - **JavaScript/CSS**: Frontend enhancements
@@ -106,7 +106,7 @@ mockup-tools/
 
 ### AI Integration
 
-- **Prompt Engineering**: Crafting effective AI prompts for Gemini 2.0 Flash
+- **Prompt Engineering**: Crafting effective AI prompts for Gemini
 - **Content Generation**: AI-powered SEO optimization
 - **Image Analysis**: Extracting meaningful content from product images
 

@@ -23,29 +23,25 @@ try:
     import google.generativeai as genai
     from google.generativeai.types import HarmCategory, HarmBlockThreshold
 
-    print("Gemini API client found.")
-
     # Check if GEMINI_API_KEY is set
     gemini_api_key = os.environ.get("GEMINI_API_KEY")
     if gemini_api_key:
         # Configure the Gemini API
         genai.configure(api_key=gemini_api_key)
-        print(
-            f"Gemini API configured with key: {gemini_api_key[:4]}...{gemini_api_key[-4:]}"
-        )
+        print(f"Gemini API configured successfully")
 
         # Test the API connection
         try:
             model_name = os.environ.get("GEMINI_MODEL", "gemini-2.0-flash")
             model = genai.GenerativeModel(model_name)
-            print(f"Successfully initialized Gemini model: {model_name}")
+            print(f"Initialized Gemini model: {model_name}")
         except Exception as e:
             print(f"Error initializing Gemini model: {e}")
     else:
-        print("GEMINI_API_KEY not found in environment variables. Set it in .env file.")
+        print("GEMINI_API_KEY not found in environment variables")
 
 except ImportError:
-    print("Gemini API client not found. Installing...")
+    print("Installing Gemini API client...")
     try:
         subprocess.check_call(
             [sys.executable, "-m", "pip", "install", "google-generativeai"]
@@ -53,20 +49,14 @@ except ImportError:
         import google.generativeai as genai
         from google.generativeai.types import HarmCategory, HarmBlockThreshold
 
-        print("Gemini API client installed successfully.")
-
         # Check if GEMINI_API_KEY is set after installation
         gemini_api_key = os.environ.get("GEMINI_API_KEY")
         if gemini_api_key:
             # Configure the Gemini API
             genai.configure(api_key=gemini_api_key)
-            print(
-                f"Gemini API configured with key: {gemini_api_key[:4]}...{gemini_api_key[-4:]}"
-            )
+            print(f"Gemini API configured successfully")
         else:
-            print(
-                "GEMINI_API_KEY not found in environment variables. Set it in .env file."
-            )
+            print("GEMINI_API_KEY not found in environment variables")
     except Exception as e:
         print(f"Error installing Gemini API client: {e}")
 
@@ -74,49 +64,39 @@ except ImportError:
 try:
     from openai import OpenAI
 
-    print("OpenAI API client found.")
-
     # Check if OPENAI_API_KEY is set
     openai_api_key = os.environ.get("OPENAI_API_KEY")
     if openai_api_key:
         # Test the API connection
         try:
-            model_name = os.environ.get("OPENAI_MODEL", "gpt-4.1-mini")
+            model_name = os.environ.get("OPENAI_MODEL")
             client = OpenAI(api_key=openai_api_key)
-            print(
-                f"OpenAI API configured with key: {openai_api_key[:4]}...{openai_api_key[-4:]}"
-            )
-            print(f"Successfully initialized OpenAI model: {model_name}")
+            print(f"OpenAI API configured successfully")
+            print(f"Using OpenAI model: {model_name}")
         except Exception as e:
             print(f"Error initializing OpenAI client: {e}")
     else:
-        print("OPENAI_API_KEY not found in environment variables. Set it in .env file.")
+        print("OPENAI_API_KEY not found in environment variables")
 
 except ImportError:
-    print("OpenAI API client not found. Installing...")
+    print("Installing OpenAI API client...")
     try:
         subprocess.check_call([sys.executable, "-m", "pip", "install", "openai"])
         from openai import OpenAI
-
-        print("OpenAI API client installed successfully.")
 
         # Check if OPENAI_API_KEY is set after installation
         openai_api_key = os.environ.get("OPENAI_API_KEY")
         if openai_api_key:
             # Test the API connection
             try:
-                model_name = os.environ.get("OPENAI_MODEL", "gpt-4.1-mini")
+                model_name = os.environ.get("OPENAI_MODEL")
                 client = OpenAI(api_key=openai_api_key)
-                print(
-                    f"OpenAI API configured with key: {openai_api_key[:4]}...{openai_api_key[-4:]}"
-                )
-                print(f"Successfully initialized OpenAI model: {model_name}")
+                print(f"OpenAI API configured successfully")
+                print(f"Using OpenAI model: {model_name}")
             except Exception as e:
                 print(f"Error initializing OpenAI client: {e}")
         else:
-            print(
-                "OPENAI_API_KEY not found in environment variables. Set it in .env file."
-            )
+            print("OPENAI_API_KEY not found in environment variables")
     except Exception as e:
         print(f"Error installing OpenAI API client: {e}")
 
@@ -409,19 +389,14 @@ def run_command():
             # Parse the output to extract content
             content = {"title": "", "description": "", "tags": []}
 
-            # Add debug logging for the output
-            log_messages.append("Raw output from command:")
-            log_messages.append(output)
-
-            # Add more detailed debugging for tags
-            tags_start = output.find("Tags:")
-            if tags_start >= 0:
-                tags_text = output[
-                    tags_start : tags_start + 100
-                ]  # Show first 100 chars after Tags:
-                log_messages.append(
-                    f"Tags section starts at position {tags_start}, preview: {tags_text}"
-                )
+            # Only log raw output in case of errors
+            if (
+                not content["title"]
+                and not content["description"]
+                and not content["tags"]
+            ):
+                log_messages.append("Raw output from command (for troubleshooting):")
+                log_messages.append(output)
 
             # Look for title in the output
             title_start = output.find("Title:")
@@ -433,7 +408,6 @@ def run_command():
                 # Remove any ** markers
                 title = re.sub(r"^\*\*\s*", "", title)
                 content["title"] = title
-                log_messages.append(f"Found title with length: {len(title)}")
             else:
                 # Try regex as a fallback
                 title_match = re.search(
@@ -444,7 +418,6 @@ def run_command():
                     # Remove any ** markers
                     title = re.sub(r"^\*\*\s*", "", title)
                     content["title"] = title
-                    log_messages.append(f"Extracted title via regex: {title}")
                 else:
                     # Try another approach - look for the line that starts with "Title:"
                     lines = output.splitlines()
@@ -452,10 +425,9 @@ def run_command():
                         if line.strip().startswith("Title:"):
                             title = line.split("Title:", 1)[1].strip()
                             content["title"] = title
-                            log_messages.append(f"Found title in line: {title}")
                             break
                     else:
-                        log_messages.append("Failed to extract title using all methods")
+                        log_messages.append("Failed to extract title from output")
 
             # Look for description in the output
             # First, find the start and end positions
@@ -465,20 +437,13 @@ def run_command():
             if desc_start >= 0 and tags_start > desc_start:
                 # Extract everything between Description: and Tags:
                 full_desc = output[desc_start + 12 : tags_start].strip()
-                log_messages.append(
-                    f"Found description section with length: {len(full_desc)}"
-                )
                 content["description"] = full_desc
             else:
                 # Try regex as a fallback
-                log_messages.append("Trying regex fallback for description")
                 desc_match = re.search(r"Description:\s*([\s\S]+?)\s*Tags:", output)
                 if desc_match:
                     description = desc_match.group(1).strip()
                     content["description"] = description
-                    log_messages.append(
-                        f"Extracted description via regex with length: {len(description)}"
-                    )
                 else:
                     # Try another approach - look for lines after "Description:" until "Tags:"
                     lines = output.splitlines()
@@ -501,13 +466,8 @@ def run_command():
                     if desc_lines:
                         description = "\n".join(desc_lines)
                         content["description"] = description
-                        log_messages.append(
-                            f"Extracted description line by line: {len(description)} chars"
-                        )
                     else:
-                        log_messages.append(
-                            "Failed to extract description using all methods"
-                        )
+                        log_messages.append("Failed to extract description from output")
 
             # Look for tags in the output
             tags_start = output.find("Tags:")
@@ -515,67 +475,47 @@ def run_command():
                 # Extract everything after Tags:
                 tags_text = output[tags_start + 5 :].strip()
 
-                # Log the raw tags text for debugging
-                log_messages.append(f"Raw tags text: '{tags_text}'")
-
                 # Look for the actual tags pattern
                 tags_pattern = re.search(r"([^\d]+?)(?:\d{4}-\d{2}-\d{2}|$)", tags_text)
                 if tags_pattern:
                     clean_tags = tags_pattern.group(1).strip()
-                    log_messages.append(f"Extracted clean tags: '{clean_tags}'")
 
                     # Split by comma and clean up
                     content["tags"] = [
                         tag.strip() for tag in clean_tags.split(",") if tag.strip()
                     ]
-                    log_messages.append(
-                        f"Found {len(content['tags'])} tags: {', '.join(content['tags'])}"
-                    )
                 else:
                     # Try a simpler approach - just take the first line
                     first_line = tags_text.split("\n")[0].strip()
-                    log_messages.append(f"Using first line as tags: '{first_line}'")
 
                     # Split by comma and clean up
                     content["tags"] = [
                         tag.strip() for tag in first_line.split(",") if tag.strip()
                     ]
-                    log_messages.append(
-                        f"Found {len(content['tags'])} tags from first line: {', '.join(content['tags'])}"
-                    )
             else:
                 # Try regex as a fallback
-                log_messages.append("Trying regex fallback for tags")
                 tags_match = re.search(
                     r"Tags:\s*(.+?)(?:\n\d{4}-\d{2}-\d{2}|$)", output, re.DOTALL
                 )
                 if tags_match:
                     tags_text = tags_match.group(1).strip()
-                    log_messages.append(f"Regex found tags text: '{tags_text}'")
 
                     # Remove any ** markers
                     tags_text = re.sub(r"^\*\*\s*", "", tags_text)
 
                     # Take just the first line if there are multiple lines
                     first_line = tags_text.split("\n")[0].strip()
-                    log_messages.append(f"Using first line from regex: '{first_line}'")
 
                     # Split by comma and clean up
                     content["tags"] = [
                         tag.strip() for tag in first_line.split(",") if tag.strip()
                     ]
-                    log_messages.append(
-                        f"Extracted {len(content['tags'])} tags via regex: {', '.join(content['tags'])}"
-                    )
                 else:
                     # Try another approach - look for the line that starts with "Tags:"
                     lines = output.splitlines()
                     for line in lines:
                         if line.strip().startswith("Tags:"):
                             tags_text = line.split("Tags:", 1)[1].strip()
-                            log_messages.append(
-                                f"Found line starting with Tags: '{tags_text}'"
-                            )
 
                             # Split by comma and clean up
                             content["tags"] = [
@@ -583,12 +523,9 @@ def run_command():
                                 for tag in tags_text.split(",")
                                 if tag.strip()
                             ]
-                            log_messages.append(
-                                f"Found {len(content['tags'])} tags in line: {', '.join(content['tags'])}"
-                            )
                             break
                     else:
-                        log_messages.append("Failed to extract tags using all methods")
+                        log_messages.append("Failed to extract tags from output")
 
             log_messages.append("Content generation completed successfully.")
             return jsonify({"command": " ".join(command), "content": content})
@@ -1074,7 +1011,37 @@ def run_command_thread(command):
         )
 
         for line in iter(process.stdout.readline, ""):
-            log_messages.append(line.strip())
+            line = line.strip()
+
+            # Skip 'edit listing' related logs and other superfluous messages
+            if any(
+                skip_term in line.lower()
+                for skip_term in [
+                    "edit listing",
+                    "listing editor",
+                    "listing-editor",
+                    "debug:",
+                    "debug -",
+                ]
+            ):
+                continue
+
+            # Skip verbose debug messages
+            if line.startswith("DEBUG:") or "DEBUG -" in line:
+                continue
+
+            # Skip empty lines
+            if not line:
+                continue
+
+            # Skip duplicate "Running command" messages
+            if (
+                line.startswith("Running command:")
+                and "Running command:" in log_messages[-5:]
+            ):
+                continue
+
+            log_messages.append(line)
 
         process.stdout.close()
         return_code = process.wait()

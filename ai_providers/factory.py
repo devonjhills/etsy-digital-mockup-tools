@@ -60,7 +60,7 @@ class AIProviderFactory:
 
             # Get model name from environment if not provided
             if not model_name:
-                model_name = os.environ.get("OPENAI_MODEL", "gpt-4.1-mini")
+                model_name = os.environ.get("OPENAI_MODEL")
 
             return OpenAIProvider(api_key, model_name)
 

@@ -72,30 +72,48 @@ def create_pattern(input_folder: str) -> Optional[str]:
         txt_layer = Image.new("RGBA", output_image.size, (255, 255, 255, 0))
         draw = ImageDraw.Draw(txt_layer)
 
-        # Get font
-        font = get_font("Clattering.ttf", 185)
+        # Get font - use GreatVibes-Regular for the seamless patterns text
+        font = get_font("GreatVibes-Regular", 185)
 
         text = "Seamless Patterns"
         text_position = (IMAGE_SIZE // 2, IMAGE_SIZE // 2)
 
-        # Draw text outline
-        offsets = [(x, y) for x in (-3, 3) for y in (-3, 3)]
-        for offset_x, offset_y in offsets:
-            draw.text(
-                (text_position[0] + offset_x, text_position[1] + offset_y),
-                text,
-                font=font,
-                fill=(255, 255, 255, 192),
-                anchor="mm",
-                align="center",
+        # Calculate text size for backdrop
+        try:
+            # For newer Pillow versions
+            text_bbox = draw.textbbox(
+                text_position, text, font=font, anchor="mm", align="center"
             )
+            text_width = text_bbox[2] - text_bbox[0]
+            text_height = text_bbox[3] - text_bbox[1]
+        except AttributeError:
+            # For older Pillow versions
+            text_width, text_height = draw.textsize(text, font=font)
+
+        # Add padding around text
+        padding = 40
+        backdrop_width = text_width + padding * 2
+        backdrop_height = text_height + padding * 2
+
+        # Draw semi-transparent backdrop
+        backdrop_position = (
+            text_position[0] - backdrop_width // 2,
+            text_position[1] - backdrop_height // 2,
+            text_position[0] + backdrop_width // 2,
+            text_position[1] + backdrop_height // 2,
+        )
+        draw.rounded_rectangle(
+            backdrop_position,
+            radius=20,
+            fill=(255, 255, 255, 160),  # White with 60% opacity
+        )
 
         # Draw main text
         draw.text(
             text_position,
             text,
             font=font,
-            fill=(0, 0, 0, 192),
+            fill=(0, 0, 0, 230),  # Black with 90% opacity
             anchor="mm",
             align="center",
         )
@@ -167,7 +185,7 @@ def create_seamless_mockup(input_folder: str) -> Optional[str]:
             canvas_target_size = (2000, 2000)
             canvas = Image.new("RGBA", canvas_target_size, (255, 255, 255, 255))
 
-        canvas_width, canvas_height = canvas.size
+        _, canvas_height = canvas.size  # Only need canvas_height
         margin, arrow_gap = 100, 100
 
         # Paste single tile on the left

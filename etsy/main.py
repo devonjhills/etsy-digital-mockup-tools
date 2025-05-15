@@ -856,10 +856,19 @@ class EtsyIntegration:
 
                         # Save the image only if it's not already in the correct format
                         if image_file != new_file_path or needs_resize:
-                            # For clipart, ensure we preserve transparency by converting to RGBA
+                            # For clipart, ensure we preserve transparency by converting to RGBA and trim
                             if product_type == "clipart":
                                 # Convert to RGBA to preserve transparency
                                 img_to_save = img_to_save.convert("RGBA")
+
+                                # Import and apply the trim function from clipart.resize
+                                from clipart.resize import trim
+
+                                logger.info(
+                                    f"  Applying trim to remove empty space around clipart"
+                                )
+                                img_to_save = trim(img_to_save)
+
                                 img_to_save.save(
                                     new_file_path, format="PNG", dpi=(300, 300)
                                 )

@@ -1448,7 +1448,7 @@
             <label for="ai-provider">AI Provider:</label>
             <select id="ai-provider" name="ai-provider" class="enhanced-select">
               <option value="openai">OpenAI</option>
-              <option value="gemini">Gemini 2.0 Flash</option>
+              <option value="gemini">Gemini</option>
             </select>
           </div>
 
@@ -1485,7 +1485,7 @@
               class="enhanced-select"
             >
               <option value="openai">OpenAI</option>
-              <option value="gemini">Gemini 2.0 Flash</option>
+              <option value="gemini">Gemini</option>
             </select>
           </div>
 
@@ -1575,7 +1575,7 @@
                   class="enhanced-select"
                 >
                   <option value="openai">OpenAI</option>
-                  <option value="gemini">Gemini 2.0 Flash</option>
+                  <option value="gemini">Gemini</option>
                 </select>
               </div>
 
@@ -2124,8 +2124,7 @@
         ).value;
         // Get the selected AI provider
         const provider = document.getElementById("bulk-ai-provider").value;
-        const providerName =
-          provider === "openai" ? "OpenAI" : "Gemini 2.0 Flash";
+        const providerName = provider === "openai" ? "OpenAI" : "Gemini";
 
         // Confirm with the user
         if (
@@ -2213,8 +2212,7 @@
         ).value;
         // Get the selected AI provider
         const provider = document.getElementById("bulk-ai-provider").value;
-        const providerName =
-          provider === "openai" ? "OpenAI" : "Gemini 2.0 Flash";
+        const providerName = provider === "openai" ? "OpenAI" : "Gemini";
 
         // Confirm with the user
         if (

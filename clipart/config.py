@@ -10,15 +10,24 @@ ASSETS_DIR = os.path.join(PROJECT_ROOT, "assets")
 DEFAULT_LOGO_PATH = os.path.join(ASSETS_DIR, "logo.png")
 CANVAS_PATH = os.path.join(ASSETS_DIR, "canvas.png")
 FONTS_DIR = os.path.join(ASSETS_DIR, "fonts")
+# System font paths
+USER_FONTS_DIR = os.path.expanduser("~/Library/Fonts")
+
 AVAILABLE_FONTS: Dict[str, str] = {
+    # System fonts
+    "GreatVibes-Regular": os.path.join(USER_FONTS_DIR, "GreatVibes-Regular.ttf"),
+    "LibreBaskerville-Italic": os.path.join(
+        USER_FONTS_DIR, "LibreBaskerville-Italic.ttf"
+    ),
+    # Project fonts (as fallbacks)
     "Clattering": os.path.join(FONTS_DIR, "Clattering.ttf"),
     "Cravelo": os.path.join(FONTS_DIR, "Cravelo DEMO.otf"),
     "MarkerFelt": os.path.join(FONTS_DIR, "DSMarkerFelt.ttf"),
     "Angelina": os.path.join(FONTS_DIR, "Free Version Angelina.ttf"),
     "Poppins": os.path.join(FONTS_DIR, "Poppins-SemiBold.ttf"),
 }
-DEFAULT_TITLE_FONT = "Clattering"
-DEFAULT_SUBTITLE_FONT = "Poppins"
+DEFAULT_TITLE_FONT = "GreatVibes-Regular"
+DEFAULT_SUBTITLE_FONT = "LibreBaskerville-Italic"
 
 # === Dimensions & Appearance ===
 OUTPUT_SIZE: Tuple[int, int] = (3000, 2250)

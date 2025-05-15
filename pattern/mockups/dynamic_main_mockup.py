@@ -228,15 +228,17 @@ def calculate_contrast_ratio(
 def adjust_color_for_contrast(
     foreground: Tuple[int, int, int],
     background: Tuple[int, int, int],
-    min_contrast: float = 4.5,
+    min_contrast: float = 5.5,  # Increased from 4.5 for better readability
 ) -> Tuple[int, int, int]:
     """
     Adjust foreground color to ensure minimum contrast with background.
+    Enhanced to create more vibrant and readable text.
 
     Args:
         foreground: RGB foreground color to adjust
         background: RGB background color to contrast against
         min_contrast: Minimum contrast ratio required (WCAG AA: 4.5 for normal text, 3.0 for large text)
+                     We use 5.5 for better readability
 
     Returns:
         Adjusted RGB foreground color with sufficient contrast
@@ -244,7 +246,12 @@ def adjust_color_for_contrast(
     # Check current contrast
     current_contrast = calculate_contrast_ratio(foreground, background)
 
+    logger.info(
+        f"Initial contrast ratio: {current_contrast:.2f} (target: {min_contrast})"
+    )
+
     if current_contrast >= min_contrast:
+        logger.info(f"Color already meets contrast requirements: {foreground}")
         return foreground  # Already meets contrast requirements
 
     # Convert to HSV for easier manipulation
@@ -256,9 +263,26 @@ def adjust_color_for_contrast(
     bg_luminance = (0.299 * bg_r + 0.587 * bg_g + 0.114 * bg_b) / 255
     is_light_bg = bg_luminance > 0.5
 
+    # For very light backgrounds, we want darker and more saturated text
+    # For very dark backgrounds, we want lighter and more saturated text
+    if is_light_bg:
+        # Start with a more saturated color for light backgrounds
+        s = min(1.0, s * 1.3)  # Increase saturation by 30%
+
+        # If the background is very light, make the text darker to start with
+        if bg_luminance > 0.85:
+            v = max(0.0, v * 0.7)  # Reduce brightness by 30%
+    else:
+        # For dark backgrounds, increase saturation to make text pop more
+        s = min(1.0, s * 1.2)  # Increase saturation by 20%
+
+        # If the background is very dark, make the text lighter to start with
+        if bg_luminance < 0.15:
+            v = min(1.0, v * 1.3)  # Increase brightness by 30%
+
     # Adjust value (brightness) in steps until we reach minimum contrast
     step = 0.05
-    max_iterations = 20  # Prevent infinite loops
+    max_iterations = 25  # Increased from 20 to allow more adjustments
     iterations = 0
 
     while current_contrast < min_contrast and iterations < max_iterations:
@@ -275,33 +299,58 @@ def adjust_color_for_contrast(
         adjusted_rgb = tuple(int(x * 255) for x in colorsys.hsv_to_rgb(h, s, v))
         current_contrast = calculate_contrast_ratio(adjusted_rgb, background)
 
+        logger.info(
+            f"Iteration {iterations}: contrast = {current_contrast:.2f}, hsv = ({h:.2f}, {s:.2f}, {v:.2f})"
+        )
+
         # If we've reached extreme values and still don't have enough contrast,
         # try adjusting saturation as well
-        if (is_light_bg and v <= 0.05) or (not is_light_bg and v >= 0.95):
+        if (is_light_bg and v <= 0.1) or (not is_light_bg and v >= 0.9):
             if is_light_bg:
                 # For light backgrounds, increase saturation to make text more vibrant
                 s = min(1.0, s + step)
             else:
-                # For dark backgrounds, decrease saturation to make text more white
-                s = max(0.0, s - step)
+                # For dark backgrounds, increase saturation to make text more vibrant
+                # Changed from decreasing saturation to increasing it for more pop
+                s = min(1.0, s + step)
 
             adjusted_rgb = tuple(int(x * 255) for x in colorsys.hsv_to_rgb(h, s, v))
             current_contrast = calculate_contrast_ratio(adjusted_rgb, background)
+            logger.info(
+                f"Adjusted saturation: contrast = {current_contrast:.2f}, hsv = ({h:.2f}, {s:.2f}, {v:.2f})"
+            )
 
-    # If we still don't have enough contrast, use black or white
+    # If we still don't have enough contrast, use black or white with a hint of color
     if current_contrast < min_contrast:
         if is_light_bg:
-            return (0, 0, 0)  # Black text on light background
-        else:
-            return (255, 255, 255)  # White text on dark background
+            # Black text with a hint of the original hue for light backgrounds
+            v = 0.05  # Very dark
+            s = 0.8  # High saturation to maintain some color
+            adjusted_rgb = tuple(int(x * 255) for x in colorsys.hsv_to_rgb(h, s, v))
 
+            # If still not enough contrast, use pure black
+            if calculate_contrast_ratio(adjusted_rgb, background) < min_contrast:
+                adjusted_rgb = (0, 0, 0)
+        else:
+            # White text with a hint of the original hue for dark backgrounds
+            v = 0.95  # Very light
+            s = 0.3  # Some saturation to maintain some color
+            adjusted_rgb = tuple(int(x * 255) for x in colorsys.hsv_to_rgb(h, s, v))
+
+            # If still not enough contrast, use pure white
+            if calculate_contrast_ratio(adjusted_rgb, background) < min_contrast:
+                adjusted_rgb = (255, 255, 255)
+
+    logger.info(
+        f"Final adjusted color: {adjusted_rgb} with contrast ratio: {calculate_contrast_ratio(adjusted_rgb, background):.2f}"
+    )
     return adjusted_rgb
 
 
 def generate_color_palette(
     base_colors: List[Tuple[int, int, int]],
 ) -> Dict[str, Tuple[int, int, int, int]]:
-    """Generate a color palette from base colors.
+    """Generate a color palette from base colors with improved contrast for text.
 
     Args:
         base_colors: List of base RGB color tuples
@@ -311,45 +360,32 @@ def generate_color_palette(
     """
     # Skip dynamic color generation if disabled in config
     if not config.FONT_CONFIG["USE_DYNAMIC_TITLE_COLORS"]:
-        # Return a default palette with neutral colors
+        # Return a default palette with neutral colors and good contrast
         return {
             "background": (240, 240, 240),
             "divider": (180, 180, 180),
             "divider_border": (150, 150, 150),
-            "text_bg": (240, 240, 240, 200),  # Semi-transparent background
-            "title_text": (50, 50, 50),
-            "subtitle_text": (80, 80, 80),
+            "text_bg": (240, 240, 240, 230),  # More opaque background (90%)
+            "title_text": (20, 20, 20),  # Darker text for better contrast
+            "subtitle_text": (50, 50, 50),  # Darker subtitle text
         }
-    """
-    Generate a color palette from base colors.
 
-    Args:
-        base_colors: List of base RGB color tuples
-
-    Returns:
-        Dictionary with color roles and RGB values
-    """
     # Define contrast thresholds according to WCAG standards
-    # These are used throughout the function
-    min_contrast_normal = config.FONT_CONFIG[
-        "DYNAMIC_TITLE_CONTRAST_THRESHOLD"
-    ]  # For normal text (WCAG AA)
-    min_contrast_large = 3.0  # For large text (WCAG AA)
+    # Increased for better readability
+    min_contrast_normal = max(
+        5.5, config.FONT_CONFIG["DYNAMIC_TITLE_CONTRAST_THRESHOLD"]
+    )
+    min_contrast_large = 4.0  # Increased from 3.0 for large text (WCAG AA)
 
     if not base_colors:
-        # Default palette if no colors provided
+        # Default palette if no colors provided - with better contrast
         return {
             "background": (222, 215, 211),
             "divider": (180, 180, 180),
             "divider_border": (150, 150, 150),
-            "text_bg": (
-                240,
-                240,
-                240,
-                200,
-            ),  # Semi-transparent background (200/255 = ~80% opacity)
-            "title_text": (50, 50, 50),
-            "subtitle_text": (80, 80, 80),
+            "text_bg": (240, 240, 240, 230),  # More opaque background (90%)
+            "title_text": (20, 20, 20),  # Darker text for better contrast
+            "subtitle_text": (50, 50, 50),  # Darker subtitle text
         }
 
     # Sort colors by saturation (most saturated first)
@@ -370,26 +406,33 @@ def generate_color_palette(
     border_hsv = (h, s, max(0.1, v - 0.2))
     border_rgb = tuple(int(x * 255) for x in colorsys.hsv_to_rgb(*border_hsv))
 
-    # Create a version for the text background that will provide good contrast with text
-    # For darker colors, make the background lighter; for lighter colors, make it darker
+    # Create a text background that will provide good contrast with text
+    # Use a more neutral background to ensure text stands out better
+    # For darker colors, use a lighter background; for lighter colors, use a darker background
+
+    # Start with a more neutral background color
     if v > 0.5:  # If the base color is light
-        # Create a darker background for better contrast with light text
-        text_bg_hsv = (h, s * 0.5, max(0.2, v - 0.3))
+        # Create a slightly darker, less saturated background
+        text_bg_hsv = (h, min(0.15, s * 0.3), max(0.75, v - 0.15))
     else:  # If the base color is dark
-        # Create a lighter background for better contrast with dark text
-        text_bg_hsv = (h, s * 0.3, min(0.95, v + 0.4))
+        # Create a lighter, less saturated background
+        text_bg_hsv = (h, min(0.15, s * 0.3), min(0.95, v + 0.6))
 
     text_bg_rgb = tuple(int(x * 255) for x in colorsys.hsv_to_rgb(*text_bg_hsv))
-    # Add alpha channel (200 out of 255 for semi-transparency - ~80% opacity for the base color)
-    text_bg_with_alpha = text_bg_rgb + (200,)
 
-    # Calculate relative luminance of the background color (using the formula for perceived brightness)
-    # Formula: 0.299*R + 0.587*G + 0.114*B
+    # Make the background more opaque (90% opacity) for better text contrast
+    text_bg_with_alpha = text_bg_rgb + (230,)
+
+    # Calculate relative luminance of the background color
     r, g, b = text_bg_rgb[:3]  # Use only RGB components
     luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255
 
     # Determine if background is light or dark (threshold at 0.5)
     is_light_bg = luminance > 0.5
+
+    logger.info(
+        f"Text background color: {text_bg_rgb} (luminance: {luminance:.2f}, is_light: {is_light_bg})"
+    )
 
     # Find colors from the extracted colors for the text elements
     title_text = None
@@ -432,20 +475,18 @@ def generate_color_palette(
         )
 
     # Try to find a color with good contrast for the title
-    # WCAG AA standard requires a contrast ratio of at least 4.5:1 for normal text
-    # But for large text (like our title), 3:1 is acceptable
-    # Note: min_contrast_normal and min_contrast_large are defined at the beginning of the function
-
     # First try: Find a vibrant color with good contrast for normal text
     for color, h, s, v, contrast in colors_by_contrast:
-        if contrast >= min_contrast_normal and s >= 0.3 and 0.2 <= v <= 0.9:
+        if (
+            contrast >= min_contrast_normal and s >= 0.4 and 0.2 <= v <= 0.9
+        ):  # Increased saturation requirement
             title_text = color
             logger.info(
                 f"Selected vibrant color from input for title: {color} (contrast: {contrast:.2f})"
             )
 
             # Create a slightly less saturated version for subtitle
-            subtitle_hsv = (h, max(0.2, s - 0.1), v)
+            subtitle_hsv = (h, max(0.3, s - 0.1), v)  # Keep good saturation
             subtitle_rgb = tuple(
                 int(x * 255) for x in colorsys.hsv_to_rgb(*subtitle_hsv)
             )
@@ -456,16 +497,30 @@ def generate_color_palette(
     if title_text is None and colors_by_contrast:
         for color, h, s, v, contrast in colors_by_contrast:
             if contrast >= min_contrast_normal:
-                title_text = color
+                # Increase saturation to make the color pop more
+                s = min(1.0, s * 1.3)
+
+                # Adjust value based on background
+                if is_light_bg and v > 0.5:
+                    v = max(0.2, v - 0.2)  # Make darker on light backgrounds
+                elif not is_light_bg and v < 0.5:
+                    v = min(0.9, v + 0.2)  # Make lighter on dark backgrounds
+
+                # Create more vibrant title color
+                title_hsv = (h, s, v)
+                title_text = tuple(
+                    int(x * 255) for x in colorsys.hsv_to_rgb(*title_hsv)
+                )
+
                 logger.info(
-                    f"Selected color from input for title: {color} (contrast: {contrast:.2f})"
+                    f"Selected and enhanced color for title: {title_text} (contrast: {calculate_contrast_ratio(text_bg_rgb, title_text):.2f})"
                 )
 
                 # Create a slightly adjusted version for subtitle
                 if v > 0.5:  # If color is bright
-                    subtitle_hsv = (h, s, max(0.2, v - 0.1))  # Make slightly darker
+                    subtitle_hsv = (h, s, max(0.2, v - 0.15))  # Make slightly darker
                 else:  # If color is dark
-                    subtitle_hsv = (h, s, min(0.9, v + 0.1))  # Make slightly lighter
+                    subtitle_hsv = (h, s, min(0.9, v + 0.15))  # Make slightly lighter
 
                 subtitle_rgb = tuple(
                     int(x * 255) for x in colorsys.hsv_to_rgb(*subtitle_hsv)
@@ -477,13 +532,21 @@ def generate_color_palette(
     if title_text is None and colors_by_contrast:
         for color, h, s, v, contrast in colors_by_contrast:
             if contrast >= min_contrast_large and s >= 0.4 and 0.2 <= v <= 0.9:
-                title_text = color
+                # Increase saturation to make the color pop more
+                s = min(1.0, s * 1.3)
+
+                # Create more vibrant title color
+                title_hsv = (h, s, v)
+                title_text = tuple(
+                    int(x * 255) for x in colorsys.hsv_to_rgb(*title_hsv)
+                )
+
                 logger.info(
-                    f"Selected vibrant color from input for large title text: {color} (contrast: {contrast:.2f})"
+                    f"Selected and enhanced vibrant color for large title: {title_text} (contrast: {calculate_contrast_ratio(text_bg_rgb, title_text):.2f})"
                 )
 
                 # Create a slightly less saturated version for subtitle
-                subtitle_hsv = (h, max(0.2, s - 0.1), v)
+                subtitle_hsv = (h, max(0.3, s - 0.1), v)
                 subtitle_rgb = tuple(
                     int(x * 255) for x in colorsys.hsv_to_rgb(*subtitle_hsv)
                 )
@@ -494,16 +557,24 @@ def generate_color_palette(
     if title_text is None and colors_by_contrast:
         for color, h, s, v, contrast in colors_by_contrast:
             if contrast >= min_contrast_large:
-                title_text = color
+                # Increase saturation to make the color pop more
+                s = min(1.0, s * 1.3)
+
+                # Create more vibrant title color
+                title_hsv = (h, s, v)
+                title_text = tuple(
+                    int(x * 255) for x in colorsys.hsv_to_rgb(*title_hsv)
+                )
+
                 logger.info(
-                    f"Selected color from input for large title text: {color} (contrast: {contrast:.2f})"
+                    f"Selected and enhanced color for large title: {title_text} (contrast: {calculate_contrast_ratio(text_bg_rgb, title_text):.2f})"
                 )
 
                 # Create a slightly adjusted version for subtitle
                 if v > 0.5:  # If color is bright
-                    subtitle_hsv = (h, s, max(0.2, v - 0.1))  # Make slightly darker
+                    subtitle_hsv = (h, s, max(0.2, v - 0.15))  # Make slightly darker
                 else:  # If color is dark
-                    subtitle_hsv = (h, s, min(0.9, v + 0.1))  # Make slightly lighter
+                    subtitle_hsv = (h, s, min(0.9, v + 0.15))  # Make slightly lighter
 
                 subtitle_rgb = tuple(
                     int(x * 255) for x in colorsys.hsv_to_rgb(*subtitle_hsv)
@@ -511,23 +582,35 @@ def generate_color_palette(
                 subtitle_text = subtitle_rgb
                 break
 
-    # If we still couldn't find a suitable color, fall back to contrast-based selection
+    # If we still couldn't find a suitable color, use high-contrast fallback colors
     if title_text is None:
         logger.info(
-            "No suitable colors found in input images, using contrast-based fallback"
+            "No suitable colors found in input images, using high-contrast fallback colors"
         )
-        # Choose contrasting colors based on background luminance
-        # For dark backgrounds, use lighter text; for light backgrounds, use darker text
-        if is_light_bg:
-            # Dark text for light backgrounds - start with almost black
-            title_text = (40, 40, 40)  # Almost black for title
-            subtitle_text = (60, 60, 60)  # Dark gray for subtitle
-        else:
-            # Light text for dark backgrounds - start with almost white
-            title_text = (250, 250, 250)  # Almost white for title
-            subtitle_text = (230, 230, 230)  # Light gray for subtitle
 
-        # Use our new adjustment function to ensure proper contrast
+        # Choose contrasting colors based on background luminance
+        if is_light_bg:
+            # For light backgrounds, use a dark, saturated color
+            # Start with a dark blue-ish color for better visual appeal than pure black
+            h_value = 0.6  # Blue-ish hue
+            title_text = tuple(
+                int(x * 255) for x in colorsys.hsv_to_rgb(h_value, 0.7, 0.2)
+            )
+            subtitle_text = tuple(
+                int(x * 255) for x in colorsys.hsv_to_rgb(h_value, 0.6, 0.3)
+            )
+        else:
+            # For dark backgrounds, use a light, saturated color
+            # Start with a yellow-ish color for better visual appeal than pure white
+            h_value = 0.15  # Yellow-ish hue
+            title_text = tuple(
+                int(x * 255) for x in colorsys.hsv_to_rgb(h_value, 0.3, 0.95)
+            )
+            subtitle_text = tuple(
+                int(x * 255) for x in colorsys.hsv_to_rgb(h_value, 0.25, 0.9)
+            )
+
+        # Use our adjustment function to ensure proper contrast
         title_text = adjust_color_for_contrast(
             title_text, text_bg_rgb, min_contrast_normal
         )
@@ -544,10 +627,11 @@ def generate_color_palette(
     ) / 255
 
     logger.info(
-        f"Selected text colors - Title: {title_text} (luminance: {title_luminance:.2f}), Subtitle: {subtitle_text} (luminance: {subtitle_luminance:.2f})"
+        f"Selected text colors - Title: {title_text} (luminance: {title_luminance:.2f}), "
+        f"Subtitle: {subtitle_text} (luminance: {subtitle_luminance:.2f})"
     )
 
-    # Use a neutral background color
+    # Use a neutral background color for the main canvas
     background = (240, 240, 240) if v < 0.5 else (220, 220, 220)
 
     return {
@@ -634,13 +718,16 @@ def create_dynamic_overlay(
     # Calculate default font sizes based on divider height if not specified in config
     top_subtitle_font_size = config.FONT_CONFIG["TOP_SUBTITLE_FONT_SIZE"]
     if top_subtitle_font_size <= 0:
-        top_subtitle_font_size = divider_height // 2  # Larger size for top subtitle
+        # Make top subtitle larger - the number part will be made larger separately
+        top_subtitle_font_size = int(
+            divider_height * 0.5
+        )  # Larger size for "Seamless Patterns" text
 
     bottom_subtitle_font_size = config.FONT_CONFIG["BOTTOM_SUBTITLE_FONT_SIZE"]
     if bottom_subtitle_font_size <= 0:
-        bottom_subtitle_font_size = (
-            divider_height // 3
-        )  # Smaller size for bottom subtitle
+        bottom_subtitle_font_size = int(
+            divider_height * 0.4
+        )  # Larger size for bottom subtitle
 
     title_font_size = config.FONT_CONFIG["TITLE_FONT_SIZE"]
     if title_font_size <= 0:
@@ -662,8 +749,8 @@ def create_dynamic_overlay(
         f"Using subtitle font: {config.FONT_CONFIG['SUBTITLE_FONT']} (sizes: {top_subtitle_font_size}, {bottom_subtitle_font_size})"
     )
 
-    # Top subtitle
-    subtitle_text = "Commercial Use"
+    # Top subtitle - only make the number larger, not the text
+    subtitle_text = f"{num_images} Seamless Patterns"
     subtitle_width, subtitle_height = draw.textbbox(
         (0, 0), subtitle_text, font=top_subtitle_font
     )[2:4]
@@ -677,7 +764,7 @@ def create_dynamic_overlay(
         title_width, title_height = draw.textbbox((0, 0), title, font=title_font)[2:4]
 
     # Bottom subtitle
-    bottom_subtitle_text = f"{num_images} seamless images  |  300 dpi  |  12x12in jpg"
+    bottom_subtitle_text = f"commercial use  |  300 dpi  |  12x12in jpg"
     bottom_subtitle_width, bottom_subtitle_height = draw.textbbox(
         (0, 0), bottom_subtitle_text, font=bottom_subtitle_font
     )[2:4]
@@ -836,20 +923,81 @@ def create_dynamic_overlay(
     title_x = (width - title_width) // 2
     title_y = text_y + (text_height - title_height) // 2
 
-    # Position top subtitle above the title with padding
-    subtitle_x = (width - subtitle_width) // 2
-    subtitle_y = title_y - subtitle_height - top_subtitle_padding // 2
+    # Position top subtitle at the absolute top of the backdrop
+    # subtitle_x is no longer used since we calculate start_x for the split text
+    # Move it to the very top with almost no padding
+    # Add just enough padding to prevent text from touching the border
+    top_padding = 5  # Absolute minimum padding from the top of the backdrop
+    subtitle_y = text_y + top_padding + (subtitle_height // 2)
 
-    # Position bottom subtitle below the title with padding
+    # Position bottom subtitle near the bottom of the backdrop
     bottom_subtitle_x = (width - bottom_subtitle_width) // 2
-    bottom_subtitle_y = title_y + title_height + bottom_subtitle_padding // 2
+    # Calculate position from the bottom of the backdrop with minimal padding
+    bottom_padding = 15  # Minimal padding from the bottom of the backdrop
+    bottom_subtitle_y = text_y + text_height - bottom_subtitle_height - bottom_padding
 
     # Draw text elements with dynamic color selection for readability
-    # Top subtitle
+    # Top subtitle - split into number and text with different font sizes
+    number_part = f"{num_images}"
+    text_part = " Seamless Patterns"
+
+    # Create a much larger font just for the number
+    number_font_size = int(
+        top_subtitle_font_size * 2.2
+    )  # 120% larger than the regular subtitle font
+    number_font = get_font(subtitle_font_name, size=number_font_size)
+
+    # Calculate the width of the number part
+    number_width, number_height = draw.textbbox((0, 0), number_part, font=number_font)[
+        2:4
+    ]
+
+    # Calculate the width of the text part
+    text_width, text_height = draw.textbbox((0, 0), text_part, font=top_subtitle_font)[
+        2:4
+    ]
+
+    # Calculate the total width to center properly
+    total_width = number_width + text_width
+
+    # Calculate the starting position to center the whole text
+    start_x = (width - total_width) // 2
+
+    # Draw the number part with the larger font
+    # Calculate baseline alignment more precisely for better vertical alignment
+    # Get the descent value for both fonts to align them properly
+    try:
+        # For newer Pillow versions that support font metrics
+        number_metrics = number_font.getmetrics()
+        text_metrics = top_subtitle_font.getmetrics()
+        number_descent = number_metrics[1]
+        text_descent = text_metrics[1]
+
+        # Adjust position to align baselines and move number up
+        number_y_offset = (number_height - text_height) - (
+            number_descent - text_descent
+        )
+        # Move the number up by adding an additional vertical offset
+        vertical_offset = 25  # Pixels to move the number up
+        number_y = subtitle_y - number_y_offset // 2 - vertical_offset
+    except (AttributeError, IndexError):
+        # Fallback for older Pillow versions
+        vertical_offset = 25  # Same offset as above
+        number_y = subtitle_y - (number_height - text_height) // 2 - vertical_offset
+
     draw_text(
         draw=draw,
-        position=(subtitle_x, subtitle_y),
-        text=subtitle_text,
+        position=(start_x, number_y),
+        text=number_part,
+        font=number_font,
+        text_color=palette["subtitle_text"],
+    )
+
+    # Draw the "Seamless Patterns" part with the regular font
+    draw_text(
+        draw=draw,
+        position=(start_x + number_width, subtitle_y),
+        text=text_part,
         font=top_subtitle_font,
         text_color=palette["subtitle_text"],
     )

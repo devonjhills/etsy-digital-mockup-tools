@@ -24,13 +24,20 @@ def setup_logging(name: str, level: int = logging.INFO) -> logging.Logger:
     Returns:
         A configured logger instance
     """
+    # Check if root logger is already configured
+    root = logging.getLogger()
+    if not root.handlers:
+        # Configure root logger once
+        logging.basicConfig(format="%(message)s", level=level)
+
+    # Get the named logger
     logger = logging.getLogger(name)
-    if not logger.handlers:
-        handler = logging.StreamHandler()
-        formatter = logging.Formatter("%(name)s - %(levelname)s - %(message)s")
-        handler.setFormatter(formatter)
-        logger.addHandler(handler)
     logger.setLevel(level)
+
+    # Remove any existing handlers to avoid duplicate messages
+    for handler in logger.handlers[:]:
+        logger.removeHandler(handler)
+
     return logger
 
 
@@ -220,8 +227,6 @@ def apply_watermark(
     Returns:
         The watermarked image
     """
-    logger = setup_logging(__name__)
-    logger.info(f"Applying {watermark_type} watermark...")
 
     # Create a copy of the image and ensure it's RGBA
     result = image.copy().convert("RGBA")
@@ -264,7 +269,7 @@ def apply_watermark(
 
     elif watermark_type.lower() == "logo":
         if not logo_path or not os.path.exists(logo_path):
-            logger.error(f"Logo file not found: {logo_path}")
+            print(f"Logo file not found: {logo_path}")
             return result
 
         # Load and resize the logo
@@ -307,7 +312,7 @@ def get_font(
     font_name: str, size: int, fallback_names: List[str] = None
 ) -> Optional[ImageFont.FreeTypeFont]:
     """
-    Get a font with the given name and size.
+    Get a font with the given name and size. Checks system fonts first, then project fonts.
 
     Args:
         font_name: The name of the font
@@ -317,71 +322,100 @@ def get_font(
     Returns:
         The font, or None if not found
     """
-    logger = logging.getLogger(__name__)
-    logger.info(f"Loading font: {font_name} at size {size}")
 
     # Check if font_name is a path
     if os.path.exists(font_name) and font_name.lower().endswith((".ttf", ".otf")):
         try:
-            logger.info(f"Loading font from direct path: {font_name}")
             font = ImageFont.truetype(font_name, size)
             return font
-        except Exception as e:
-            logger.warning(f"Error loading font from path {font_name}: {e}")
+        except Exception:
             # Continue with normal font loading
+            pass
 
     if fallback_names is None:
         fallback_names = []
 
-    # Get the project root and assets directory
+    # System font directories
+    system_font_dirs = [
+        # macOS system fonts
+        "/System/Library/Fonts",
+        "/Library/Fonts",
+        # User fonts
+        os.path.expanduser("~/Library/Fonts"),
+    ]
+
+    # First try to find the font in system font directories
+    for font_dir in system_font_dirs:
+        if os.path.exists(font_dir):
+            try:
+                font_files = os.listdir(font_dir)
+                # Try exact match first
+                if f"{font_name}.ttf" in font_files:
+                    font_path = os.path.join(font_dir, f"{font_name}.ttf")
+                    try:
+                        return ImageFont.truetype(font_path, size)
+                    except Exception:
+                        pass
+
+                # Try to find a partial match
+                for font_file in font_files:
+                    if (
+                        font_file.lower().endswith((".ttf", ".otf"))
+                        and font_name.lower() in font_file.lower()
+                    ):
+                        font_path = os.path.join(font_dir, font_file)
+                        try:
+                            return ImageFont.truetype(font_path, size)
+                        except Exception:
+                            pass
+            except Exception:
+                pass
+
+    # If system fonts didn't work, try project fonts
     project_root = get_project_root()
     fonts_dir = os.path.join(project_root, "assets", "fonts")
-    logger.info(f"Looking for fonts in: {fonts_dir}")
 
     # Check if fonts directory exists
     if not os.path.exists(fonts_dir):
-        logger.warning(f"Fonts directory not found at {fonts_dir}")
         return ImageFont.load_default()
 
     # Try to find the font in the assets/fonts directory
-    font_files = os.listdir(fonts_dir)
-    logger.info(f"Available font files: {font_files}")
-    matching_fonts = []
+    try:
+        font_files = os.listdir(fonts_dir)
+        matching_fonts = []
 
-    # First, try to find an exact match
-    for font_file in font_files:
-        if font_file.lower().endswith((".ttf", ".otf")):
-            # Check if the font name is in the filename
-            if font_name.lower() in font_file.lower():
-                font_path = os.path.join(fonts_dir, font_file)
-                logger.info(f"Found matching font: {font_path}")
-                matching_fonts.append(font_path)
-
-    # If we found matching fonts, try to load them
-    for font_path in matching_fonts:
-        try:
-            font = ImageFont.truetype(font_path, size)
-            return font
-        except Exception as e:
-            logger.warning(f"Error loading font {font_path}: {e}")
-
-    # If we didn't find any matching fonts, try the fallback fonts
-    for fallback in fallback_names:
-        # Try to find the fallback font in the assets/fonts directory
+        # First, try to find an exact match
         for font_file in font_files:
             if font_file.lower().endswith((".ttf", ".otf")):
-                if fallback.lower() in font_file.lower():
-                    try:
-                        font_path = os.path.join(fonts_dir, font_file)
-                        font = ImageFont.truetype(font_path, size)
-                        return font
-                    except Exception as e:
-                        logger.warning(f"Error loading fallback font {font_file}: {e}")
+                # Check if the font name is in the filename
+                if font_name.lower() in font_file.lower():
+                    font_path = os.path.join(fonts_dir, font_file)
+                    matching_fonts.append(font_path)
+
+        # If we found matching fonts, try to load them
+        for font_path in matching_fonts:
+            try:
+                font = ImageFont.truetype(font_path, size)
+                return font
+            except Exception:
+                pass
+
+        # If we didn't find any matching fonts, try the fallback fonts
+        for fallback in fallback_names:
+            # Try to find the fallback font in the assets/fonts directory
+            for font_file in font_files:
+                if font_file.lower().endswith((".ttf", ".otf")):
+                    if fallback.lower() in font_file.lower():
+                        try:
+                            font_path = os.path.join(fonts_dir, font_file)
+                            font = ImageFont.truetype(font_path, size)
+                            return font
+                        except Exception:
+                            pass
+    except Exception:
+        pass
 
     # If we still haven't found a font, use the default font
-    logger.warning(
-        f"Could not find font '{font_name}' or any fallbacks. Using default font."
-    )
     try:
         return ImageFont.load_default().font_variant(size=size)
     except AttributeError:
@@ -414,11 +448,7 @@ def run_script(
         script_args if script_args else []
     )
 
-    print("-" * 30)
     print(f"Running: {script_name}")
-    print(f"Script Path: {script_path}")
-    print(f"Full Command: {' '.join(command_list)}")
-    print("-" * 30)
 
     try:
         result = subprocess.run(
@@ -430,44 +460,37 @@ def run_script(
             encoding="utf-8",
         )
 
-        print(f"--- Output from {script_name} ---")
+        # Only print output if there's an error or it's very short
         stdout_lines = result.stdout.splitlines()
-        if len(stdout_lines) < 50:
-            print(result.stdout)
-        else:
-            print(f"(Output truncated - {len(stdout_lines)} lines)")
-            for line in stdout_lines[:10]:
-                print(line)
-            print("...")
-            for line in stdout_lines[-10:]:
-                print(line)
+        if result.stderr or len(stdout_lines) < 5:
+            print(f"Output from {script_name}:")
+            if len(stdout_lines) < 20:
+                print(result.stdout)
+            else:
+                # Print just the first few and last few lines
+                for line in stdout_lines[:3]:
+                    print(line)
+                print("...")
+                for line in stdout_lines[-3:]:
+                    print(line)
 
         if result.stderr:
-            print(f"--- Error Output (if any) from {script_name} ---")
+            print(f"Error output from {script_name}:")
             print(result.stderr)
 
-        print(f"--- Finished {script_name} successfully ---")
-        print("-" * 30 + "\n")
+        print(f"Finished {script_name} successfully")
         return True
 
     except FileNotFoundError:
-        print(f"\n*** Error: Script not found at '{script_path}' ***")
-        print("Please ensure the file exists and the path is correct.")
-        print("-" * 30 + "\n")
+        print(f"Error: Script not found at '{script_path}'")
         return False
 
     except subprocess.CalledProcessError as e:
-        print(f"\n*** Error: {script_name} failed with exit code {e.returncode}. ***")
-        print("--- Standard Output (if any) ---")
-        print(e.stdout)
-        print("--- Error Output ---")
-        print(e.stderr)
-        print("-" * 30 + "\n")
+        print(f"Error: {script_name} failed with exit code {e.returncode}")
+        if e.stderr:
+            print(f"Error output: {e.stderr}")
         return False
 
     except Exception as e:
-        print(
-            f"\n*** An unexpected error occurred while trying to run {script_name}: {e} ***"
-        )
-        print("-" * 30 + "\n")
+        print(f"Unexpected error running {script_name}: {e}")
         return False

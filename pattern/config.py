@@ -3,7 +3,7 @@ Configuration settings for pattern mockups.
 """
 
 import os
-from typing import Dict, Tuple
+from typing import Dict
 
 # === Directories & Paths ===
 CONFIG_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -12,7 +12,16 @@ ASSETS_DIR = os.path.join(PROJECT_ROOT, "assets")
 FONTS_DIR = os.path.join(ASSETS_DIR, "fonts")
 
 # === Font Settings ===
+# System font paths
+USER_FONTS_DIR = os.path.expanduser("~/Library/Fonts")
+
 AVAILABLE_FONTS: Dict[str, str] = {
+    # System fonts
+    "GreatVibes-Regular": os.path.join(USER_FONTS_DIR, "GreatVibes-Regular.ttf"),
+    "LibreBaskerville-Italic": os.path.join(
+        USER_FONTS_DIR, "LibreBaskerville-Italic.ttf"
+    ),
+    # Project fonts (as fallbacks)
     "Angelina": os.path.join(FONTS_DIR, "Free Version Angelina.ttf"),
     "MarkerFelt": os.path.join(FONTS_DIR, "DSMarkerFelt.ttf"),
     "Clattering": os.path.join(FONTS_DIR, "Clattering.ttf"),
@@ -21,8 +30,8 @@ AVAILABLE_FONTS: Dict[str, str] = {
 }
 
 # Default font settings
-DEFAULT_TITLE_FONT = "Clattering"
-DEFAULT_SUBTITLE_FONT = "Poppins"
+DEFAULT_TITLE_FONT = "GreatVibes-Regular"
+DEFAULT_SUBTITLE_FONT = "LibreBaskerville-Italic"
 DEFAULT_TITLE_FONT_SIZE = 250  # 0 means auto-calculated based on divider height
 DEFAULT_TOP_SUBTITLE_FONT_SIZE = 0  # 0 means auto-calculated based on divider height
 DEFAULT_BOTTOM_SUBTITLE_FONT_SIZE = 0  # 0 means auto-calculated based on divider height
@@ -35,8 +44,8 @@ DYNAMIC_TITLE_COLOR_CLUSTERS = 5  # Number of color clusters to extract from ima
 
 # === Spacing Settings ===
 # Padding for subtitles
-TOP_SUBTITLE_PADDING = 30  # Padding above the top subtitle
-BOTTOM_SUBTITLE_PADDING = 30  # Padding below the bottom subtitle
+TOP_SUBTITLE_PADDING = 40  # Increased padding above the top subtitle
+BOTTOM_SUBTITLE_PADDING = 35  # Slightly increased padding below the bottom subtitle
 
 # === Font Configuration ===
 # Centralized font configuration for easy modification
