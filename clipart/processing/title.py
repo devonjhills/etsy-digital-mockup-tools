@@ -257,6 +257,15 @@ def add_title_bar_and_text(
             text_color = (0, 0, 0, 255)  # Black text for light backgrounds
             subtitle_text_color = (50, 50, 50, 255)  # Dark gray for subtitles
 
+    # Create a backdrop color based on the background brightness
+    # Use a semi-transparent white or black backdrop depending on background
+    if brightness < 128:
+        # For dark backgrounds, use a semi-transparent black backdrop
+        backdrop_color = (0, 0, 0, 80)  # Black with 31% opacity
+    else:
+        # For light backgrounds, use a semi-transparent white backdrop
+        backdrop_color = (255, 255, 255, 80)  # White with 31% opacity
+
     # Calculate text positions - center vertically within the backdrop with a slight upward adjustment
     total_content_height = 0
 
@@ -285,6 +294,38 @@ def add_title_bar_and_text(
     # Calculate the starting y-position to center all content vertically
     start_y = text_y + (text_height - total_content_height) // 2
     current_y = start_y
+
+    # Create a text backdrop with rounded corners and semi-transparency
+    # Add some padding around the text for the backdrop
+    backdrop_padding_x = 40
+    backdrop_padding_y = 30
+    backdrop_width = text_width + backdrop_padding_x * 2
+    backdrop_height = total_content_height + backdrop_padding_y * 2
+
+    # Calculate position to center the backdrop
+    backdrop_x = (canvas_w - backdrop_width) // 2
+    backdrop_y = start_y - backdrop_padding_y
+
+    # Ensure output_image is in RGBA mode
+    if output_image.mode != "RGBA":
+        output_image = output_image.convert("RGBA")
+
+    # Create a new draw object for the output image
+    draw = ImageDraw.Draw(output_image)
+
+    # Draw a semi-transparent rounded rectangle directly on the image
+    draw.rounded_rectangle(
+        [
+            (backdrop_x, backdrop_y),
+            (backdrop_x + backdrop_width, backdrop_y + backdrop_height),
+        ],
+        fill=backdrop_color,
+        radius=15,
+    )
+
+    # Adjust text positions to account for backdrop padding
+    text_x = backdrop_x + backdrop_padding_x
+    current_y = backdrop_y + backdrop_padding_y
 
     # Draw subtitle top
     if subtitle_top:
@@ -348,11 +389,12 @@ def add_title_bar_and_text(
         )
 
     # Return the modified image and text bounds
+    # Use the backdrop bounds instead of the text bounds to ensure images don't overlap with the backdrop
     text_bounds = (
-        text_x,
-        text_y,
-        text_x + text_width,
-        text_y + text_height,
+        backdrop_x,
+        backdrop_y,
+        backdrop_x + backdrop_width,
+        backdrop_y + backdrop_height,
     )
 
     return output_image, text_bounds

@@ -51,11 +51,7 @@ def main():
     all_parser.add_argument(
         "--create_video", action="store_true", help="Create video mockups"
     )
-    all_parser.add_argument(
-        "--provider",
-        choices=["gemini", "openai"],
-        help="AI provider to use for content generation (overrides environment variable)",
-    )
+
     all_parser.add_argument(
         "--title_font",
         default=None,
@@ -180,11 +176,6 @@ def main():
             args.subtitle_font_size if hasattr(args, "subtitle_font_size") else None,
             args.subtitle_spacing if hasattr(args, "subtitle_spacing") else None,
         )
-
-        # Set AI provider if specified
-        if hasattr(args, "provider") and args.provider:
-            os.environ["AI_PROVIDER"] = args.provider
-            logger.info(f"Using AI provider: {args.provider}")
 
         # Step 3: Create zip files
         logger.info("Step 3: Creating zip files...")

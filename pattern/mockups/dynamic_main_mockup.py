@@ -6,345 +6,26 @@ import os
 import glob
 from typing import Optional, Tuple, List, Dict
 import colorsys
-from PIL import Image, ImageDraw, ImageStat, ImageFont
+from PIL import Image, ImageDraw
 
 from utils.common import (
     setup_logging,
-    get_resampling_filter,
     get_asset_path,
     ensure_dir_exists,
     get_font,
 )
+from utils.color_utils import (
+    extract_colors_from_images,
+    calculate_contrast_ratio,
+    adjust_color_for_contrast,
+)
+from utils.text_utils import draw_text, calculate_text_dimensions, create_text_backdrop
 
 # Import pattern configuration
 from pattern import config
 
 # Set up logging
 logger = setup_logging(__name__)
-
-
-def extract_colors_from_images(
-    images: List[str], num_colors: int = None
-) -> List[Tuple[int, int, int]]:
-    """Extract dominant colors from a list of images.
-
-    Args:
-        images: List of image paths
-        num_colors: Number of dominant colors to extract (default: from config)
-
-    Returns:
-        List of RGB color tuples
-    """
-    # Use the number of colors from config if not specified
-    if num_colors is None:
-        num_colors = config.FONT_CONFIG["DYNAMIC_TITLE_COLOR_CLUSTERS"]
-    """
-    Extract dominant colors from a list of images.
-
-    Args:
-        images: List of image paths
-        num_colors: Number of dominant colors to extract
-
-    Returns:
-        List of RGB color tuples
-    """
-    if not images:
-        logger.warning("No images provided for color extraction")
-        return [(222, 215, 211)]  # Default background color
-
-    # Use more images for better color representation
-    sample_images = images[: min(5, len(images))]
-    all_colors = []
-
-    for img_path in sample_images:
-        try:
-            with Image.open(img_path) as img:
-                # Convert to RGB if needed
-                if img.mode != "RGB":
-                    img = img.convert("RGB")
-
-                # Resize for faster processing but keep enough detail for color extraction
-                img.thumbnail((200, 200))
-
-                # Get image statistics
-                stat = ImageStat.Stat(img)
-                avg_color = tuple(map(int, stat.mean))
-                all_colors.append(avg_color)
-
-                # Sample pixels from different regions
-                width, height = img.size
-
-                # Create a more detailed grid of regions
-                regions = []
-                grid_size = 4  # 4x4 grid
-                for x in range(grid_size):
-                    for y in range(grid_size):
-                        x_start = int(width * x / grid_size)
-                        y_start = int(height * y / grid_size)
-                        x_end = int(width * (x + 1) / grid_size)
-                        y_end = int(height * (y + 1) / grid_size)
-                        regions.append((x_start, y_start, x_end, y_end))
-
-                # Add some focused regions for potential accent colors
-                regions.extend(
-                    [
-                        (
-                            width // 4,
-                            height // 4,
-                            3 * width // 4,
-                            3 * height // 4,
-                        ),  # Center
-                        (0, 0, width // 3, height // 3),  # Top-left
-                        (2 * width // 3, 0, width, height // 3),  # Top-right
-                        (0, 2 * height // 3, width // 3, height),  # Bottom-left
-                        (
-                            2 * width // 3,
-                            2 * height // 3,
-                            width,
-                            height,
-                        ),  # Bottom-right
-                    ]
-                )
-
-                for region in regions:
-                    region_img = img.crop(region)
-                    region_stat = ImageStat.Stat(region_img)
-                    region_color = tuple(map(int, region_stat.mean))
-                    all_colors.append(region_color)
-
-                    # Also extract min and max colors from each region for more variety
-                    min_vals = (
-                        region_stat.extrema[0][0],
-                        region_stat.extrema[1][0],
-                        region_stat.extrema[2][0],
-                    )
-                    max_vals = (
-                        region_stat.extrema[0][1],
-                        region_stat.extrema[1][1],
-                        region_stat.extrema[2][1],
-                    )
-                    all_colors.append(tuple(map(int, min_vals)))
-                    all_colors.append(tuple(map(int, max_vals)))
-
-        except Exception as e:
-            logger.error(f"Error extracting colors from {img_path}: {e}")
-
-    # If we couldn't extract any colors, return default
-    if not all_colors:
-        return [(222, 215, 211)]  # Default background color
-
-    # Filter out very similar colors
-    filtered_colors = []
-    for color in all_colors:
-        # Convert to HSV for better color comparison
-        h, s, v = colorsys.rgb_to_hsv(color[0] / 255, color[1] / 255, color[2] / 255)
-
-        # Allow a wider range of colors, only skip extreme values
-        if v < 0.1 or v > 0.98:
-            continue
-
-        # Allow more colors with lower saturation but prioritize vibrant ones
-        if s < 0.03:  # Only skip very desaturated colors
-            continue
-
-        # Check if this color is too similar to ones we've already kept
-        is_unique = True
-        for existing_color in filtered_colors:
-            existing_h, existing_s, existing_v = colorsys.rgb_to_hsv(
-                existing_color[0] / 255,
-                existing_color[1] / 255,
-                existing_color[2] / 255,
-            )
-
-            # Calculate color distance in HSV space
-            h_diff = min(abs(h - existing_h), 1 - abs(h - existing_h))
-            s_diff = abs(s - existing_s)
-            v_diff = abs(v - existing_v)
-
-            # If colors are too similar, skip this one (use tighter threshold)
-            if h_diff < 0.08 and s_diff < 0.15 and v_diff < 0.15:
-                is_unique = False
-                break
-
-        if is_unique:
-            filtered_colors.append(color)
-
-    # If filtering removed all colors, return the original average colors
-    if not filtered_colors:
-        filtered_colors = all_colors
-
-    # Sort by saturation to prioritize more vibrant colors
-    filtered_colors_with_hsv = []
-    for color in filtered_colors:
-        h, s, v = colorsys.rgb_to_hsv(color[0] / 255, color[1] / 255, color[2] / 255)
-        filtered_colors_with_hsv.append((color, s))
-
-    filtered_colors_with_hsv.sort(key=lambda x: x[1], reverse=True)
-    sorted_colors = [c[0] for c in filtered_colors_with_hsv]
-
-    # Return the requested number of colors
-    return sorted_colors[:num_colors]
-
-
-def calculate_contrast_ratio(
-    color1: Tuple[int, int, int], color2: Tuple[int, int, int]
-) -> float:
-    """
-    Calculate the contrast ratio between two colors according to WCAG 2.0.
-
-    Args:
-        color1: First RGB color tuple
-        color2: Second RGB color tuple
-
-    Returns:
-        Contrast ratio between the two colors (1:1 to 21:1)
-    """
-
-    # Convert RGB to relative luminance
-    def get_luminance(rgb):
-        # Convert RGB to sRGB
-        srgb = [c / 255 for c in rgb]
-        # Convert sRGB to linear RGB
-        rgb_linear = []
-        for c in srgb:
-            if c <= 0.03928:
-                rgb_linear.append(c / 12.92)
-            else:
-                rgb_linear.append(((c + 0.055) / 1.055) ** 2.4)
-        # Calculate luminance
-        return 0.2126 * rgb_linear[0] + 0.7152 * rgb_linear[1] + 0.0722 * rgb_linear[2]
-
-    # Get luminance for both colors
-    l1 = get_luminance(color1)
-    l2 = get_luminance(color2)
-
-    # Calculate contrast ratio
-    if l1 > l2:
-        return (l1 + 0.05) / (l2 + 0.05)
-    else:
-        return (l2 + 0.05) / (l1 + 0.05)
-
-
-def adjust_color_for_contrast(
-    foreground: Tuple[int, int, int],
-    background: Tuple[int, int, int],
-    min_contrast: float = 5.5,  # Increased from 4.5 for better readability
-) -> Tuple[int, int, int]:
-    """
-    Adjust foreground color to ensure minimum contrast with background.
-    Enhanced to create more vibrant and readable text.
-
-    Args:
-        foreground: RGB foreground color to adjust
-        background: RGB background color to contrast against
-        min_contrast: Minimum contrast ratio required (WCAG AA: 4.5 for normal text, 3.0 for large text)
-                     We use 5.5 for better readability
-
-    Returns:
-        Adjusted RGB foreground color with sufficient contrast
-    """
-    # Check current contrast
-    current_contrast = calculate_contrast_ratio(foreground, background)
-
-    logger.info(
-        f"Initial contrast ratio: {current_contrast:.2f} (target: {min_contrast})"
-    )
-
-    if current_contrast >= min_contrast:
-        logger.info(f"Color already meets contrast requirements: {foreground}")
-        return foreground  # Already meets contrast requirements
-
-    # Convert to HSV for easier manipulation
-    r, g, b = foreground
-    h, s, v = colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)
-
-    # Get background luminance to determine if we should lighten or darken
-    bg_r, bg_g, bg_b = background
-    bg_luminance = (0.299 * bg_r + 0.587 * bg_g + 0.114 * bg_b) / 255
-    is_light_bg = bg_luminance > 0.5
-
-    # For very light backgrounds, we want darker and more saturated text
-    # For very dark backgrounds, we want lighter and more saturated text
-    if is_light_bg:
-        # Start with a more saturated color for light backgrounds
-        s = min(1.0, s * 1.3)  # Increase saturation by 30%
-
-        # If the background is very light, make the text darker to start with
-        if bg_luminance > 0.85:
-            v = max(0.0, v * 0.7)  # Reduce brightness by 30%
-    else:
-        # For dark backgrounds, increase saturation to make text pop more
-        s = min(1.0, s * 1.2)  # Increase saturation by 20%
-
-        # If the background is very dark, make the text lighter to start with
-        if bg_luminance < 0.15:
-            v = min(1.0, v * 1.3)  # Increase brightness by 30%
-
-    # Adjust value (brightness) in steps until we reach minimum contrast
-    step = 0.05
-    max_iterations = 25  # Increased from 20 to allow more adjustments
-    iterations = 0
-
-    while current_contrast < min_contrast and iterations < max_iterations:
-        iterations += 1
-
-        if is_light_bg:
-            # For light backgrounds, darken the text
-            v = max(0.0, v - step)
-        else:
-            # For dark backgrounds, lighten the text
-            v = min(1.0, v + step)
-
-        # Convert back to RGB
-        adjusted_rgb = tuple(int(x * 255) for x in colorsys.hsv_to_rgb(h, s, v))
-        current_contrast = calculate_contrast_ratio(adjusted_rgb, background)
-
-        logger.info(
-            f"Iteration {iterations}: contrast = {current_contrast:.2f}, hsv = ({h:.2f}, {s:.2f}, {v:.2f})"
-        )
-
-        # If we've reached extreme values and still don't have enough contrast,
-        # try adjusting saturation as well
-        if (is_light_bg and v <= 0.1) or (not is_light_bg and v >= 0.9):
-            if is_light_bg:
-                # For light backgrounds, increase saturation to make text more vibrant
-                s = min(1.0, s + step)
-            else:
-                # For dark backgrounds, increase saturation to make text more vibrant
-                # Changed from decreasing saturation to increasing it for more pop
-                s = min(1.0, s + step)
-
-            adjusted_rgb = tuple(int(x * 255) for x in colorsys.hsv_to_rgb(h, s, v))
-            current_contrast = calculate_contrast_ratio(adjusted_rgb, background)
-            logger.info(
-                f"Adjusted saturation: contrast = {current_contrast:.2f}, hsv = ({h:.2f}, {s:.2f}, {v:.2f})"
-            )
-
-    # If we still don't have enough contrast, use black or white with a hint of color
-    if current_contrast < min_contrast:
-        if is_light_bg:
-            # Black text with a hint of the original hue for light backgrounds
-            v = 0.05  # Very dark
-            s = 0.8  # High saturation to maintain some color
-            adjusted_rgb = tuple(int(x * 255) for x in colorsys.hsv_to_rgb(h, s, v))
-
-            # If still not enough contrast, use pure black
-            if calculate_contrast_ratio(adjusted_rgb, background) < min_contrast:
-                adjusted_rgb = (0, 0, 0)
-        else:
-            # White text with a hint of the original hue for dark backgrounds
-            v = 0.95  # Very light
-            s = 0.3  # Some saturation to maintain some color
-            adjusted_rgb = tuple(int(x * 255) for x in colorsys.hsv_to_rgb(h, s, v))
-
-            # If still not enough contrast, use pure white
-            if calculate_contrast_ratio(adjusted_rgb, background) < min_contrast:
-                adjusted_rgb = (255, 255, 255)
-
-    logger.info(
-        f"Final adjusted color: {adjusted_rgb} with contrast ratio: {calculate_contrast_ratio(adjusted_rgb, background):.2f}"
-    )
-    return adjusted_rgb
 
 
 def generate_color_palette(
@@ -371,7 +52,6 @@ def generate_color_palette(
         }
 
     # Define contrast thresholds according to WCAG standards
-    # Increased for better readability
     min_contrast_normal = max(
         5.5, config.FONT_CONFIG["DYNAMIC_TITLE_CONTRAST_THRESHOLD"]
     )
@@ -407,9 +87,6 @@ def generate_color_palette(
     border_rgb = tuple(int(x * 255) for x in colorsys.hsv_to_rgb(*border_hsv))
 
     # Create a text background that will provide good contrast with text
-    # Use a more neutral background to ensure text stands out better
-    # For darker colors, use a lighter background; for lighter colors, use a darker background
-
     # Start with a more neutral background color
     if v > 0.5:  # If the base color is light
         # Create a slightly darker, less saturated background
@@ -429,10 +106,6 @@ def generate_color_palette(
 
     # Determine if background is light or dark (threshold at 0.5)
     is_light_bg = luminance > 0.5
-
-    logger.info(
-        f"Text background color: {text_bg_rgb} (luminance: {luminance:.2f}, is_light: {is_light_bg})"
-    )
 
     # Find colors from the extracted colors for the text elements
     title_text = None
@@ -459,32 +132,16 @@ def generate_color_palette(
             colors_by_contrast.append(
                 (adjusted_color, adj_h, adj_s, adj_v, new_contrast)
             )
-            logger.info(
-                f"Adjusted color from {color} to {adjusted_color} to improve contrast from {bg_contrast:.2f} to {new_contrast:.2f}"
-            )
         else:
             colors_by_contrast.append((color, h, s, v, bg_contrast))
 
     colors_by_contrast.sort(key=lambda x: x[4], reverse=True)  # Sort by contrast
 
-    logger.info(f"Found {len(colors_by_contrast)} colors from input images")
-    if colors_by_contrast:
-        top_colors = colors_by_contrast[: min(3, len(colors_by_contrast))]
-        logger.info(
-            f"Top colors by contrast: {[c[0] for c in top_colors]} with contrast ratios: {[c[4] for c in top_colors]}"
-        )
-
     # Try to find a color with good contrast for the title
     # First try: Find a vibrant color with good contrast for normal text
     for color, h, s, v, contrast in colors_by_contrast:
-        if (
-            contrast >= min_contrast_normal and s >= 0.4 and 0.2 <= v <= 0.9
-        ):  # Increased saturation requirement
+        if contrast >= min_contrast_normal and s >= 0.4 and 0.2 <= v <= 0.9:
             title_text = color
-            logger.info(
-                f"Selected vibrant color from input for title: {color} (contrast: {contrast:.2f})"
-            )
-
             # Create a slightly less saturated version for subtitle
             subtitle_hsv = (h, max(0.3, s - 0.1), v)  # Keep good saturation
             subtitle_rgb = tuple(
@@ -512,10 +169,6 @@ def generate_color_palette(
                     int(x * 255) for x in colorsys.hsv_to_rgb(*title_hsv)
                 )
 
-                logger.info(
-                    f"Selected and enhanced color for title: {title_text} (contrast: {calculate_contrast_ratio(text_bg_rgb, title_text):.2f})"
-                )
-
                 # Create a slightly adjusted version for subtitle
                 if v > 0.5:  # If color is bright
                     subtitle_hsv = (h, s, max(0.2, v - 0.15))  # Make slightly darker
@@ -541,10 +194,6 @@ def generate_color_palette(
                     int(x * 255) for x in colorsys.hsv_to_rgb(*title_hsv)
                 )
 
-                logger.info(
-                    f"Selected and enhanced vibrant color for large title: {title_text} (contrast: {calculate_contrast_ratio(text_bg_rgb, title_text):.2f})"
-                )
-
                 # Create a slightly less saturated version for subtitle
                 subtitle_hsv = (h, max(0.3, s - 0.1), v)
                 subtitle_rgb = tuple(
@@ -566,10 +215,6 @@ def generate_color_palette(
                     int(x * 255) for x in colorsys.hsv_to_rgb(*title_hsv)
                 )
 
-                logger.info(
-                    f"Selected and enhanced color for large title: {title_text} (contrast: {calculate_contrast_ratio(text_bg_rgb, title_text):.2f})"
-                )
-
                 # Create a slightly adjusted version for subtitle
                 if v > 0.5:  # If color is bright
                     subtitle_hsv = (h, s, max(0.2, v - 0.15))  # Make slightly darker
@@ -584,10 +229,6 @@ def generate_color_palette(
 
     # If we still couldn't find a suitable color, use high-contrast fallback colors
     if title_text is None:
-        logger.info(
-            "No suitable colors found in input images, using high-contrast fallback colors"
-        )
-
         # Choose contrasting colors based on background luminance
         if is_light_bg:
             # For light backgrounds, use a dark, saturated color
@@ -618,19 +259,6 @@ def generate_color_palette(
             subtitle_text, text_bg_rgb, min_contrast_normal
         )
 
-    # Calculate luminance for logging purposes
-    title_luminance = (
-        0.299 * title_text[0] + 0.587 * title_text[1] + 0.114 * title_text[2]
-    ) / 255
-    subtitle_luminance = (
-        0.299 * subtitle_text[0] + 0.587 * subtitle_text[1] + 0.114 * subtitle_text[2]
-    ) / 255
-
-    logger.info(
-        f"Selected text colors - Title: {title_text} (luminance: {title_luminance:.2f}), "
-        f"Subtitle: {subtitle_text} (luminance: {subtitle_luminance:.2f})"
-    )
-
     # Use a neutral background color for the main canvas
     background = (240, 240, 240) if v < 0.5 else (220, 220, 220)
 
@@ -642,27 +270,6 @@ def generate_color_palette(
         "title_text": title_text,
         "subtitle_text": subtitle_text,
     }
-
-
-def draw_text(
-    draw: ImageDraw.Draw,
-    position: Tuple[int, int],
-    text: str,
-    font: ImageFont.FreeTypeFont,
-    text_color: Tuple[int, int, int],
-) -> None:
-    """
-    Draw text without an outline, using dynamic color selection for readability.
-
-    Args:
-        draw: ImageDraw object to draw on
-        position: (x, y) position for the text
-        text: Text to draw
-        font: Font to use
-        text_color: RGB color for the text
-    """
-    # Draw the text directly without outline
-    draw.text(position, text, font=font, fill=text_color)
 
 
 def create_dynamic_overlay(
@@ -742,32 +349,25 @@ def create_dynamic_overlay(
     bottom_subtitle_font = get_font(subtitle_font_name, size=bottom_subtitle_font_size)
     title_font = get_font(title_font_name, size=title_font_size)
 
-    logger.info(
-        f"Using title font: {config.FONT_CONFIG['TITLE_FONT']} (size: {title_font_size})"
-    )
-    logger.info(
-        f"Using subtitle font: {config.FONT_CONFIG['SUBTITLE_FONT']} (sizes: {top_subtitle_font_size}, {bottom_subtitle_font_size})"
-    )
-
     # Top subtitle - only make the number larger, not the text
     subtitle_text = f"{num_images} Seamless Patterns"
-    subtitle_width, subtitle_height = draw.textbbox(
-        (0, 0), subtitle_text, font=top_subtitle_font
-    )[2:4]
+    subtitle_width, subtitle_height = calculate_text_dimensions(
+        draw, subtitle_text, top_subtitle_font
+    )
 
     # Main title - adjust font size to fit
     max_title_width = width // 2 - 80  # Maximum width with some margin
-    title_width, title_height = draw.textbbox((0, 0), title, font=title_font)[2:4]
+    title_width, title_height = calculate_text_dimensions(draw, title, title_font)
     while title_width > max_title_width and title_font_size > 20:
         title_font_size -= 5
         title_font = get_font(title_font_name, size=title_font_size)
-        title_width, title_height = draw.textbbox((0, 0), title, font=title_font)[2:4]
+        title_width, title_height = calculate_text_dimensions(draw, title, title_font)
 
     # Bottom subtitle
     bottom_subtitle_text = f"commercial use  |  300 dpi  |  12x12in jpg"
-    bottom_subtitle_width, bottom_subtitle_height = draw.textbbox(
-        (0, 0), bottom_subtitle_text, font=bottom_subtitle_font
-    )[2:4]
+    bottom_subtitle_width, bottom_subtitle_height = calculate_text_dimensions(
+        draw, bottom_subtitle_text, bottom_subtitle_font
+    )
 
     # Calculate text dimensions and padding
     padding_x = 40  # Horizontal padding
@@ -794,137 +394,34 @@ def create_dynamic_overlay(
     text_x = (width - text_width) // 2
     text_y = (height - text_height) // 2
 
-    # Draw text backdrop with rounded corners and border
-    border_thickness = max(2, divider_height // 20)  # Same as divider border thickness
-    border_radius = 15
-
-    # Get the solid color for the backdrop from the palette
-    if len(palette["text_bg"]) >= 3:
-        backdrop_color = palette["text_bg"][:3] + (255,)  # Fully opaque
-    else:
-        backdrop_color = (240, 240, 240, 255)  # Default if no color provided
-
-    # Create a mask for rounded corners
-    mask = Image.new("L", (text_width, text_height), 0)
-    mask_draw = ImageDraw.Draw(mask)
-    mask_draw.rounded_rectangle(
-        [(0, 0), (text_width, text_height)], radius=border_radius, fill=255
+    # Create text backdrop with sample image overlay if provided
+    text_backdrop = create_text_backdrop(
+        width=text_width,
+        height=text_height,
+        background_color=palette["text_bg"],
+        border_color=palette["divider_border"],
+        border_thickness=border_thickness,
+        border_radius=15,
+        sample_image=sample_image,
+        sample_opacity=60,
     )
-
-    # Create the solid backdrop with rounded corners
-    solid_backdrop = Image.new("RGBA", (text_width, text_height), backdrop_color)
-    solid_backdrop.putalpha(mask)  # Apply rounded corners
-
-    # Create the final text backdrop that will hold all layers
-    text_backdrop = solid_backdrop.copy()
-
-    # If we have a sample image, overlay it on the backdrop with transparency
-    if sample_image is not None:
-        try:
-            # Resize the sample image to fill the text backdrop while preserving aspect ratio
-            # This is similar to CSS "background-size: cover"
-            img_aspect = (
-                sample_image.width / sample_image.height
-                if sample_image.height > 0
-                else 1
-            )
-            backdrop_aspect = text_width / text_height
-
-            # Determine which dimension to match and which to overflow
-            if img_aspect > backdrop_aspect:  # Image is wider than backdrop
-                # Match height and let width overflow
-                new_height = text_height
-                new_width = int(text_height * img_aspect)
-            else:  # Image is taller than backdrop or same aspect ratio
-                # Match width and let height overflow
-                new_width = text_width
-                new_height = int(text_width / img_aspect)
-
-            # Resize to the calculated dimensions
-            sample_resized = sample_image.resize(
-                (new_width, new_height), get_resampling_filter()
-            )
-
-            # Calculate position to center the image in the backdrop
-            # This will create negative offsets if the image is larger than the backdrop
-            # which is exactly what we want for the "cover" effect
-            pos_x = (text_width - new_width) // 2
-            pos_y = (text_height - new_height) // 2
-
-            logger.info(
-                f"Image resized to {new_width}x{new_height} with offset ({pos_x}, {pos_y}) to fill {text_width}x{text_height} backdrop"
-            )
-
-            # Create a semi-transparent version of the sample image
-            sample_overlay = Image.new("RGBA", (text_width, text_height), (0, 0, 0, 0))
-            sample_pixels = sample_overlay.load()
-            resized_pixels = sample_resized.load()
-
-            # Copy pixels with reduced alpha (semi-transparent)
-            # We'll iterate through the target image coordinates to ensure we fill the entire backdrop
-            for target_y in range(text_height):
-                for target_x in range(text_width):
-                    # Calculate the corresponding position in the source image
-                    source_x = target_x - pos_x
-                    source_y = target_y - pos_y
-
-                    # Check if the source coordinates are within the resized image
-                    if (
-                        0 <= source_x < sample_resized.width
-                        and 0 <= source_y < sample_resized.height
-                    ):
-                        r, g, b, a = resized_pixels[source_x, source_y]
-                        # Make the overlay semi-transparent (20-25% opacity)
-                        new_alpha = min(
-                            60, a
-                        )  # Cap at 60 for better visibility while maintaining readability
-                        sample_pixels[target_x, target_y] = (r, g, b, new_alpha)
-
-            # Apply the rounded corner mask to the sample overlay
-            # First, get the alpha channel from the sample overlay
-            sample_alpha = sample_overlay.split()[3]
-
-            # Apply the mask to the alpha channel
-            masked_alpha = Image.new("L", (text_width, text_height), 0)
-            masked_alpha.paste(sample_alpha, (0, 0), mask)
-
-            # Apply the masked alpha channel back to the sample overlay
-            r, g, b, _ = sample_overlay.split()
-            sample_overlay = Image.merge("RGBA", (r, g, b, masked_alpha))
-
-            logger.info(
-                "Applied transparency and rounded corners to sample image overlay"
-            )
-
-            # Composite the sample overlay onto the backdrop
-            text_backdrop = Image.alpha_composite(text_backdrop, sample_overlay)
-
-            logger.info("Applied semi-transparent sample image to backdrop")
-        except Exception as e:
-            logger.warning(
-                f"Error applying sample image overlay: {e}. Using solid backdrop."
-            )
 
     # Paste the text backdrop onto the overlay
     overlay.paste(text_backdrop, (text_x, text_y), text_backdrop)
 
-    # Draw the border
-    draw.rounded_rectangle(
-        [(text_x, text_y), (text_x + text_width, text_y + text_height)],
-        radius=border_radius,
-        outline=palette["divider_border"],
-        width=border_thickness,
-    )
-
     # Add text
     # Position text elements with perfect centering
 
-    # Center the title vertically and horizontally
+    # Center the title horizontally and position it slightly lower than center vertically
+    # to be more evenly spaced between the top and bottom subtitles
     title_x = (width - title_width) // 2
-    title_y = text_y + (text_height - title_height) // 2
+
+    # Calculate a position that's shifted down from the center by a small amount
+    # This creates more even spacing between the title and both subtitles
+    vertical_offset = 20  # Pixels to move the title down from center
+    title_y = text_y + (text_height - title_height) // 2 + vertical_offset
 
     # Position top subtitle at the absolute top of the backdrop
-    # subtitle_x is no longer used since we calculate start_x for the split text
     # Move it to the very top with almost no padding
     # Add just enough padding to prevent text from touching the border
     top_padding = 5  # Absolute minimum padding from the top of the backdrop
@@ -948,14 +445,14 @@ def create_dynamic_overlay(
     number_font = get_font(subtitle_font_name, size=number_font_size)
 
     # Calculate the width of the number part
-    number_width, number_height = draw.textbbox((0, 0), number_part, font=number_font)[
-        2:4
-    ]
+    number_width, number_height = calculate_text_dimensions(
+        draw, number_part, number_font
+    )
 
     # Calculate the width of the text part
-    text_width, text_height = draw.textbbox((0, 0), text_part, font=top_subtitle_font)[
-        2:4
-    ]
+    text_width, text_height = calculate_text_dimensions(
+        draw, text_part, top_subtitle_font
+    )
 
     # Calculate the total width to center properly
     total_width = number_width + text_width
@@ -1041,6 +538,14 @@ def create_main_mockup(
     Args:
         input_folder: Path to the input folder containing images
         title: Title to display on the mockup
+        title_font: Optional custom title font
+        subtitle_font: Optional custom subtitle font
+        title_font_size: Optional custom title font size
+        top_subtitle_font_size: Optional custom top subtitle font size
+        bottom_subtitle_font_size: Optional custom bottom subtitle font size
+        use_dynamic_title_colors: Whether to use dynamic title colors
+        top_subtitle_padding: Optional custom top subtitle padding
+        bottom_subtitle_padding: Optional custom bottom subtitle padding
 
     Returns:
         Path to the created main mockup file, or None if creation failed
@@ -1074,22 +579,27 @@ def create_main_mockup(
         logger.info("Using dynamic title colors based on input image")
     else:
         logger.info("Using default title colors (dynamic colors disabled)")
+
     output_folder = os.path.join(input_folder, "mocks")
     ensure_dir_exists(output_folder)
 
+    # Define grid dimensions
     GRID_ROWS, GRID_COLS = 2, 6
+    grid_width = 3000
+    grid_height = 2250
 
+    # Find all images in the input folder
     images = sorted(glob.glob(os.path.join(input_folder, "*.[jp][pn][g]")))
     if not images:
         logger.warning(f"No images found in {input_folder} for main mockup.")
         return None
 
-    grid_width = 3000
-    grid_height = 2250
-
     # Extract colors from the images
     extracted_colors = extract_colors_from_images(images)
     color_palette = generate_color_palette(extracted_colors)
+
+    # Import image utilities here to avoid circular imports
+    from utils.image_utils import resize_image
 
     # Create background
     background_color = color_palette["background"]
@@ -1098,7 +608,6 @@ def create_main_mockup(
     # Calculate cell dimensions and spacing
     cell_height = grid_height // GRID_ROWS
     avg_cell_width = grid_width // GRID_COLS
-
     total_spacing_x = grid_width - (avg_cell_width * GRID_COLS)
     spacing_between_x = total_spacing_x / (GRID_COLS + 1) if GRID_COLS > 0 else 0
 
@@ -1116,9 +625,7 @@ def create_main_mockup(
             shadow_new_width = int(shadow_img.width * scale_factor)
 
             if shadow_new_width > 0 and cell_height > 0:
-                shadow = shadow_img.resize(
-                    (shadow_new_width, cell_height), get_resampling_filter()
-                )
+                shadow = resize_image(shadow_img, shadow_new_width, cell_height)
         except Exception as e:
             logger.warning(f"Error loading or resizing shadow: {e}. Skipping shadow.")
 
@@ -1139,14 +646,11 @@ def create_main_mockup(
             if img_new_width <= 0 or img_new_height <= 0:
                 continue
 
-            img_resized = img.resize(
-                (img_new_width, img_new_height), get_resampling_filter()
-            )
-
-            row_index = i // GRID_COLS
-            col_index = i % GRID_COLS
+            img_resized = resize_image(img, img_new_width, img_new_height)
 
             # Calculate position
+            row_index = i // GRID_COLS
+            col_index = i % GRID_COLS
             x_pos = int(
                 (col_index + 1) * spacing_between_x + col_index * avg_cell_width
             )
@@ -1198,7 +702,12 @@ def create_main_mockup(
     # Create and add dynamic overlay
     try:
         dynamic_overlay = create_dynamic_overlay(
-            grid_width, grid_height, color_palette, title, num_images, sample_image
+            width=grid_width,
+            height=grid_height,
+            palette=color_palette,
+            title=title,
+            num_images=num_images,
+            sample_image=sample_image,
         )
         final_image = Image.alpha_composite(grid_canvas, dynamic_overlay)
     except Exception as e:

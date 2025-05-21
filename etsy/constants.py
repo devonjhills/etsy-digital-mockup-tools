@@ -37,7 +37,7 @@ Tags (13 total, comma-separated)
 • Multi-word, buyer-centric phrases covering style, theme, product type, use case, audience, format, benefit.  
 • Mix singular/plural; avoid duplicates and generic terms.
 
-OUTPUT **only**:  
+OUTPUT only:  
 Title: <Generated Title>  
 Description: <Generated Description>  
 Tags: <Comma separated tags>

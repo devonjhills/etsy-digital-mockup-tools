@@ -220,10 +220,6 @@ def run_command():
         # Add video creation if requested
         if data.get("createVideo"):
             command.append("--create_video")
-
-        # Add provider if specified
-        if data.get("provider"):
-            command.extend(["--provider", data.get("provider")])
     elif command_type == "pattern-resize":
         command = [
             "python",
@@ -255,10 +251,6 @@ def run_command():
         # Add video creation if requested
         if data.get("createVideo"):
             command.append("--create_video")
-
-        # Add provider if specified
-        if data.get("provider"):
-            command.extend(["--provider", data.get("provider")])
     elif command_type == "clipart-resize":
         command = [
             "python",
@@ -287,10 +279,6 @@ def run_command():
             "-m",
             "clipart.crop_multi",
         ]
-
-        # Add provider if specified
-        if data.get("provider"):
-            command.extend(["--provider", data.get("provider")])
 
         if data.get("maxRetries") is not None:
             command.extend(["--max-retries", str(data.get("maxRetries"))])
@@ -1054,17 +1042,20 @@ def run_command_thread(command):
         log_messages.append(f"Error running command: {e}")
 
 
-def open_browser():
+def open_browser(port=8095):
     """Open browser after a short delay."""
     import time
 
     time.sleep(1.5)
-    webbrowser.open("http://localhost:8095")
+    webbrowser.open(f"http://localhost:{port}")
 
 
 if __name__ == "__main__":
+    # Use a different port to avoid conflicts
+    port = 8096
+
     # Open browser
-    threading.Thread(target=open_browser).start()
+    threading.Thread(target=lambda: open_browser(port)).start()
 
     # Start Flask app
-    app.run(debug=False, port=8095)
+    app.run(debug=False, port=port)
