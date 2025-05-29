@@ -44,8 +44,8 @@ DYNAMIC_TITLE_COLOR_CLUSTERS = 5  # Number of color clusters to extract from ima
 
 # === Spacing Settings ===
 # Padding for subtitles
-TOP_SUBTITLE_PADDING = 40  # Increased padding above the top subtitle
-BOTTOM_SUBTITLE_PADDING = 35  # Slightly increased padding below the bottom subtitle
+TOP_SUBTITLE_PADDING = 60  # Increased padding above the top subtitle
+BOTTOM_SUBTITLE_PADDING = 55  # Increased padding below the bottom subtitle
 
 # === Font Configuration ===
 # Centralized font configuration for easy modification

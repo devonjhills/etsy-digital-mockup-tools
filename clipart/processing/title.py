@@ -54,7 +54,6 @@ def add_title_bar_and_text(
         backdrop_padding_x: The horizontal padding for the backdrop
         backdrop_padding_y: The vertical padding for the backdrop
         backdrop_corner_radius: The corner radius for the backdrop
-        backdrop_opacity: The opacity for the backdrop
         border_width: The width of the border
         border_color: The color of the border
         text_color: The color of the title text
@@ -261,10 +260,10 @@ def add_title_bar_and_text(
     # Use a semi-transparent white or black backdrop depending on background
     if brightness < 128:
         # For dark backgrounds, use a semi-transparent black backdrop
-        backdrop_color = (0, 0, 0, 80)  # Black with 31% opacity
+        backdrop_color = (0, 0, 0, 200)
     else:
         # For light backgrounds, use a semi-transparent white backdrop
-        backdrop_color = (255, 255, 255, 80)  # White with 31% opacity
+        backdrop_color = (255, 255, 255, 200)
 
     # Calculate text positions - center vertically within the backdrop with a slight upward adjustment
     total_content_height = 0

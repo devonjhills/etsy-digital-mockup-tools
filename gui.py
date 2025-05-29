@@ -1051,8 +1051,14 @@ def open_browser(port=8095):
 
 
 if __name__ == "__main__":
+    import logging
+
     # Use a different port to avoid conflicts
     port = 8096
+
+    # Suppress Werkzeug HTTP request logging
+    log = logging.getLogger("werkzeug")
+    log.setLevel(logging.WARNING)
 
     # Open browser
     threading.Thread(target=lambda: open_browser(port)).start()
