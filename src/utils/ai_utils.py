@@ -5,8 +5,8 @@ import re
 from typing import Optional, Dict, Any
 
 # Set up logging
-from utils.common import setup_logging
-from utils.env_loader import load_environment
+from src.utils.common import setup_logging
+from src.utils.env_loader import load_environment
 
 logger = setup_logging(__name__)
 
@@ -35,7 +35,7 @@ def get_ai_provider(provider_name: str = "gemini", api_key: Optional[str] = None
                 logger.warning("GEMINI_API_KEY not found in environment or provided")
                 return None
             
-            from ai_providers.gemini_provider import GeminiProvider
+            from src.services.ai.providers.gemini_provider import GeminiProvider
             provider = GeminiProvider(api_key=api_key)
             logger.info(f"Created Gemini provider successfully: {provider is not None}")
             return provider
@@ -48,7 +48,7 @@ def get_ai_provider(provider_name: str = "gemini", api_key: Optional[str] = None
                 logger.warning("OPENAI_API_KEY not found in environment or provided")
                 return None
             
-            from ai_providers.openai_provider import OpenAIProvider
+            from src.services.ai.providers.openai_provider import OpenAIProvider
             provider = OpenAIProvider(api_key=api_key)
             logger.info(f"Created OpenAI provider successfully: {provider is not None}")
             return provider

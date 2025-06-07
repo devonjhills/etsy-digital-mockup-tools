@@ -41,38 +41,67 @@ cp .env.local .env
 # Edit .env with API keys for Etsy and AI providers
 ```
 
-## Streamlined Architecture
+## Improved Extensible Architecture
 
-### Core Framework (`core/`)
-- **`base_processor.py`**: Abstract base class for all product processors
-- **`processor_factory.py`**: Factory pattern with automatic registration system
-- **`config_manager.py`**: Unified configuration system for all product types
+### Source Structure (`src/`)
+- **`src/core/`**: Core framework (base_processor, processor_factory, config_manager)
+- **`src/app/`**: Web application (Flask app, routes, templates)
+- **`src/products/`**: Product-specific processors organized by type
+- **`src/services/`**: Shared business logic and integrations
+- **`src/utils/`**: Shared utilities and helper functions
 
-### Processors (`processors/`)
-- **`pattern_processor.py`**: Seamless pattern processing using `@register_processor("pattern")`
-- **`clipart_processor.py`**: Clipart/illustration processing using `@register_processor("clipart")`
-- **Easy Extension**: New processors automatically register and appear in GUI
+### Product Processors (`src/products/`)
+- **`src/products/pattern/`**: Pattern-specific processor and logic
+  - `processor.py`: PatternProcessor with `@register_processor("pattern")`
+  - `seamless.py`: Seamless pattern creation logic
+  - `dynamic_main_mockup.py`: Pattern mockup generation
+  - `layered.py`: Layered pattern mockups
+- **`src/products/clipart/`**: Clipart-specific processor and logic
+  - `processor.py`: ClipartProcessor with `@register_processor("clipart")`
+  - `mockups.py`: Clipart mockup generation
+  - `transparency.py`: Transparency demonstration
+  - `utils.py`: Clipart-specific utilities
+- **`src/products/wall_art/`**: Wall art processor (ready for expansion)
 
-### Consolidated Utilities (`utils/`)
-- **`ai_utils.py`**: Unified AI provider management (Gemini/OpenAI)
+### Shared Services (`src/services/`)
+- **`src/services/ai/`**: AI provider integration
+  - `providers/`: AI provider implementations (Gemini, OpenAI)
+- **`src/services/etsy/`**: Etsy marketplace integration
+  - Complete Etsy API integration and listing management
+- **`src/services/processing/`**: Generic processing engines
+  - `grid.py`: Grid creation for all product types
+  - `video.py`: Video creation using MoviePy
+  - `resize.py`: Image resizing utilities
+- **`src/services/file_ops/`**: File operations and validation
+
+### Web Application (`src/app/`)
+- **`src/app/main.py`**: Streamlined Flask application
+- **`src/app/routes/`**: Route handlers (ready for API/web separation)
+- **`src/app/templates/`**: HTML templates
+
+### Shared Utilities (`src/utils/`)
+- **`ai_utils.py`**: Unified AI provider management
 - **`env_loader.py`**: Environment variable loading with validation
-- **`file_operations.py`**: ZIP creation, directory management, file operations
-- **`video_utils.py`**: Video creation using MoviePy
-- **`image_utils.py`**: Shared image processing utilities
+- **`file_operations.py`**: ZIP creation, directory management
+- **`video_utils.py`**: Video creation utilities
+- **`image_utils.py`**: Image processing utilities
 - **`color_utils.py`**: Color analysis and palette generation
 - **`text_utils.py`**: Text processing and layout utilities
+- **`common.py`**: Common utilities and logging
+- **`grid_utils.py`**: Grid layout utilities
+- **`resize_utils.py`**: Image resizing utilities
 
-### Single Entry Point
-- **`main.py`**: Unified entry point replacing all CLI modules
-- **`app.py`**: Streamlined Flask GUI using processor architecture directly (no subprocess calls)
+### Entry Points
+- **`main.py`**: Unified CLI entry point (imports from `src/`)
+- **`src/app/main.py`**: Web interface entry point
 
 ## Adding New Product Types
 
 ### Method 1: Code-based Registration
 ```python
-# Create new processor class
-from core.base_processor import BaseProcessor
-from core.processor_factory import register_processor
+# Create src/products/wall_art/processor.py
+from src.core.base_processor import BaseProcessor
+from src.core.processor_factory import register_processor
 
 @register_processor("wall_art")  # Automatic registration
 class WallArtProcessor(BaseProcessor):
@@ -80,11 +109,11 @@ class WallArtProcessor(BaseProcessor):
         return ["resize", "mockup", "frame", "zip"]
     
     def resize_images(self):
-        # Custom resize logic
+        # Custom resize logic using src/utils/resize_utils
         pass
     
     def create_mockups(self):
-        # Custom mockup logic  
+        # Custom mockup logic using src/services/processing
         pass
 ```
 
@@ -93,7 +122,7 @@ class WallArtProcessor(BaseProcessor):
 # config/product_types/wall_art.yaml
 name: wall_art
 display_name: "Wall Art & Prints"
-processor_class: "processors.wall_art_processor.WallArtProcessor"
+processor_class: "src.products.wall_art.processor.WallArtProcessor"
 default_workflow_steps: ["resize", "mockup", "frame", "zip"]
 resize_settings:
   max_size: 4000
@@ -147,19 +176,20 @@ OPENAI_API_KEY="your_openai_api_key_here"
 ## Development Workflow
 
 ### For GUI Development
-- Edit `app.py` and `templates/app.html`
+- Edit `src/app/main.py` and `src/app/templates/app.html`
 - All processing uses processor classes directly (no CLI calls)
 - Real-time logging and status updates
 
 ### For Adding Product Types
-1. Create processor class in `processors/`
+1. Create processor class in `src/products/new_type/processor.py`
 2. Use `@register_processor("type_name")` decorator
-3. Product type automatically appears in GUI and CLI
+3. Import the processor in `main.py` to register it
+4. Product type automatically appears in GUI and CLI
 
 ### For Modifying Processing Logic
 - Edit specific processor class methods
 - Changes automatically available in both GUI and CLI
-- Shared utilities in `utils/` for common operations
+- Shared utilities in `src/utils/` for common operations
 
 ### Testing
 ```bash
@@ -174,10 +204,10 @@ python main.py generate-content clipart input/test-clipart
 
 ## Configuration System
 
-Use `core/config_manager.py` for all configuration needs:
+Use `src/core/config_manager.py` for all configuration needs:
 
 ```python
-from core.config_manager import get_config_manager
+from src.core.config_manager import get_config_manager
 
 config_manager = get_config_manager()
 pattern_config = config_manager.get_config("pattern")

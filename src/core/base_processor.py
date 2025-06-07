@@ -9,8 +9,8 @@ from abc import ABC, abstractmethod
 from typing import Dict, List, Any, Optional
 from dataclasses import dataclass
 
-from utils.common import setup_logging, ensure_dir_exists
-from utils.ai_utils import get_ai_provider
+from src.utils.common import setup_logging, ensure_dir_exists
+from src.utils.ai_utils import get_ai_provider
 
 
 @dataclass
@@ -104,7 +104,7 @@ class BaseProcessor(ABC):
     
     def create_zip_files(self) -> Dict[str, Any]:
         """Create ZIP files for download with intelligent splitting to stay under 20MB per Etsy limits."""
-        from utils.file_operations import create_smart_zip_files
+        from src.utils.file_operations import create_smart_zip_files
         import os
         
         # Create zipped folder within the input directory

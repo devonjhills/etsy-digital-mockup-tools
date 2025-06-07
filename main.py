@@ -12,16 +12,17 @@ from pathlib import Path
 # Add project root to path
 project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root))
+sys.path.insert(0, str(project_root / "src"))
 
-from core.processor_factory import ProcessorFactory
-from core.base_processor import ProcessingConfig
-from core.config_manager import get_config_manager
-from utils.env_loader import setup_environment
-from utils.common import setup_logging
+from src.core.processor_factory import ProcessorFactory
+from src.core.base_processor import ProcessingConfig
+from src.core.config_manager import get_config_manager
+from src.utils.env_loader import setup_environment
+from src.utils.common import setup_logging
 
 # Import processors to register them
-from processors.pattern_processor import PatternProcessor
-from processors.clipart_processor import ClipartProcessor
+from src.products.pattern.processor import PatternProcessor
+from src.products.clipart.processor import ClipartProcessor
 
 logger = setup_logging(__name__)
 
@@ -73,7 +74,7 @@ Examples:
 def run_gui(args):
     """Start the web interface."""
     try:
-        from app import main as app_main
+        from src.app.main import main as app_main
         app_main()
     except ImportError as e:
         logger.error(f"Failed to import GUI module: {e}")

@@ -4,11 +4,11 @@ import os
 from typing import Dict, List, Any, Optional
 from pathlib import Path
 
-from core.base_processor import BaseProcessor
-from core.processor_factory import register_processor
-from utils.ai_utils import generate_content_with_ai
-from utils.file_operations import find_files_by_extension, ensure_directory
-from processing.video import VideoProcessor
+from src.core.base_processor import BaseProcessor
+from src.core.processor_factory import register_processor
+from src.utils.ai_utils import generate_content_with_ai
+from src.utils.file_operations import find_files_by_extension, ensure_directory
+from src.services.processing.video import VideoProcessor
 
 
 @register_processor("clipart")
@@ -21,7 +21,7 @@ class ClipartProcessor(BaseProcessor):
     
     def resize_images(self) -> Dict[str, Any]:
         """Resize clipart images for processing."""
-        from utils.resize_utils import ImageResizer
+        from src.utils.resize_utils import ImageResizer
         
         try:
             resizer = ImageResizer(max_size=1500, dpi=(300, 300))
@@ -57,8 +57,8 @@ class ClipartProcessor(BaseProcessor):
     
     def _create_square_mockup(self) -> Dict[str, Any]:
         """Create square clipart mockup."""
-        from clipart.processing.square_mockup import create_square_mockup
-        from utils.file_operations import find_files_by_extension
+        from src.products.clipart.mockups import create_square_mockup
+        from src.utils.file_operations import find_files_by_extension
         from PIL import Image
         import os
         
@@ -113,8 +113,8 @@ class ClipartProcessor(BaseProcessor):
     
     def _create_grid_mockup(self) -> Dict[str, Any]:
         """Create multiple 2x2 grid mockups to show all images."""
-        from processing.grid import GridProcessor
-        from utils.file_operations import find_files_by_extension
+        from src.services.processing.grid import GridProcessor
+        from src.utils.file_operations import find_files_by_extension
         import os
         
         # Create mocks folder inside the input directory (like patterns)
@@ -195,7 +195,7 @@ class ClipartProcessor(BaseProcessor):
         """Apply watermark to a grid mockup using unified watermarking."""
         try:
             from PIL import Image
-            from utils.common import apply_watermark
+            from src.utils.common import apply_watermark
             
             # Load the grid image
             grid_image = Image.open(grid_path)
@@ -222,8 +222,8 @@ class ClipartProcessor(BaseProcessor):
     
     def _create_transparency_demo(self) -> Dict[str, Any]:
         """Create transparency demonstration mockup."""
-        from clipart.processing.transparency import create_transparency_demo
-        from utils.file_operations import find_files_by_extension
+        from src.products.clipart.transparency import create_transparency_demo
+        from src.utils.file_operations import find_files_by_extension
         import os
         
         # Create mocks folder inside the input directory (like patterns)
@@ -348,7 +348,7 @@ class ClipartProcessor(BaseProcessor):
     def extract_from_sheets(self) -> Dict[str, Any]:
         """Extract individual clipart from sprite sheets - custom workflow step."""
         try:
-            from clipart.utils import extract_clipart_from_sheets
+            from src.products.clipart.utils import extract_clipart_from_sheets
             
             extracted_dir = os.path.join(self.config.output_dir, "extracted")
             ensure_directory(extracted_dir)

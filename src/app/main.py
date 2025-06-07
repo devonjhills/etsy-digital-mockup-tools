@@ -12,19 +12,20 @@ from pathlib import Path
 from flask import Flask, render_template, request, jsonify
 
 # Add project root to path
-project_root = Path(__file__).parent
+project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
+sys.path.insert(0, str(project_root / "src"))
 
 # Import our new architecture
-from core.processor_factory import ProcessorFactory
-from core.base_processor import ProcessingConfig
-from utils.env_loader import setup_environment
-from utils.ai_utils import get_available_providers
-from utils.file_operations import ensure_directory
+from src.core.processor_factory import ProcessorFactory
+from src.core.base_processor import ProcessingConfig
+from src.utils.env_loader import setup_environment
+from src.utils.ai_utils import get_available_providers
+from src.utils.file_operations import ensure_directory
 
 # Import processors to register them
-from processors.pattern_processor import PatternProcessor
-from processors.clipart_processor import ClipartProcessor
+from src.products.pattern.processor import PatternProcessor
+from src.products.clipart.processor import ClipartProcessor
 
 # Global variables for logging
 log_messages = []
@@ -373,9 +374,9 @@ def prepare_etsy_listings():
         add_log(f"Starting Etsy listing preparation for {processor_type} products")
         
         # Import Etsy integration
-        from etsy.main import EtsyIntegration
-        from etsy.constants import DEFAULT_ETSY_INSTRUCTIONS
-        from utils.env_loader import get_env_var
+        from src.services.etsy.main import EtsyIntegration
+        from src.services.etsy.constants import DEFAULT_ETSY_INSTRUCTIONS
+        from src.utils.env_loader import get_env_var
         
         # Get AI API key
         if ai_provider == "gemini":
@@ -599,8 +600,8 @@ def upload_prepared_listings():
         add_log("Starting upload of prepared listings to Etsy")
         
         # Import Etsy integration
-        from etsy.main import EtsyIntegration
-        from utils.env_loader import get_env_var
+        from src.services.etsy.main import EtsyIntegration
+        from src.utils.env_loader import get_env_var
         import json
         import os
         

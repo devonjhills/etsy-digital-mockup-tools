@@ -1,3 +1,0 @@
-"""
-Clipart processing subpackage.
-"""

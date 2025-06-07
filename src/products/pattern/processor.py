@@ -4,11 +4,11 @@ import os
 from typing import Dict, List, Any
 from pathlib import Path
 
-from core.base_processor import BaseProcessor
-from core.processor_factory import register_processor
-from utils.ai_utils import generate_content_with_ai
-from utils.file_operations import find_files_by_extension, ensure_directory
-from processing.video import VideoProcessor
+from src.core.base_processor import BaseProcessor
+from src.core.processor_factory import register_processor
+from src.utils.ai_utils import generate_content_with_ai
+from src.utils.file_operations import find_files_by_extension, ensure_directory
+from src.services.processing.video import VideoProcessor
 
 
 @register_processor("pattern")
@@ -21,7 +21,7 @@ class PatternProcessor(BaseProcessor):
     
     def resize_images(self) -> Dict[str, Any]:
         """Resize pattern images for processing."""
-        from utils.resize_utils import ImageResizer
+        from src.utils.resize_utils import ImageResizer
         
         try:
             resizer = ImageResizer(max_size=3600, dpi=(300, 300))
@@ -60,7 +60,7 @@ class PatternProcessor(BaseProcessor):
     
     def _create_main_mockup(self) -> Dict[str, Any]:
         """Create main pattern mockup."""
-        from pattern.mockups.dynamic_main_mockup import create_main_mockup
+        from src.products.pattern.dynamic_main_mockup import create_main_mockup
         
         mockup_dir = os.path.join(self.config.input_dir, "mocks")
         ensure_directory(mockup_dir)
@@ -80,7 +80,7 @@ class PatternProcessor(BaseProcessor):
     
     def _create_grid_mockup(self) -> Dict[str, Any]:
         """Create pattern grid mockup."""
-        from processing.grid import GridProcessor
+        from src.services.processing.grid import GridProcessor
         
         mockup_dir = os.path.join(self.config.input_dir, "mocks")
         ensure_directory(mockup_dir)
@@ -96,7 +96,7 @@ class PatternProcessor(BaseProcessor):
     
     def _create_layered_mockup(self) -> Dict[str, Any]:
         """Create layered pattern mockup."""
-        from pattern.mockups.layered import create_large_grid
+        from src.products.pattern.layered import create_large_grid
         
         mockup_dir = os.path.join(self.config.input_dir, "mocks")
         ensure_directory(mockup_dir)
@@ -109,7 +109,7 @@ class PatternProcessor(BaseProcessor):
     
     def _create_seamless_tiling_mockup(self) -> Dict[str, Any]:
         """Create seamless tiling mockup showing 2x2 grid with 'Images tile seamlessly' text."""
-        from pattern.seamless import create_seamless_tiling_mockup
+        from src.products.pattern.seamless import create_seamless_tiling_mockup
         
         mockup_dir = os.path.join(self.config.input_dir, "mocks")
         ensure_directory(mockup_dir)
@@ -206,7 +206,7 @@ class PatternProcessor(BaseProcessor):
     
     def create_seamless_pattern(self) -> Dict[str, Any]:
         """Create seamless pattern from input image - custom workflow step."""
-        from pattern.seamless import create_seamless_pattern
+        from src.products.pattern.seamless import create_seamless_pattern
         
         try:
             seamless_dir = os.path.join(self.config.input_dir, "seamless")

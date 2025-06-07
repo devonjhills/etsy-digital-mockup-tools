@@ -5,7 +5,7 @@ from typing import Dict, Any, Optional, Tuple
 from pathlib import Path
 from dataclasses import dataclass, field
 
-from utils.common import setup_logging
+from src.utils.common import setup_logging
 
 logger = setup_logging(__name__)
 
