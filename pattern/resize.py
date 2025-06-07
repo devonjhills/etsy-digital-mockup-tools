@@ -172,6 +172,54 @@ def process_images(
     logger.info("Image processing complete")
 
 
+def resize_patterns_in_folder(input_folder: str, output_folder: str = None, max_size: int = 3600) -> dict:
+    """
+    Wrapper function for pattern processor compatibility.
+    
+    Args:
+        input_folder: Path to input folder with images
+        output_folder: Path to output folder (unused - processes in place)
+        max_size: Maximum dimension for images
+    
+    Returns:
+        Dictionary with processing results
+    """
+    try:
+        # Convert single int to tuple for process_images
+        max_size_tuple = (max_size, max_size)
+        
+        # Process images in place
+        process_images(input_folder, max_size=max_size_tuple)
+        
+        # Count processed files
+        processed_count = 0
+        for subfolder in os.listdir(input_folder):
+            subfolder_path = os.path.join(input_folder, subfolder)
+            if os.path.isdir(subfolder_path):
+                image_files = []
+                for ext in [".jpg", ".jpeg", ".png", ".tif", ".tiff"]:
+                    image_files.extend([
+                        f for f in os.listdir(subfolder_path)
+                        if f.lower().endswith(ext)
+                    ])
+                processed_count += len(image_files)
+        
+        return {
+            "success": True,
+            "processed": processed_count,
+            "input_folder": input_folder,
+            "max_size": max_size
+        }
+        
+    except Exception as e:
+        logger.error(f"resize_patterns_in_folder failed: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "processed": 0
+        }
+
+
 if __name__ == "__main__":
     import argparse
 

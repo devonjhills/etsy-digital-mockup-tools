@@ -14,7 +14,7 @@ from utils.common import setup_logging
 logger = setup_logging(__name__)
 
 # Import AI provider factory
-from ai_providers.factory import AIProviderFactory
+from utils.ai_utils import get_ai_provider
 
 
 class ContentGenerator:
@@ -34,24 +34,28 @@ class ContentGenerator:
             model_name: Name of the model to use (if None, will try to get from environment)
             provider_type: Type of AI provider to use (only 'gemini' is supported)
         """
+        # Store initialization parameters for debugging
+        self.provider_type = provider_type
+        self.api_key_provided = api_key is not None
+        
         # Get the AI provider
         if provider_type:
-            self.provider = AIProviderFactory.create_provider(
-                provider_type, api_key, model_name
-            )
+            self.provider = get_ai_provider(provider_type, api_key)
+            logger.info(f"Attempting to initialize {provider_type} provider with API key: {'***' + api_key[-4:] if api_key else 'None'}")
         else:
-            self.provider = AIProviderFactory.get_default_provider()
+            self.provider = get_ai_provider("gemini", api_key)
+            logger.info(f"Defaulting to Gemini provider with API key: {'***' + api_key[-4:] if api_key else 'None'}")
 
         if self.provider:
             logger.info(
-                f"Initialized AI provider: {self.provider.__class__.__name__} with model: {self.provider.model_name}"
+                f"Successfully initialized AI provider: {self.provider.__class__.__name__}"
             )
         else:
             logger.error(
-                "Failed to initialize AI provider. Check API keys and provider type."
+                f"Failed to initialize AI provider. Provider type: {self.provider_type}, API key provided: {self.api_key_provided}"
             )
             print(
-                "Failed to initialize AI provider. Check API keys and provider type.",
+                f"Failed to initialize AI provider. Provider type: {self.provider_type}, API key provided: {self.api_key_provided}",
                 file=sys.stderr,
             )
 
@@ -78,7 +82,7 @@ class ContentGenerator:
             return {"title": "", "description": "", "tags": []}
 
         if not self.provider:
-            error_msg = "AI provider not available. Check initialization."
+            error_msg = f"AI provider not available. Check initialization. Provider type requested: {self.provider_type}, API key provided: {self.api_key_provided}"
             logger.error(error_msg)
             print(error_msg, file=sys.stderr)
             return {"title": "", "description": "", "tags": []}

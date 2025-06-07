@@ -17,7 +17,7 @@ from clipart import config
 
 # Import resize module for CLI usage only
 from clipart.processing.square_mockup import create_square_mockup
-from clipart.processing.grid import create_2x2_grid, apply_watermark
+from clipart.processing.grid import create_2x2_grid
 from clipart.processing.transparency import create_transparency_demo
 
 # Title bar is now handled by square_mockup
@@ -251,6 +251,7 @@ def grid_mockup(
                         padding=config.CELL_PADDING,
                     )
 
+                    from utils.common import apply_watermark
                     mockup_2x2_watermarked = apply_watermark(mockup_2x2)
 
                     output_filename = os.path.join(

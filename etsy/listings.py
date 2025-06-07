@@ -333,7 +333,20 @@ class EtsyListings:
             logger.error("No shop ID available.")
             return None
 
+        # Validate video file before upload
+        from utils.video_utils import validate_video_for_etsy
+        is_valid, validation_message = validate_video_for_etsy(video_path)
+        if not is_valid:
+            logger.error(f"Video validation failed: {validation_message}")
+            return None
+        
+        logger.info(f"Video validation passed: {validation_message}")
+
         try:
+            # Log video file details
+            file_size = os.path.getsize(video_path)
+            logger.info(f"Uploading video: {video_path} ({file_size / (1024*1024):.1f}MB)")
+            
             url = f"{self.base_url}/application/shops/{self.shop_id}/listings/{listing_id}/videos"
             headers = self.auth.get_headers()
 
@@ -348,14 +361,17 @@ class EtsyListings:
 
             # Check if the request was successful
             if response.status_code == 201:
+                logger.info(f"Video uploaded successfully to listing {listing_id}")
                 return response.json()
             else:
-                logger.error(
-                    f"Error uploading video: {response.status_code} {response.text}"
-                )
+                logger.error(f"Video upload failed for {video_path}")
+                logger.error(f"HTTP Status: {response.status_code}")
+                logger.error(f"Response: {response.text}")
+                logger.error(f"Video details - Size: {file_size / (1024*1024):.1f}MB, Path: {video_path}")
                 return None
         except Exception as e:
-            logger.error(f"Error uploading video: {e}")
+            logger.error(f"Exception during video upload: {e}")
+            logger.error(f"Video file: {video_path}")
             return None
 
     def get_properties_by_taxonomy_id(self, taxonomy_id: int) -> Optional[List[Dict]]:

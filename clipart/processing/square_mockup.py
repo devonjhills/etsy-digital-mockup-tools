@@ -400,8 +400,15 @@ def create_square_mockup(
 
     logger.info(f"Selected text color: {selected_text_color}")
 
-    # Import config here to avoid circular imports
-    from clipart import config
+    # Default configuration values
+    DEFAULT_FONT_CONFIG = {
+        "TITLE_FONT": "GreatVibes-Regular",
+        "SUBTITLE_FONT": "LibreBaskerville-Italic", 
+        "TITLE_MAX_FONT_SIZE": 250,
+        "TITLE_MIN_FONT_SIZE": 40,
+        "SUBTITLE_FONT_SIZE": 60
+    }
+    DEFAULT_TITLE_FONT_STEP = 5
 
     # Add title overlay
     logger.info("Adding title overlay...")
@@ -411,30 +418,30 @@ def create_square_mockup(
         "title_font_name": (
             title_font_name
             if title_font_name is not None
-            else config.FONT_CONFIG["TITLE_FONT"]
+            else DEFAULT_FONT_CONFIG["TITLE_FONT"]
         ),
         "subtitle_font_name": (
             subtitle_font_name
             if subtitle_font_name is not None
-            else config.FONT_CONFIG["SUBTITLE_FONT"]
+            else DEFAULT_FONT_CONFIG["SUBTITLE_FONT"]
         ),
         "title_max_font_size": (
             title_max_font_size
             if title_max_font_size is not None
-            else config.FONT_CONFIG["TITLE_MAX_FONT_SIZE"]
+            else DEFAULT_FONT_CONFIG["TITLE_MAX_FONT_SIZE"]
         ),
         "title_min_font_size": (
             title_min_font_size
             if title_min_font_size is not None
-            else config.FONT_CONFIG["TITLE_MIN_FONT_SIZE"]
+            else DEFAULT_FONT_CONFIG["TITLE_MIN_FONT_SIZE"]
         ),
         "title_font_step": (
-            title_font_step if title_font_step is not None else config.TITLE_FONT_STEP
+            title_font_step if title_font_step is not None else DEFAULT_TITLE_FONT_STEP
         ),
         "subtitle_font_size": (
             subtitle_font_size
             if subtitle_font_size is not None
-            else config.FONT_CONFIG["SUBTITLE_FONT_SIZE"]
+            else DEFAULT_FONT_CONFIG["SUBTITLE_FONT_SIZE"]
         ),
         # title_max_lines removed as we always use a single line
         "title_line_spacing": title_line_spacing,

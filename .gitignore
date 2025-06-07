@@ -47,6 +47,10 @@ output/
 mockups_output/
 clipart_output/
 
+# Archive directory with old backup files
+.archive/
+prepared_listings_backup.json
+
 # API tokens and credentials
 etsy_token.json
 *.token.json

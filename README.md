@@ -161,9 +161,22 @@ _Screenshots will be added as the project develops_
    cd mockup-tools
    ```
 
-2. Install dependencies:
+2. **Quick Setup** (Automatic virtual environment and dependencies):
 
+   **macOS/Linux:**
    ```bash
+   ./activate.sh
+   ```
+
+   **Windows:**
+   ```bash
+   activate.bat
+   ```
+
+   **Manual Setup** (if you prefer):
+   ```bash
+   python3 -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
    pip install -r requirements.txt
    ```
 
@@ -203,22 +216,41 @@ GEMINI_MODEL="gemini-2.0-flash"
 
 ### Running the Application
 
-#### Web Interface
+#### Quick Launch (Recommended)
 
+**macOS/Linux:**
 ```bash
-python gui.py
+./run.sh                    # Start GUI
+./run.sh list-types         # List available product types
+./run.sh --help            # Show all options
 ```
 
-This will start the web server and automatically open the interface in your browser.
-
-#### Command Line
-
+**Windows:**
 ```bash
-# Process patterns
-python cli.py pattern all --input_dir input/patterns
+run.bat                     # Start GUI
+run.bat list-types          # List available product types
+run.bat --help             # Show all options
+```
 
-# Create Etsy listings
-python cli.py etsy bulk-create --input_dir input/patterns --product_type pattern
+#### Manual Launch (after activating virtual environment)
+
+**Web Interface (Recommended):**
+```bash
+python main.py
+```
+This starts the streamlined web interface on http://localhost:8096 with real-time processing and logging.
+
+**Command Line Options:**
+```bash
+# Process products directly
+python main.py process pattern input/my-pattern
+python main.py process clipart input/my-clipart
+
+# Generate AI content only
+python main.py generate-content pattern input/my-pattern --ai-provider gemini
+
+# List available product types
+python main.py list-types
 ```
 
 ## 📝 License

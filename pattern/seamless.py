@@ -2,8 +2,8 @@
 
 import os
 import glob
-from typing import Optional, Tuple
-from PIL import Image, ImageDraw, ImageFont
+from typing import Optional
+from PIL import Image, ImageDraw
 
 from utils.common import (
     setup_logging,
@@ -211,4 +211,117 @@ def create_seamless_mockup(input_folder: str) -> Optional[str]:
         logger.error(
             f"Error creating original seamless comparison mockup for {input_image_path}: {e}"
         )
+        return None
+
+
+def create_seamless_tiling_mockup(input_folder: str) -> Optional[str]:
+    """
+    Create a seamless tiling mockup showing a 2x2 grid with 'Images tile seamlessly' text.
+    
+    Args:
+        input_folder: Path to the input folder containing images
+        
+    Returns:
+        Path to the created seamless tiling mockup file, or None if creation failed
+    """
+    logger.info("Creating seamless tiling mockup...")
+    output_folder = os.path.join(input_folder, "mocks")
+    ensure_dir_exists(output_folder)
+    
+    # Find images in the input folder
+    images = sorted(glob.glob(os.path.join(input_folder, "*.jpg")))
+    if not images:
+        logger.warning("No JPG images found for seamless tiling mockup.")
+        return None
+    
+    # Use the first image
+    image_path = images[0]
+    logger.info(f"Using image for seamless tiling mockup: {os.path.basename(image_path)}")
+    
+    IMAGE_SIZE = 2000
+    GRID_SIZE = 2
+    
+    try:
+        # Create base canvas
+        output_image = Image.new("RGBA", (IMAGE_SIZE, IMAGE_SIZE), (255, 255, 255, 255))
+        source_image = Image.open(image_path).convert("RGBA")
+        
+        # Calculate cell size and resize source image
+        cell_size = IMAGE_SIZE // GRID_SIZE
+        source_image = source_image.resize((cell_size, cell_size), get_resampling_filter())
+        
+        # Create 2x2 grid
+        for row in range(GRID_SIZE):
+            for col in range(GRID_SIZE):
+                output_image.paste(
+                    source_image, (col * cell_size, row * cell_size), source_image
+                )
+        
+        # Add text overlay
+        txt_layer = Image.new("RGBA", output_image.size, (255, 255, 255, 0))
+        draw = ImageDraw.Draw(txt_layer)
+        
+        # Get title font for the text
+        font = get_font("DSMarkerFelt", 120)
+        
+        text = "Images tile seamlessly"
+        text_position = (IMAGE_SIZE // 2, IMAGE_SIZE // 2)
+        
+        # Calculate text size for backdrop
+        try:
+            # For newer Pillow versions
+            text_bbox = draw.textbbox(
+                text_position, text, font=font, anchor="mm", align="center"
+            )
+            text_width = text_bbox[2] - text_bbox[0]
+            text_height = text_bbox[3] - text_bbox[1]
+        except AttributeError:
+            # For older Pillow versions
+            text_width, text_height = draw.textsize(text, font=font)
+        
+        # Add padding around text
+        padding = 50
+        backdrop_width = text_width + padding * 2
+        backdrop_height = text_height + padding * 2
+        
+        # Draw semi-transparent backdrop
+        backdrop_position = (
+            text_position[0] - backdrop_width // 2,
+            text_position[1] - backdrop_height // 2,
+            text_position[0] + backdrop_width // 2,
+            text_position[1] + backdrop_height // 2,
+        )
+        draw.rounded_rectangle(
+            backdrop_position,
+            radius=25,
+            fill=(0, 0, 0, 180),  # Black with transparency
+        )
+        
+        # Draw main text
+        draw.text(
+            text_position,
+            text,
+            font=font,
+            fill=(255, 255, 255, 255),  # White text
+            anchor="mm",
+            align="center",
+        )
+        
+        combined = Image.alpha_composite(output_image, txt_layer)
+        
+        # Save the result
+        filename = "seamless_mockup.jpg"
+        save_path = os.path.join(output_folder, filename)
+        combined.convert("RGB").save(
+            save_path,
+            "JPEG",
+            quality=90,
+            optimize=True,
+        )
+        
+        logger.info(f"Seamless tiling mockup saved: {save_path}")
+        return save_path
+        
+    except Exception as e:
+        logger.error(f"Error creating seamless tiling mockup for {image_path}: {e}")
         return None

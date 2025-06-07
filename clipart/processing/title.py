@@ -86,22 +86,29 @@ def add_title_bar_and_text(
         except Exception as resize_err:
             logger.error(f"Error resizing background image: {resize_err}.")
 
-    # Import config here to avoid circular imports
-    from clipart import config
+    # Default configuration values
+    DEFAULT_FONT_CONFIG = {
+        "TITLE_FONT": "GreatVibes-Regular",
+        "SUBTITLE_FONT": "LibreBaskerville-Italic", 
+        "TITLE_MAX_FONT_SIZE": 250,
+        "TITLE_MIN_FONT_SIZE": 40,
+        "SUBTITLE_FONT_SIZE": 60
+    }
+    DEFAULT_TITLE_FONT_STEP = 5
 
     # Use provided values or fall back to config values
     if title_font_name is None:
-        title_font_name = config.FONT_CONFIG["TITLE_FONT"]
+        title_font_name = DEFAULT_FONT_CONFIG["TITLE_FONT"]
     if subtitle_font_name is None:
-        subtitle_font_name = config.FONT_CONFIG["SUBTITLE_FONT"]
+        subtitle_font_name = DEFAULT_FONT_CONFIG["SUBTITLE_FONT"]
     if title_max_font_size is None:
-        title_max_font_size = config.FONT_CONFIG["TITLE_MAX_FONT_SIZE"]
+        title_max_font_size = DEFAULT_FONT_CONFIG["TITLE_MAX_FONT_SIZE"]
     if title_min_font_size is None:
-        title_min_font_size = config.FONT_CONFIG["TITLE_MIN_FONT_SIZE"]
+        title_min_font_size = DEFAULT_FONT_CONFIG["TITLE_MIN_FONT_SIZE"]
     if title_font_step is None:
-        title_font_step = config.TITLE_FONT_STEP
+        title_font_step = DEFAULT_TITLE_FONT_STEP
     if subtitle_font_size is None:
-        subtitle_font_size = config.FONT_CONFIG["SUBTITLE_FONT_SIZE"]
+        subtitle_font_size = DEFAULT_FONT_CONFIG["SUBTITLE_FONT_SIZE"]
 
     # Log the font settings being used
     logger.info(f"Using title font: {title_font_name}")

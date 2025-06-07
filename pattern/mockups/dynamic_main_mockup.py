@@ -21,8 +21,52 @@ from utils.color_utils import (
 )
 from utils.text_utils import draw_text, calculate_text_dimensions, create_text_backdrop
 
-# Import pattern configuration
-from pattern import config
+# Import unified configuration
+from core.config_manager import get_config_manager
+
+# Get configuration manager
+config_manager = get_config_manager()
+pattern_config = config_manager.get_config("pattern")
+
+# Legacy compatibility wrapper
+class PatternConfig:
+    @property
+    def FONT_CONFIG(self):
+        if pattern_config:
+            font_settings = pattern_config.font_settings
+            layout_settings = pattern_config.layout_settings
+            color_settings = pattern_config.color_settings
+            
+            return {
+                "USE_DYNAMIC_TITLE_COLORS": color_settings.get("use_dynamic_title_colors", True),
+                "TOP_SUBTITLE_FONT_SIZE": font_settings.get("top_subtitle_font_size", 24),
+                "BOTTOM_SUBTITLE_FONT_SIZE": font_settings.get("bottom_subtitle_font_size", 20),
+                "TITLE_FONT_SIZE": font_settings.get("title_font_size", 250),
+                "TITLE_FONT": font_settings.get("title_font", "GreatVibes-Regular"),
+                "SUBTITLE_FONT": font_settings.get("subtitle_font", "LibreBaskerville-Italic"),
+                "TOP_SUBTITLE_PADDING": layout_settings.get("top_subtitle_padding", 60),
+                "BOTTOM_SUBTITLE_PADDING": layout_settings.get("bottom_subtitle_padding", 55),
+            }
+        else:
+            # Fallback configuration
+            return {
+                "USE_DYNAMIC_TITLE_COLORS": True,
+                "TOP_SUBTITLE_FONT_SIZE": 24,
+                "BOTTOM_SUBTITLE_FONT_SIZE": 20,
+                "TITLE_FONT_SIZE": 250,
+                "TITLE_FONT": "GreatVibes-Regular",
+                "SUBTITLE_FONT": "LibreBaskerville-Italic",
+                "TOP_SUBTITLE_PADDING": 60,
+                "BOTTOM_SUBTITLE_PADDING": 55,
+            }
+    
+    @classmethod
+    def update_font_config(cls, updates):
+        """Update font configuration - legacy compatibility."""
+        # This would need to update the config manager in the future
+        pass
+
+config = PatternConfig()
 
 # Set up logging
 logger = setup_logging(__name__)

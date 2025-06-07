@@ -10,7 +10,9 @@ from utils.common import (
     get_resampling_filter,
     safe_load_image,
 )
-from clipart.config import WATERMARK_TEXT_SPACING_FACTOR
+
+# Configuration constants
+WATERMARK_TEXT_SPACING_FACTOR = 0.3
 
 # Set up logging
 logger = setup_logging(__name__)
@@ -192,44 +194,4 @@ def create_2x3_grid(
     return canvas
 
 
-def apply_watermark(
-    image: Image.Image,
-    text: str = "digital veil",
-    font_name: str = "Clattering",
-    font_size: int = 50,
-    text_color: Tuple[int, int, int] = (150, 150, 150),
-    opacity: int = 100,
-    angle: float = 45.0,
-    spacing_factor: float = WATERMARK_TEXT_SPACING_FACTOR,
-) -> Image.Image:
-    """
-    Apply a watermark to an image.
-
-    Args:
-        image: The image to watermark
-        text: The watermark text
-        font_name: The font name
-        font_size: The font size
-        text_color: The text color
-        opacity: The opacity of the watermark
-        angle: The angle of the watermark
-        spacing_factor: The spacing factor between watermarks (default: WATERMARK_TEXT_SPACING_FACTOR from config)
-
-    Returns:
-        The watermarked image
-    """
-    # Import the utils.common apply_watermark function with a different name to avoid recursion
-    from utils.common import apply_watermark as common_apply_watermark
-
-    # Use the consolidated watermarking function from utils.common
-    return common_apply_watermark(
-        image=image,
-        watermark_type="text",
-        text=text,
-        font_name=font_name,
-        font_size=font_size,
-        text_color=text_color,
-        opacity=opacity,
-        angle=angle,
-        spacing_factor=spacing_factor,
-    )
+# Removed duplicate watermarking function - use utils.common.apply_watermark() directly instead

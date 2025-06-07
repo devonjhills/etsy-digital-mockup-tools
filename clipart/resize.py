@@ -85,13 +85,13 @@ def extract_number_from_filename(filename: str) -> int:
 
 def process_images(input_folder_path: str, max_size: int) -> Tuple[int, int, int, int]:
     """
-    Process images within subfolders of input_folder_path.
+    Process images within subfolders of input_folder_path, or directly in the folder if no subfolders exist.
     Converts to PNG, trims, resizes if needed, sets DPI, and renames files
     to 'safesubfoldername_sequentialindex.png' based on NUMERICAL order
     extracted from original filenames.
 
     Args:
-        input_folder_path: Absolute path to the input folder containing subfolders
+        input_folder_path: Absolute path to the input folder containing subfolders or images
         max_size: Maximum size for the longest edge while maintaining aspect ratio
 
     Returns:
@@ -107,27 +107,52 @@ def process_images(input_folder_path: str, max_size: int) -> Tuple[int, int, int
     total_error_count = 0
     total_deleted_original_count = 0
 
+    # Check for subfolders
     subfolders = [
         d
         for d in os.listdir(input_folder_path)
         if os.path.isdir(os.path.join(input_folder_path, d))
     ]
 
-    if not subfolders:
-        logger.warning(f"No subfolders found in {input_folder_path}")
+    # Check for direct images in the folder
+    direct_images = []
+    for ext in [".jpg", ".jpeg", ".png", ".tif", ".tiff", ".bmp", ".webp"]:
+        direct_images.extend(
+            [
+                os.path.join(input_folder_path, f)
+                for f in os.listdir(input_folder_path)
+                if f.lower().endswith(ext)
+                and os.path.isfile(os.path.join(input_folder_path, f))
+            ]
+        )
+
+    # If no subfolders but there are direct images, process them as if they're in a subfolder
+    if not subfolders and direct_images:
+        logger.info(f"No subfolders found, but found {len(direct_images)} images directly in folder. Processing as single collection.")
+        # Treat the main folder as a single subfolder
+        folder_name = os.path.basename(input_folder_path)
+        subfolders = ["."]  # Process current directory
+    elif not subfolders:
+        logger.warning(f"No subfolders or images found in {input_folder_path}")
         return 0, 0, 0, 0
 
-    logger.info(f"Found {len(subfolders)} subfolder(s) to process")
+    logger.info(f"Found {len(subfolders)} location(s) to process")
 
     for subfolder in sorted(subfolders):
-        subfolder_path = os.path.join(input_folder_path, subfolder)
+        if subfolder == ".":
+            subfolder_path = input_folder_path
+            actual_folder_name = os.path.basename(input_folder_path)
+            logger.info(f"Processing images directly in folder: {actual_folder_name}")
+        else:
+            subfolder_path = os.path.join(input_folder_path, subfolder)
+            actual_folder_name = subfolder
+            
+            # Skip special folders
+            if subfolder in ["mocks", "zipped"]:
+                logger.info(f"Skipping special folder: {subfolder}")
+                continue
 
-        # Skip special folders
-        if subfolder in ["mocks", "zipped"]:
-            logger.info(f"Skipping special folder: {subfolder}")
-            continue
-
-        logger.info(f"Processing subfolder: {subfolder}")
+            logger.info(f"Processing subfolder: {subfolder}")
 
         # Get all image files in the subfolder
         image_files = []
@@ -159,7 +184,7 @@ def process_images(input_folder_path: str, max_size: int) -> Tuple[int, int, int
             original_filename = os.path.basename(original_path)
 
             # Create target filename
-            safe_subfolder_name = re.sub(r"[^a-zA-Z0-9_]", "_", subfolder)
+            safe_subfolder_name = re.sub(r"[^a-zA-Z0-9_]", "_", actual_folder_name)
             target_name = f"{safe_subfolder_name}_{i}.png"
             target_path = os.path.join(subfolder_path, target_name)
 
@@ -223,7 +248,7 @@ def process_images(input_folder_path: str, max_size: int) -> Tuple[int, int, int
         total_deleted_original_count += files_deleted_this_folder
 
         logger.info(
-            f"Subfolder {subfolder} summary: "
+            f"Folder {actual_folder_name} summary: "
             f"Processed {files_processed_this_folder}, "
             f"Errors {errors_this_folder}, "
             f"Originals deleted {files_deleted_this_folder}"
@@ -244,6 +269,41 @@ def process_images(input_folder_path: str, max_size: int) -> Tuple[int, int, int
         total_error_count,
         total_deleted_original_count,
     )
+
+
+def resize_clipart_in_folder(input_folder: str, output_folder: str = None, max_size: int = 1500) -> dict:
+    """
+    Wrapper function for clipart processor compatibility.
+    
+    Args:
+        input_folder: Path to input folder with images
+        output_folder: Path to output folder (unused - processes in place)
+        max_size: Maximum dimension for images
+    
+    Returns:
+        Dictionary with processing results
+    """
+    try:
+        # Process images in place
+        processed, skipped, errors, deleted = process_images(input_folder, max_size)
+        
+        return {
+            "success": True,
+            "processed": processed,
+            "skipped": skipped,
+            "errors": errors,
+            "deleted": deleted,
+            "input_folder": input_folder,
+            "max_size": max_size
+        }
+        
+    except Exception as e:
+        logger.error(f"resize_clipart_in_folder failed: {e}")
+        return {
+            "success": False,
+            "error": str(e),
+            "processed": 0
+        }
 
 
 if __name__ == "__main__":

@@ -199,111 +199,75 @@ def clean_identifier_files(directory: str) -> int:
 
 def apply_watermark(
     image: Image.Image,
-    watermark_type: str = "text",
     text: str = "digital veil",
-    logo_path: Optional[str] = None,
     font_name: str = "Clattering",
     font_size: int = 50,
-    text_color: Tuple[int, int, int] = (150, 150, 150),
-    opacity: int = 100,
-    angle: float = 45.0,
-    spacing_factor: float = 3.0,
+    text_color: Tuple[int, int, int] = (120, 120, 120),
+    opacity: int = 80,
+    diagonal_spacing: int = 350,
 ) -> Image.Image:
     """
-    Apply a watermark to an image. Supports both text and logo watermarks.
+    Apply a clean diagonal text watermark to an image.
 
     Args:
         image: The image to watermark
-        watermark_type: Type of watermark ("text" or "logo")
-        text: The watermark text (used when watermark_type is "text")
-        logo_path: Path to the logo image (used when watermark_type is "logo")
+        text: The watermark text
         font_name: The font name for text watermarks
         font_size: The font size for text watermarks
-        text_color: The text color for text watermarks
-        opacity: The opacity of the watermark (0-100)
-        angle: The angle of the watermark
-        spacing_factor: The spacing factor between watermarks
+        text_color: The text color for text watermarks (RGB)
+        opacity: The opacity of the watermark (0-255)
+        diagonal_spacing: Distance between watermarks diagonally
 
     Returns:
         The watermarked image
     """
-
+    import math
+    
     # Create a copy of the image and ensure it's RGBA
     result = image.copy().convert("RGBA")
-
-    # Create a transparent layer for the watermark
-    watermark_layer = Image.new("RGBA", result.size, (0, 0, 0, 0))
-
-    if watermark_type.lower() == "text":
-        draw = ImageDraw.Draw(watermark_layer)
-
-        # Get font
-        font = get_font(font_name, font_size)
-
-        # Calculate text size
-        try:
-            bbox = draw.textbbox((0, 0), text, font=font)
-            text_width = bbox[2] - bbox[0]
-            text_height = bbox[3] - bbox[1]
-        except AttributeError:
-            text_width, text_height = draw.textsize(text, font=font)
-
-        # Calculate spacing
-        spacing_x = int(text_width * spacing_factor)
-        spacing_y = int(text_height * spacing_factor)
-
-        # Calculate number of watermarks needed
-        num_x = math.ceil(result.width / spacing_x) + 2
-        num_y = math.ceil(result.height / spacing_y) + 2
-
-        # Draw watermarks in a grid
-        for y in range(-1, num_y):
-            for x in range(-1, num_x):
-                # Stagger every other row
-                offset_x = spacing_x // 2 if y % 2 else 0
-                pos_x = x * spacing_x + offset_x
-                pos_y = y * spacing_y
-
-                # Draw text
-                draw.text((pos_x, pos_y), text, font=font, fill=(*text_color, opacity))
-
-    elif watermark_type.lower() == "logo":
-        if not logo_path or not os.path.exists(logo_path):
-            print(f"Logo file not found: {logo_path}")
-            return result
-
-        # Load and resize the logo
-        logo = Image.open(logo_path).convert("RGBA")
-        logo_width = result.width // 12  # Adjust size as needed
-        logo_height = int(logo_width * logo.height / logo.width)
-        logo = logo.resize((logo_width, logo_height), Image.LANCZOS)
-
-        # Adjust opacity
-        logo = logo.copy()
-        alpha = logo.split()[3]
-        from PIL import ImageEnhance
-
-        alpha = ImageEnhance.Brightness(alpha).enhance(opacity / 100)
-        logo.putalpha(alpha)
-
-        # Calculate spacing
-        spacing_x = logo_width * spacing_factor
-        spacing_y = logo_height * spacing_factor
-
-        # Add watermarks in a grid pattern
-        for y in range(-spacing_y, result.height + spacing_y, spacing_y):
-            offset_x = (y // spacing_y % 2) * (spacing_x // 2)
-            for x in range(-spacing_x, result.width + spacing_x, spacing_x):
-                watermark_layer.paste(logo, (x + offset_x, y), logo)
-
-    # Rotate the watermark layer
-    watermark_layer = watermark_layer.rotate(
-        angle, resample=Image.BICUBIC, expand=False
-    )
-
-    # Composite the watermark onto the image
-    result = Image.alpha_composite(result, watermark_layer)
-
+    
+    # Create a transparent overlay for watermark
+    overlay = Image.new("RGBA", result.size, (0, 0, 0, 0))
+    draw = ImageDraw.Draw(overlay)
+    
+    # Get font
+    font = get_font(font_name, font_size)
+    
+    # Calculate text size
+    try:
+        bbox = draw.textbbox((0, 0), text, font=font)
+        text_width = bbox[2] - bbox[0]
+        text_height = bbox[3] - bbox[1]
+    except AttributeError:
+        text_width, text_height = draw.textsize(text, font=font)
+    
+    # Calculate how many watermarks we need
+    image_diagonal = math.sqrt(result.width ** 2 + result.height ** 2)
+    num_watermarks = int(image_diagonal / diagonal_spacing) + 2
+    
+    # Place watermarks diagonally across the image
+    for i in range(-2, num_watermarks):
+        for j in range(-2, num_watermarks):
+            # Calculate position on a diagonal grid
+            x = i * diagonal_spacing + j * diagonal_spacing * 0.5
+            y = j * diagonal_spacing
+            
+            # Rotate the grid 45 degrees
+            rotated_x = x * math.cos(math.radians(45)) - y * math.sin(math.radians(45))
+            rotated_y = x * math.sin(math.radians(45)) + y * math.cos(math.radians(45))
+            
+            # Offset to center the pattern
+            final_x = rotated_x + result.width // 2 - text_width // 2
+            final_y = rotated_y + result.height // 2 - text_height // 2
+            
+            # Only draw if the text would be visible
+            if (final_x + text_width > 0 and final_x < result.width and
+                final_y + text_height > 0 and final_y < result.height):
+                draw.text((final_x, final_y), text, font=font, fill=(*text_color, opacity))
+    
+    # Composite the watermark onto the original image
+    result = Image.alpha_composite(result, overlay)
+    
     return result
 
 
