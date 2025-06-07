@@ -50,6 +50,7 @@ clipart_output/
 # Archive directory with old backup files
 .archive/
 prepared_listings_backup.json
+prepared_listings.json
 
 # API tokens and credentials
 etsy_token.json
