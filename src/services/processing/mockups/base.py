@@ -6,7 +6,7 @@ import os
 from typing import List, Tuple, Optional, Dict, Any
 from PIL import Image
 
-from utils.common import setup_logging, ensure_dir_exists
+from src.utils.common import setup_logging, ensure_dir_exists
 
 logger = setup_logging(__name__)
 

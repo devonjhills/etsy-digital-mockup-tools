@@ -7,8 +7,8 @@ import glob
 from typing import List, Tuple, Optional, Dict, Any
 from PIL import Image
 
-from utils.common import setup_logging, ensure_dir_exists
-from utils.grid_utils import GridCreator
+from src.utils.common import setup_logging, ensure_dir_exists
+from src.utils.grid_utils import GridCreator
 
 logger = setup_logging(__name__)
 

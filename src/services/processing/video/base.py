@@ -5,8 +5,8 @@ Unified video processor for all product types.
 import os
 from typing import List, Optional
 
-from utils.common import setup_logging, ensure_dir_exists
-from utils.video_utils import VideoCreator
+from src.utils.common import setup_logging, ensure_dir_exists
+from src.utils.video_utils import VideoCreator
 
 logger = setup_logging(__name__)
 
@@ -36,6 +36,8 @@ class VideoProcessor:
             return self._create_clipart_showcase(input_folder, videos_folder)
         elif self.product_type == "pattern":
             return self._create_pattern_showcase(input_folder, videos_folder)
+        elif self.product_type == "journal_papers":
+            return self._create_journal_papers_showcase(input_folder, videos_folder)
         else:
             return self._create_generic_showcase(input_folder, videos_folder)
     
@@ -96,4 +98,32 @@ class VideoProcessor:
         
         output_path = os.path.join(videos_folder, "product_showcase.mp4")
         success = self.video_creator.create_slideshow_video(sorted(image_paths)[:8], output_path)
+        return output_path if success else None
+    
+    def _create_journal_papers_showcase(self, input_folder: str, videos_folder: str) -> Optional[str]:
+        """Create a journal papers showcase video from grid mockups only (non-main mockups)."""
+        # Look for grid mockups in mocks folder (exclude main mockup)
+        mocks_folder = os.path.join(input_folder, "mocks")
+        if not os.path.exists(mocks_folder):
+            logger.warning(f"Mocks folder not found: {mocks_folder}")
+            return None
+        
+        # Find grid mockups (exclude main mockup)
+        grid_files = []
+        for filename in os.listdir(mocks_folder):
+            if (filename.lower().startswith("journal_papers_grid") and 
+                filename.lower().endswith(('.png', '.jpg', '.jpeg'))):
+                grid_files.append(os.path.join(mocks_folder, filename))
+        
+        if not grid_files:
+            logger.warning("No grid mockups found for journal papers showcase")
+            return None
+        
+        logger.info(f"Creating journal papers collage video from {len(grid_files)} grid mockups")
+        output_path = os.path.join(videos_folder, "journal_papers_showcase.mp4")
+        success = self.video_creator.create_collage_video(
+            sorted(grid_files), 
+            output_path,
+            display_duration=10  # Show collage for 10 seconds
+        )
         return output_path if success else None

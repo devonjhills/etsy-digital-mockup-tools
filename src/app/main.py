@@ -26,6 +26,7 @@ from src.utils.file_operations import ensure_directory
 # Import processors to register them
 from src.products.pattern.processor import PatternProcessor
 from src.products.clipart.processor import ClipartProcessor
+from src.products.journal_papers.processor import JournalPapersProcessor
 
 # Global variables for logging
 log_messages = []
@@ -39,11 +40,30 @@ ensure_directory("input")
 ensure_directory("templates")
 
 
-def add_log(message: str):
-    """Add a message to the log."""
+def add_log(message: str, level: str = "info"):
+    """Add a message to the log with color coding."""
     global log_messages
-    log_messages.append(message)
-    print(message)  # Also print to console
+    
+    # Determine message type and add color/emoji coding
+    if level == "error" or "✗" in message or "failed" in message.lower() or "error" in message.lower():
+        formatted_msg = f"🔴 {message}"
+        level = "error"
+    elif level == "success" or "✓" in message or "success" in message.lower() or "completed" in message.lower():
+        formatted_msg = f"🟢 {message}"
+        level = "success"
+    elif "warning" in message.lower() or "warn" in message.lower():
+        formatted_msg = f"🟡 {message}"
+        level = "warning"
+    else:
+        formatted_msg = f"ℹ️ {message}"
+        level = "info"
+    
+    # Only add to GUI logs, no console output
+    log_messages.append({"message": formatted_msg, "level": level, "timestamp": __import__('time').time()})
+    
+    # Keep only last 100 messages to prevent memory issues
+    if len(log_messages) > 100:
+        log_messages = log_messages[-100:]
 
 
 def run_processor_workflow(processor_type: str, input_dir: str, workflow_steps: list = None, 
@@ -93,7 +113,7 @@ def get_log():
     """Get recent log messages."""
     global log_messages
     messages = log_messages.copy()
-    log_messages.clear()
+    log_messages.clear()  # Clear after reading
     return jsonify({"messages": messages})
 
 
@@ -182,61 +202,9 @@ def run_all_subfolders_workflow(processor_type: str, workflow_steps: list = None
                 # Create processor
                 processor = ProcessorFactory.create_processor(config)
                 
-                # Log workflow details
-                steps_to_run = workflow_steps or processor.get_default_workflow_steps()
-                add_log(f"Running workflow steps for {subfolder}: {steps_to_run}")
-                
-                # Run workflow
-                add_log(f"Current working directory: {os.getcwd()}")
-                add_log(f"Input directory exists: {os.path.exists(input_dir)}")
-                add_log(f"Output directory exists: {os.path.exists(output_dir)}")
-                
+                # Run workflow (detailed logging handled by processor)
                 result = processor.run_workflow(workflow_steps)
                 all_results[subfolder] = result
-                
-                # Check if files were actually created
-                if output_dir and os.path.exists(output_dir):
-                    created_files = []
-                    for root, dirs, files in os.walk(output_dir):
-                        for file in files:
-                            created_files.append(os.path.join(root, file))
-                    add_log(f"Files actually created: {created_files}")
-                else:
-                    add_log(f"Output directory does not exist: {output_dir}")
-                
-                # Log detailed results
-                if isinstance(result, dict):
-                    for step, step_result in result.items():
-                        add_log(f"  Processing step: {step}")
-                        if isinstance(step_result, dict):
-                            # Check for mockup-style nested results
-                            has_nested_results = any(
-                                isinstance(v, dict) and ('success' in v or 'file' in v or 'error' in v) 
-                                for v in step_result.values()
-                            )
-                            
-                            if has_nested_results:
-                                # This is a step with sub-results (like mockup)
-                                add_log(f"    {step} sub-tasks:")
-                                for sub_step, sub_result in step_result.items():
-                                    if isinstance(sub_result, dict):
-                                        if sub_result.get("success", False):
-                                            file_path = sub_result.get('file', 'completed')
-                                            add_log(f"      ✓ {sub_step}: {file_path}")
-                                        else:
-                                            error = sub_result.get('error', 'unknown error')
-                                            add_log(f"      ✗ {sub_step}: {error}")
-                                    else:
-                                        add_log(f"      ✓ {sub_step}: {sub_result}")
-                            elif step_result.get("success", False):
-                                file_path = step_result.get('file', 'completed')
-                                add_log(f"    ✓ {step}: {file_path}")
-                            elif 'error' in step_result:
-                                add_log(f"    ✗ {step}: {step_result.get('error', 'failed')}")
-                            else:
-                                add_log(f"    ✓ {step}: completed")
-                        else:
-                            add_log(f"    ✓ {step}: {step_result}")
                 
                 if result.get("success", True):
                     successful_count += 1
@@ -590,6 +558,53 @@ def delete_prepared_listings():
         return jsonify({"error": str(e)}), 500
 
 
+@app.route("/delete-single-prepared-listing", methods=["POST"])
+def delete_single_prepared_listing():
+    """Delete a single prepared listing."""
+    try:
+        import json
+        import os
+        
+        data = request.json
+        folder_name = data.get("folder_name")
+        
+        if not folder_name:
+            return jsonify({"error": "folder_name is required"}), 400
+        
+        # Load existing prepared listings
+        prepared_file = "prepared_listings.json"
+        if not os.path.exists(prepared_file):
+            return jsonify({"error": "No prepared listings found"}), 400
+        
+        with open(prepared_file, 'r') as f:
+            prepared_listings = json.load(f)
+        
+        # Find and remove the specific listing
+        initial_count = len(prepared_listings)
+        prepared_listings = [
+            listing for listing in prepared_listings 
+            if listing.get("folder_name") != folder_name
+        ]
+        
+        if len(prepared_listings) == initial_count:
+            return jsonify({"error": f"Listing for folder '{folder_name}' not found"}), 404
+        
+        # Save updated listings
+        with open(prepared_file, 'w') as f:
+            json.dump(prepared_listings, f, indent=2)
+        
+        add_log(f"Deleted prepared listing for {folder_name}")
+        
+        return jsonify({
+            "success": True,
+            "message": f"Successfully deleted prepared listing for {folder_name}",
+            "remaining_count": len(prepared_listings)
+        })
+        
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route("/upload-prepared-listings", methods=["POST"])
 def upload_prepared_listings():
     """Upload previously prepared listings to Etsy."""
@@ -642,6 +657,7 @@ def upload_prepared_listings():
             try:
                 uploaded_listings = []
                 failed_listings = []
+                successfully_uploaded_folders = []
                 
                 for listing_data in prepared_listings:
                     try:
@@ -650,6 +666,7 @@ def upload_prepared_listings():
                         
                         if result:
                             uploaded_listings.append(result)
+                            successfully_uploaded_folders.append(listing_data['folder_name'])
                             add_log(f"✓ Successfully uploaded: {listing_data['folder_name']}")
                         else:
                             failed_listings.append(listing_data['folder_name'])
@@ -659,6 +676,27 @@ def upload_prepared_listings():
                         failed_listings.append(listing_data['folder_name'])
                         add_log(f"✗ Error uploading {listing_data['folder_name']}: {str(e)}")
                 
+                # Remove successfully uploaded listings from prepared_listings.json
+                if successfully_uploaded_folders:
+                    try:
+                        # Filter out successfully uploaded listings
+                        remaining_listings = [
+                            listing for listing in prepared_listings 
+                            if listing['folder_name'] not in successfully_uploaded_folders
+                        ]
+                        
+                        # Update the prepared listings file
+                        with open(prepared_file, 'w') as f:
+                            json.dump(remaining_listings, f, indent=2)
+                        
+                        if remaining_listings:
+                            add_log(f"✓ Removed {len(successfully_uploaded_folders)} uploaded listings from prepared list. {len(remaining_listings)} listings remaining.")
+                        else:
+                            add_log(f"✓ All prepared listings uploaded successfully. Prepared listings cleared.")
+                            
+                    except Exception as e:
+                        add_log(f"Warning: Could not update prepared listings file: {str(e)}", "warning")
+                
                 # Update status
                 processing_status["current_task"] = None
                 processing_status["is_running"] = False
@@ -667,7 +705,8 @@ def upload_prepared_listings():
                     "uploaded_count": len(uploaded_listings),
                     "failed_count": len(failed_listings),
                     "uploaded_listings": uploaded_listings,
-                    "failed_listings": failed_listings
+                    "failed_listings": failed_listings,
+                    "removed_from_prepared": successfully_uploaded_folders
                 }
                 
                 add_log(f"Upload complete: {len(uploaded_listings)} successful, {len(failed_listings)} failed")
@@ -699,9 +738,13 @@ def upload_prepared_listings():
 
 def main():
     """Main function to start the application."""
+    # Setup GUI logging integration
+    from src.utils.common import set_gui_log_function
+    set_gui_log_function(add_log)
+    
     # Setup environment
     if not setup_environment():
-        print("Environment setup failed. Please check your .env file.")
+        add_log("Environment setup failed. Please check your .env file.", "error")
         return
     
     # Check available processors
@@ -714,11 +757,11 @@ def main():
     if available_ai:
         add_log(f"Available AI providers: {', '.join(available_ai)}")
     else:
-        add_log("Warning: No AI providers configured. AI features will be disabled.")
+        add_log("Warning: No AI providers configured. AI features will be disabled.", "warning")
     
     # Start Flask app
     port = 8096
-    add_log(f"Starting web interface on http://localhost:{port}")
+    add_log(f"Web interface ready at http://localhost:{port}", "success")
     
     # Open browser
     def open_browser():
@@ -726,13 +769,17 @@ def main():
     
     threading.Timer(1.0, open_browser).start()
     
-    # Run Flask app
+    # Run Flask app (suppress console output)
     try:
+        import logging
+        log = logging.getLogger('werkzeug')
+        log.setLevel(logging.ERROR)  # Only show errors from Flask
+        
         app.run(debug=False, host="0.0.0.0", port=port, use_reloader=False)
     except KeyboardInterrupt:
-        add_log("Application stopped by user")
+        add_log("Application stopped by user", "info")
     except Exception as e:
-        add_log(f"Application error: {e}")
+        add_log(f"Application error: {e}", "error")
 
 
 if __name__ == "__main__":

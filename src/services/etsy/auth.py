@@ -15,7 +15,7 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 import threading
 import urllib.parse
 
-from utils.common import setup_logging
+from src.utils.common import setup_logging
 
 # Set up logging
 logger = setup_logging(__name__)

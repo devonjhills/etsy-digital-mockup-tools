@@ -5,12 +5,12 @@ Main module for Etsy integration.
 import os
 from typing import Dict, List, Optional
 
-from utils.common import setup_logging
-from etsy.auth import EtsyAuth
-from etsy.listings import EtsyListings
-from etsy.templates import ListingTemplate
-from etsy.content import ContentGenerator
-from etsy.constants import DEFAULT_ETSY_INSTRUCTIONS
+from src.utils.common import setup_logging
+from src.services.etsy.auth import EtsyAuth
+from src.services.etsy.listings import EtsyListings
+from src.services.etsy.templates import ListingTemplate
+from src.services.etsy.content import ContentGenerator
+from src.services.etsy.constants import DEFAULT_ETSY_INSTRUCTIONS
 
 # Set up logging
 logger = setup_logging(__name__)
@@ -228,6 +228,7 @@ class EtsyIntegration:
             "pattern": 42625767,  # Support both singular and plural
             "patterns": 42625767,
             "clipart": 42698827,
+            "journal_papers": 54352339,  # → JOURNAL PAPERS section
         }
 
         # First try to get from the mapping based on product type
@@ -575,7 +576,7 @@ class EtsyIntegration:
                 # Step 4: Generate content using Gemini API
                 logger.info(f"Generating content for {subfolder}...")
                 # Import the default instructions from constants
-                from etsy.constants import DEFAULT_ETSY_INSTRUCTIONS
+                from src.services.etsy.constants import DEFAULT_ETSY_INSTRUCTIONS
 
                 content = self.generate_content_from_mockup(
                     folder_path=folder_path,

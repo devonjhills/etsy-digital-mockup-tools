@@ -5,7 +5,7 @@ Unified video creation utilities for all product types.
 import os
 from typing import List, Tuple, Optional
 
-from utils.common import setup_logging, safe_load_image, ensure_dir_exists
+from src.utils.common import setup_logging, safe_load_image, ensure_dir_exists
 
 logger = setup_logging(__name__)
 
@@ -75,17 +75,19 @@ class VideoCreator:
     def create_slideshow_video(self, image_paths: List[str], output_path: str,
                               target_size: Tuple[int, int] = (2000, 2000),
                               fps: int = 30, display_frames: int = 90,
-                              transition_frames: int = 30) -> bool:
+                              transition_frames: int = 30,
+                              preserve_original_size: bool = False) -> bool:
         """
         Create a slideshow video from images (suitable for clipart).
         
         Args:
             image_paths: List of image paths
             output_path: Where to save the video
-            target_size: Target video size
+            target_size: Target video size (ignored if preserve_original_size=True)
             fps: Frames per second
             display_frames: Frames to display each image
             transition_frames: Frames for transitions
+            preserve_original_size: If True, use the size of the first image
             
         Returns:
             True if successful, False otherwise
@@ -105,6 +107,16 @@ class VideoCreator:
             return False
         
         logger.info(f"Creating slideshow video: {output_path}")
+        
+        # Determine video size
+        if preserve_original_size and image_paths:
+            # Use the size of the first image
+            first_img = safe_load_image(image_paths[0])
+            if first_img:
+                target_size = first_img.size
+                logger.info(f"Using original image size for video: {target_size}")
+            else:
+                logger.warning("Could not load first image, using default target size")
         
         # Ensure output directory exists
         ensure_dir_exists(os.path.dirname(output_path))
@@ -458,4 +470,137 @@ class VideoCreator:
                 
         except Exception as e:
             logger.error(f"Error creating tiling video: {e}")
+            return False
+    
+    def create_collage_video(self, image_paths: List[str], output_path: str,
+                            fps: int = 30, display_duration: int = 8) -> bool:
+        """
+        Create a slideshow video from multiple images with fade transitions.
+        Each image is shown individually, then fades to the next.
+        
+        Args:
+            image_paths: List of image paths (grid mockups)
+            output_path: Where to save the video
+            fps: Frames per second
+            display_duration: Total video duration in seconds
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        if not self.opencv_available:
+            return False
+        
+        if not image_paths:
+            logger.warning("No image paths provided for collage video")
+            return False
+        
+        try:
+            import cv2
+            import numpy as np
+        except ImportError:
+            logger.error("OpenCV not available for video creation")
+            return False
+        
+        logger.info(f"Creating slideshow video with {len(image_paths)} images: {output_path}")
+        
+        # Load all images and scale them
+        cv_images = []
+        for img_path in image_paths:
+            pil_img = safe_load_image(img_path)
+            if pil_img:
+                if pil_img.mode != "RGB":
+                    pil_img = pil_img.convert("RGB")
+                cv_images.append(pil_img)
+            else:
+                logger.warning(f"Failed to load image: {img_path}")
+        
+        if not cv_images:
+            logger.error("No valid images loaded for slideshow")
+            return False
+        
+        # Scale down images for video to prevent memory issues
+        max_img_size = 1920  # Max width or height
+        orig_width, orig_height = cv_images[0].size
+        scale_factor = min(max_img_size / orig_width, max_img_size / orig_height, 1.0)
+        
+        video_width = int(orig_width * scale_factor)
+        video_height = int(orig_height * scale_factor)
+        
+        logger.info(f"Creating slideshow video at {video_width}x{video_height}")
+        
+        # Scale all images to video size
+        from PIL import Image
+        scaled_cv_images = []
+        for img in cv_images:
+            if scale_factor < 1.0:
+                scaled_img = img.resize((video_width, video_height), Image.Resampling.LANCZOS)
+            else:
+                scaled_img = img
+            # Convert to OpenCV format
+            cv_img = cv2.cvtColor(np.array(scaled_img), cv2.COLOR_RGB2BGR)
+            scaled_cv_images.append(cv_img)
+        
+        cv_images = scaled_cv_images
+        
+        # Ensure output directory exists
+        ensure_dir_exists(os.path.dirname(output_path))
+        
+        # Create videos folder for Etsy integration
+        input_folder = os.path.dirname(os.path.dirname(output_path))
+        videos_folder = os.path.join(input_folder, "videos")
+        ensure_dir_exists(videos_folder)
+        
+        # Path for the video in the videos folder
+        videos_output_path = os.path.join(videos_folder, os.path.basename(output_path))
+        
+        # Create video writer
+        fourcc = cv2.VideoWriter_fourcc(*"avc1")
+        video_writer = cv2.VideoWriter(videos_output_path, fourcc, fps, (video_width, video_height))
+        
+        if not video_writer.isOpened():
+            logger.error(f"Failed to open video writer for {videos_output_path}")
+            return False
+        
+        try:
+            # Calculate timing
+            num_images = len(cv_images)
+            time_per_image = display_duration / num_images
+            display_frames = int(fps * time_per_image * 0.8)  # 80% display time
+            transition_frames = int(fps * time_per_image * 0.2)  # 20% transition time
+            
+            logger.info(f"Creating slideshow: {display_frames} display frames, {transition_frames} transition frames per image")
+            
+            # Create slideshow with fade transitions
+            for i in range(num_images):
+                current_img = cv_images[i]
+                next_img = cv_images[(i + 1) % num_images] if num_images > 1 else current_img
+                
+                # Display current image
+                for _ in range(display_frames):
+                    video_writer.write(current_img)
+                
+                # Transition to next image (fade)
+                if num_images > 1 and i < num_images - 1:  # Don't fade after last image
+                    for j in range(transition_frames):
+                        alpha = j / transition_frames
+                        blended = cv2.addWeighted(current_img, 1 - alpha, next_img, alpha, 0)
+                        video_writer.write(blended)
+            
+            video_writer.release()
+            
+            success = (
+                os.path.exists(videos_output_path)
+                and os.path.getsize(videos_output_path) > 0
+            )
+            
+            if success:
+                logger.info(f"Slideshow video created: {videos_output_path}")
+                return True
+            else:
+                logger.error(f"Video file was created but is empty: {videos_output_path}")
+                return False
+                
+        except Exception as e:
+            logger.error(f"Error writing slideshow video frames: {e}")
+            video_writer.release()
             return False

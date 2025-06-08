@@ -7,7 +7,7 @@ import glob
 from typing import List, Tuple, Optional, Dict, Any
 from PIL import Image
 
-from utils.common import (
+from src.utils.common import (
     setup_logging,
     get_resampling_filter,
     safe_load_image,

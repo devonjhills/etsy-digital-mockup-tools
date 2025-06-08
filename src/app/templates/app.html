@@ -7,48 +7,59 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --background: 0 0% 100%;
-            --foreground: 222.2 84% 4.9%;
-            --card: 0 0% 100%;
-            --card-foreground: 222.2 84% 4.9%;
-            --popover: 0 0% 100%;
-            --popover-foreground: 222.2 84% 4.9%;
-            --primary: 222.2 47.4% 11.2%;
-            --primary-foreground: 210 40% 98%;
-            --secondary: 210 40% 96%;
-            --secondary-foreground: 222.2 84% 4.9%;
-            --muted: 210 40% 96%;
-            --muted-foreground: 215.4 16.3% 46.9%;
-            --accent: 210 40% 96%;
-            --accent-foreground: 222.2 84% 4.9%;
-            --destructive: 0 84.2% 60.2%;
-            --destructive-foreground: 210 40% 98%;
-            --border: 214.3 31.8% 91.4%;
-            --input: 214.3 31.8% 91.4%;
-            --ring: 222.2 84% 4.9%;
-            --radius: 0.5rem;
-        }
+            /* Catppuccin Mocha Color Palette */
+            --ctp-rosewater: #f5e0dc;
+            --ctp-flamingo: #f2cdcd;
+            --ctp-pink: #f5c2e7;
+            --ctp-mauve: #cba6f7;
+            --ctp-red: #f38ba8;
+            --ctp-maroon: #eba0ac;
+            --ctp-peach: #fab387;
+            --ctp-yellow: #f9e2af;
+            --ctp-green: #a6e3a1;
+            --ctp-teal: #94e2d5;
+            --ctp-sky: #89dceb;
+            --ctp-sapphire: #74c7ec;
+            --ctp-blue: #89b4fa;
+            --ctp-lavender: #b4befe;
+            --ctp-text: #cdd6f4;
+            --ctp-subtext1: #bac2de;
+            --ctp-subtext0: #a6adc8;
+            --ctp-overlay2: #9399b2;
+            --ctp-overlay1: #7f849c;
+            --ctp-overlay0: #6c7086;
+            --ctp-surface2: #585b70;
+            --ctp-surface1: #45475a;
+            --ctp-surface0: #313244;
+            --ctp-base: #1e1e2e;
+            --ctp-mantle: #181825;
+            --ctp-crust: #11111b;
 
-        .dark {
-            --background: 222.2 84% 4.9%;
-            --foreground: 210 40% 98%;
-            --card: 222.2 84% 4.9%;
-            --card-foreground: 210 40% 98%;
-            --popover: 222.2 84% 4.9%;
-            --popover-foreground: 210 40% 98%;
-            --primary: 210 40% 98%;
-            --primary-foreground: 222.2 47.4% 11.2%;
-            --secondary: 217.2 32.6% 17.5%;
-            --secondary-foreground: 210 40% 98%;
-            --muted: 217.2 32.6% 17.5%;
-            --muted-foreground: 215 20.2% 65.1%;
-            --accent: 217.2 32.6% 17.5%;
-            --accent-foreground: 210 40% 98%;
-            --destructive: 0 62.8% 30.6%;
-            --destructive-foreground: 210 40% 98%;
-            --border: 217.2 32.6% 17.5%;
-            --input: 217.2 32.6% 17.5%;
-            --ring: 212.7 26.8% 83.9%;
+            /* Semantic color mappings */
+            --background: var(--ctp-base);
+            --foreground: var(--ctp-text);
+            --card: var(--ctp-surface0);
+            --card-foreground: var(--ctp-text);
+            --muted: var(--ctp-surface1);
+            --muted-foreground: var(--ctp-subtext0);
+            --primary: var(--ctp-blue);
+            --primary-foreground: var(--ctp-base);
+            --secondary: var(--ctp-surface2);
+            --secondary-foreground: var(--ctp-text);
+            --accent: var(--ctp-mauve);
+            --accent-foreground: var(--ctp-base);
+            --destructive: var(--ctp-red);
+            --destructive-foreground: var(--ctp-base);
+            --success: var(--ctp-green);
+            --success-foreground: var(--ctp-base);
+            --warning: var(--ctp-yellow);
+            --warning-foreground: var(--ctp-base);
+            --info: var(--ctp-sky);
+            --info-foreground: var(--ctp-base);
+            --border: var(--ctp-surface2);
+            --input: var(--ctp-surface1);
+            --ring: var(--ctp-blue);
+            --radius: 0.75rem;
         }
 
         * {
@@ -59,14 +70,27 @@
 
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: hsl(var(--background));
-            color: hsl(var(--foreground));
-            line-height: 1.5;
+            background: var(--background);
+            color: var(--foreground);
+            line-height: 1.6;
             min-height: 100vh;
+            font-size: 14px;
         }
 
-        .dark {
-            color-scheme: dark;
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(ellipse at 20% 50%, var(--ctp-mauve)10, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, var(--ctp-blue)10, transparent 50%),
+                radial-gradient(ellipse at 40% 90%, var(--ctp-pink)10, transparent 50%);
+            opacity: 0.03;
+            z-index: -1;
+            pointer-events: none;
         }
 
         .container {
@@ -79,19 +103,35 @@
             text-align: center;
             margin-bottom: 3rem;
             padding-bottom: 2rem;
-            border-bottom: 1px solid hsl(var(--border));
+            border-bottom: 1px solid var(--border);
+            position: relative;
+        }
+
+        .header::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 200px;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--ctp-mauve), transparent);
         }
 
         .header h1 {
             font-size: 2.5rem;
             font-weight: 700;
             margin-bottom: 0.5rem;
-            color: hsl(var(--foreground));
+            background: linear-gradient(135deg, var(--ctp-blue), var(--ctp-mauve), var(--ctp-pink));
+            background-clip: text;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            color: var(--foreground);
             letter-spacing: -0.02em;
         }
 
         .header p {
-            color: hsl(var(--muted-foreground));
+            color: var(--muted-foreground);
             font-size: 1.1rem;
         }
 
@@ -104,21 +144,46 @@
         }
 
         .card {
-            background: hsl(var(--card));
+            background: var(--card);
             border-radius: var(--radius);
             padding: 1.5rem;
-            border: 1px solid hsl(var(--border));
-            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            border: 1px solid var(--border);
+            box-shadow: 
+                0 4px 6px -1px rgba(0, 0, 0, 0.3),
+                0 2px 4px -1px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+            position: relative;
+            transition: all 0.2s ease;
+        }
+
+        .card:hover {
+            border-color: var(--ctp-mauve);
+            box-shadow: 
+                0 8px 12px -2px rgba(0, 0, 0, 0.4),
+                0 4px 8px -2px rgba(0, 0, 0, 0.3);
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--ctp-mauve), transparent);
+            opacity: 0.3;
         }
 
         .card h2 {
             font-size: 1.5rem;
             font-weight: 600;
-            margin-bottom: 1rem;
+            margin-bottom: 1.5rem;
             display: flex;
             align-items: center;
-            gap: 0.5rem;
-            color: hsl(var(--card-foreground));
+            gap: 0.75rem;
+            color: var(--card-foreground);
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--border);
         }
 
         .icon {
@@ -138,25 +203,30 @@
             display: block;
             margin-bottom: 0.5rem;
             font-weight: 500;
-            color: hsl(var(--card-foreground));
+            color: var(--card-foreground);
             font-size: 0.875rem;
         }
 
         .form-control {
             width: 100%;
-            padding: 0.5rem 0.75rem;
-            background: hsl(var(--background));
-            border: 1px solid hsl(var(--input));
+            padding: 0.75rem 1rem;
+            background: var(--input);
+            border: 1px solid var(--border);
             border-radius: var(--radius);
-            color: hsl(var(--foreground));
+            color: var(--foreground);
             font-size: 0.875rem;
-            transition: border-color 0.2s;
+            transition: all 0.2s ease;
         }
 
         .form-control:focus {
             outline: none;
-            border-color: hsl(var(--ring));
-            box-shadow: 0 0 0 2px hsl(var(--ring) / 0.2);
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(137, 180, 250, 0.1);
+            background: var(--card);
+        }
+
+        .form-control:hover {
+            border-color: var(--ctp-overlay1);
         }
 
         .btn {
@@ -164,35 +234,62 @@
             align-items: center;
             justify-content: center;
             gap: 0.5rem;
-            padding: 0.5rem 1rem;
-            background: hsl(var(--primary));
-            color: hsl(var(--primary-foreground));
-            border: none;
+            padding: 0.75rem 1.25rem;
+            background: var(--primary);
+            color: var(--primary-foreground);
+            border: 1px solid var(--primary);
             border-radius: var(--radius);
             font-weight: 500;
             font-size: 0.875rem;
             cursor: pointer;
-            transition: background-color 0.2s;
+            transition: all 0.2s ease;
             text-decoration: none;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+            transition: left 0.5s;
+        }
+
+        .btn:hover::before {
+            left: 100%;
         }
 
         .btn:hover {
-            background: hsl(var(--primary) / 0.9);
+            background: var(--ctp-sapphire);
+            border-color: var(--ctp-sapphire);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
         }
 
         .btn:disabled {
-            opacity: 0.6;
+            opacity: 0.5;
             cursor: not-allowed;
             pointer-events: none;
+            transform: none;
         }
 
         .btn-secondary {
-            background: hsl(var(--secondary));
-            color: hsl(var(--secondary-foreground));
+            background: var(--secondary);
+            color: var(--secondary-foreground);
+            border-color: var(--secondary);
         }
 
         .btn-secondary:hover {
-            background: hsl(var(--secondary) / 0.8);
+            background: var(--ctp-surface2);
+            border-color: var(--ctp-surface2);
         }
 
         .btn-small {
@@ -200,94 +297,253 @@
             font-size: 0.75rem;
         }
 
+        .btn-danger {
+            background: var(--destructive);
+            color: var(--destructive-foreground);
+            border-color: var(--destructive);
+        }
+
+        .btn-danger:hover {
+            background: var(--ctp-maroon);
+            border-color: var(--ctp-maroon);
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: var(--success-foreground);
+            border-color: var(--success);
+        }
+
+        .btn-success:hover {
+            background: var(--ctp-teal);
+            border-color: var(--ctp-teal);
+        }
+
+        .btn-warning {
+            background: var(--warning);
+            color: var(--warning-foreground);
+            border-color: var(--warning);
+        }
+
+        .btn-warning:hover {
+            background: var(--ctp-peach);
+            border-color: var(--ctp-peach);
+        }
+
         .workflow-options {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
             gap: 1rem;
-            margin: 1rem 0;
+            margin: 1.5rem 0;
         }
 
         .workflow-card {
-            background: hsl(var(--card));
-            border: 1px solid hsl(var(--border));
+            background: var(--card);
+            border: 2px solid var(--border);
             border-radius: var(--radius);
-            padding: 1rem;
+            padding: 1.25rem;
             cursor: pointer;
-            transition: border-color 0.2s;
+            transition: all 0.2s ease;
+            position: relative;
+            min-height: 120px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .workflow-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--ctp-blue), var(--ctp-mauve));
+            border-radius: var(--radius) var(--radius) 0 0;
+            opacity: 0;
+            transition: opacity 0.2s ease;
         }
 
         .workflow-card:hover {
-            border-color: hsl(var(--ring));
+            border-color: var(--ctp-blue);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+        }
+
+        .workflow-card:hover::before {
+            opacity: 1;
+        }
+
+        .workflow-card:active {
+            transform: translateY(0);
         }
 
         .workflow-card.selected {
-            border-color: hsl(var(--ring));
-            background: hsl(var(--accent));
+            border-color: var(--ctp-mauve);
+            background: var(--ctp-surface1);
+            box-shadow: 
+                0 4px 8px rgba(0, 0, 0, 0.3),
+                0 0 0 1px var(--ctp-mauve);
+        }
+
+        .workflow-card.selected::before {
+            opacity: 1;
+            background: linear-gradient(90deg, var(--ctp-mauve), var(--ctp-pink));
         }
 
         .workflow-card h3 {
-            font-size: 1rem;
+            font-size: 1.1rem;
             font-weight: 600;
-            margin-bottom: 0.5rem;
-            color: hsl(var(--card-foreground));
+            margin-bottom: 0.75rem;
+            color: var(--card-foreground);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .workflow-card h3::before {
+            content: '⚙️';
+            font-size: 1.2rem;
         }
 
         .workflow-card p {
+            font-size: 0.875rem;
+            color: var(--muted-foreground);
+            line-height: 1.5;
+            margin-bottom: 0.75rem;
+            flex-grow: 1;
+        }
+
+        .workflow-card .workflow-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.25rem 0.5rem;
+            background: var(--ctp-surface2);
+            color: var(--ctp-subtext1);
+            border-radius: 12px;
             font-size: 0.75rem;
-            color: hsl(var(--muted-foreground));
-            line-height: 1.4;
+            font-weight: 500;
+            border: 1px solid var(--ctp-overlay0);
+            margin-top: auto;
+            align-self: flex-start;
+        }
+
+        .workflow-card.selected .workflow-badge {
+            background: var(--ctp-mauve);
+            color: var(--ctp-base);
+            border-color: var(--ctp-mauve);
+        }
+
+        .workflow-card:hover .workflow-badge {
+            background: var(--ctp-blue);
+            color: var(--ctp-base);
+            border-color: var(--ctp-blue);
         }
 
         .log-container {
-            background: hsl(var(--muted));
+            background: var(--ctp-mantle);
             border-radius: var(--radius);
             padding: 1rem;
             max-height: 400px;
             overflow-y: auto;
-            font-family: 'Monaco', 'Menlo', monospace;
-            font-size: 0.75rem;
-            line-height: 1.4;
-            border: 1px solid hsl(var(--border));
+            font-family: 'JetBrains Mono', 'Monaco', 'Menlo', monospace;
+            font-size: 0.8rem;
+            line-height: 1.5;
+            border: 1px solid var(--border);
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .log-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .log-container::-webkit-scrollbar-track {
+            background: var(--ctp-crust);
+            border-radius: 4px;
+        }
+
+        .log-container::-webkit-scrollbar-thumb {
+            background: var(--ctp-surface1);
+            border-radius: 4px;
+        }
+
+        .log-container::-webkit-scrollbar-thumb:hover {
+            background: var(--ctp-surface2);
         }
 
         .log-message {
-            margin-bottom: 0.25rem;
-            padding: 0.25rem 0;
+            margin-bottom: 0.5rem;
+            padding: 0.5rem 0.75rem;
+            border-left: 3px solid transparent;
+            border-radius: 0 var(--radius) var(--radius) 0;
+            transition: all 0.2s ease;
+        }
+
+        .log-message:hover {
+            background-color: var(--ctp-surface0);
         }
 
         .log-error {
-            color: hsl(var(--destructive));
+            color: var(--ctp-red);
+            border-left-color: var(--ctp-red);
+            background-color: rgba(243, 139, 168, 0.1);
         }
 
         .log-success {
-            color: hsl(120 50% 50%);
+            color: var(--ctp-green);
+            border-left-color: var(--ctp-green);
+            background-color: rgba(166, 227, 161, 0.1);
+        }
+
+        .log-warning {
+            color: var(--ctp-yellow);
+            border-left-color: var(--ctp-yellow);
+            background-color: rgba(249, 226, 175, 0.1);
+        }
+
+        .log-info {
+            color: var(--ctp-sky);
+            border-left-color: var(--ctp-sky);
+            background-color: rgba(137, 220, 235, 0.1);
         }
 
         .status-indicator {
             display: inline-flex;
             align-items: center;
-            gap: 0.5rem;
-            padding: 0.5rem 1rem;
+            gap: 0.75rem;
+            padding: 0.75rem 1.25rem;
             border-radius: 9999px;
-            font-size: 0.75rem;
+            font-size: 0.875rem;
             font-weight: 500;
-            border: 1px solid hsl(var(--border));
-            background: hsl(var(--background));
+            border: 1px solid var(--border);
+            background: var(--card);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         }
 
         .status-running {
-            background: hsl(220 14.3% 95.9%);
-            color: hsl(220.9 39.3% 11%);
+            background: var(--ctp-surface1);
+            color: var(--ctp-blue);
+            border-color: var(--ctp-blue);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
         }
 
         .status-idle {
-            background: hsl(var(--muted));
-            color: hsl(var(--muted-foreground));
+            background: var(--muted);
+            color: var(--muted-foreground);
+            border-color: var(--border);
         }
 
         .status-success {
-            background: hsl(120 50% 95%);
-            color: hsl(120 50% 20%);
+            background: var(--ctp-surface1);
+            color: var(--ctp-green);
+            border-color: var(--ctp-green);
         }
 
         .checkbox-group {
@@ -310,7 +566,7 @@
             background: hsl(var(--muted));
             border: 1px solid hsl(var(--border));
             border-radius: var(--radius);
-            color: hsl(var(--muted-foreground));
+            color: var(--muted-foreground);
             font-size: 0.875rem;
         }
 
@@ -476,8 +732,10 @@
 
         .editor-actions {
             display: flex;
-            gap: 0.5rem;
-            margin-top: 1rem;
+            gap: 0.75rem;
+            margin-top: 1.5rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border);
         }
 
         .loader {
@@ -498,17 +756,17 @@
             display: flex;
             gap: 0.5rem;
             margin-bottom: 1rem;
-            background: hsl(var(--muted));
+            background: var(--muted);
             border-radius: var(--radius);
             padding: 0.25rem;
-            border: 1px solid hsl(var(--border));
+            border: 1px solid var(--border);
         }
 
         .tab {
             padding: 0.75rem 1rem;
             background: transparent;
             border: none;
-            color: hsl(var(--muted-foreground));
+            color: var(--muted-foreground);
             cursor: pointer;
             font-weight: 500;
             font-size: 0.875rem;
@@ -589,6 +847,7 @@
                 <div class="tabs">
                     <button class="tab active" onclick="showTab('pattern')">Patterns</button>
                     <button class="tab" onclick="showTab('clipart')">Clipart</button>
+                    <button class="tab" onclick="showTab('journal-papers')">Journal Papers</button>
                     <button class="tab" onclick="showTab('ai-content')">Etsy Upload</button>
                 </div>
 
@@ -606,14 +865,17 @@
                         <div class="workflow-card selected" data-workflow="full">
                             <h3>Full Workflow</h3>
                             <p>Resize, create mockups, generate video, and package</p>
+                            <div class="workflow-badge">Complete</div>
                         </div>
                         <div class="workflow-card" data-workflow="mockups-only">
                             <h3>Mockups + Video</h3>
                             <p>Skip resizing, create mockups and video</p>
+                            <div class="workflow-badge">Quick</div>
                         </div>
                         <div class="workflow-card" data-workflow="resize-only">
                             <h3>Resize Only</h3>
                             <p>Just resize images for processing</p>
+                            <div class="workflow-badge">Basic</div>
                         </div>
                     </div>
 
@@ -638,14 +900,17 @@
                         <div class="workflow-card selected" data-workflow="full">
                             <h3>Full Workflow</h3>
                             <p>Resize, create mockups, transparency demo, video, and package</p>
+                            <div class="workflow-badge">Complete</div>
                         </div>
                         <div class="workflow-card" data-workflow="mockups-only">
                             <h3>Mockups + Video</h3>
                             <p>Skip resizing, create mockups and video</p>
+                            <div class="workflow-badge">Quick</div>
                         </div>
                         <div class="workflow-card" data-workflow="extract">
                             <h3>Extract & Process</h3>
                             <p>Extract from sprite sheets, create mockups, video, and package</p>
+                            <div class="workflow-badge">Advanced</div>
                         </div>
                     </div>
 
@@ -653,6 +918,41 @@
                     <button class="btn" onclick="runClipartWorkflow()">
                         <span class="icon">▶️</span>
                         Run Clipart Workflow (All Folders)
+                    </button>
+                </div>
+
+                <!-- Journal Papers Tab -->
+                <div id="journal-papers-tab" class="tab-content">
+                    <div class="form-group">
+                        <label>Processing Mode</label>
+                        <div class="info-box">
+                            <span class="icon">📁</span>
+                            <span id="journal-papers-folder-info">Will process all folders in input/ directory</span>
+                        </div>
+                    </div>
+
+                    <div class="workflow-options">
+                        <div class="workflow-card selected" data-workflow="full">
+                            <h3>Full Workflow</h3>
+                            <p>Resize to 8.5×11 inches, create mockups, video, and package</p>
+                            <div class="workflow-badge">Complete</div>
+                        </div>
+                        <div class="workflow-card" data-workflow="mockups-only">
+                            <h3>Mockups + Video</h3>
+                            <p>Skip resizing, create main mockup and 2×2 grids</p>
+                            <div class="workflow-badge">Quick</div>
+                        </div>
+                        <div class="workflow-card" data-workflow="resize-only">
+                            <h3>Resize Only</h3>
+                            <p>Just resize to 8.5×11 inch format (2550×3300 pixels)</p>
+                            <div class="workflow-badge">Basic</div>
+                        </div>
+                    </div>
+
+
+                    <button class="btn" onclick="runJournalPapersWorkflow()">
+                        <span class="icon">▶️</span>
+                        Run Journal Papers Workflow (All Folders)
                     </button>
                 </div>
 
@@ -671,6 +971,7 @@
                         <select id="etsy-product-type" class="form-control">
                             <option value="pattern">Pattern</option>
                             <option value="clipart">Clipart</option>
+                            <option value="journal_papers">Journal Papers</option>
                         </select>
                     </div>
 
@@ -842,6 +1143,12 @@
             const workflowSteps = getWorkflowSteps('clipart', currentWorkflow, true);
 
             await runWorkflow('clipart', workflowSteps);
+        }
+
+        async function runJournalPapersWorkflow() {
+            const workflowSteps = getWorkflowSteps('journal_papers', currentWorkflow, true);
+
+            await runWorkflow('journal_papers', workflowSteps);
         }
 
         function getWorkflowSteps(type, workflow, createVideo) {
@@ -1098,6 +1405,10 @@
                             <span class="icon">↺</span>
                             Reset
                         </button>
+                        <button class="btn btn-small btn-danger" onclick="deleteSingleListing('${listing.folder_name}')" style="margin-left: auto;">
+                            <span class="icon">🗑️</span>
+                            Delete
+                        </button>
                     </div>
                 </div>
             `;
@@ -1279,6 +1590,39 @@
             updateCharCounter(`description-${folderId}`, 0);
         }
 
+        async function deleteSingleListing(folderName) {
+            if (!confirm(`Are you sure you want to delete the prepared listing for "${folderName}"?\n\nThis action cannot be undone.`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/delete-single-prepared-listing', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        folder_name: folderName
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    addLogMessage(`Successfully deleted prepared listing for ${folderName}`, 'success');
+                    // Refresh the prepared listings display
+                    refreshPreparedListings();
+                } else {
+                    addLogMessage(`Failed to delete listing: ${data.error}`, 'error');
+                    alert(data.error);
+                }
+                
+            } catch (error) {
+                addLogMessage(`Error deleting listing: ${error.message}`, 'error');
+                alert(`Error deleting listing: ${error.message}`);
+            }
+        }
+
         function setProcessingStatus(processing, statusText) {
             isProcessing = processing;
             const indicator = document.getElementById('status-indicator');
@@ -1293,10 +1637,22 @@
             }
         }
 
-        function addLogMessage(message, type = 'info') {
+        function addLogMessage(messageData, type = 'info') {
             const logContainer = document.getElementById('log-container');
             const messageElement = document.createElement('div');
-            messageElement.className = `log-message ${type === 'error' ? 'log-error' : type === 'success' ? 'log-success' : ''}`;
+            
+            // Handle both old string format and new object format
+            let message, level;
+            if (typeof messageData === 'object' && messageData.message) {
+                message = messageData.message;
+                level = messageData.level || type;
+            } else {
+                message = messageData;
+                level = type;
+            }
+            
+            // Apply CSS classes based on level
+            messageElement.className = `log-message log-${level}`;
             messageElement.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
             
             logContainer.appendChild(messageElement);
@@ -1331,8 +1687,19 @@
                     
                     data.messages.forEach(message => {
                         addLogMessage(message);
+                        
+                        // Extract message text from object format
+                        const messageText = (typeof message === 'object' && message.message) ? message.message : message;
+                        
                         // If message indicates successful preparation, refresh listings
-                        if (message.includes('Successfully prepared') && message.includes('Etsy listings')) {
+                        if (messageText.includes('Successfully prepared') && messageText.includes('Etsy listings')) {
+                            setTimeout(() => refreshPreparedListings(), 1000);
+                        }
+                        
+                        // If message indicates upload completion or prepared list update, refresh listings
+                        if (messageText.includes('Upload complete') || 
+                            messageText.includes('uploaded listings from prepared list') ||
+                            messageText.includes('All prepared listings uploaded')) {
                             setTimeout(() => refreshPreparedListings(), 1000);
                         }
                     });

@@ -7,7 +7,7 @@ import json
 from typing import Dict, List, Optional
 import re
 
-from utils.common import setup_logging
+from src.utils.common import setup_logging
 
 # Set up logging
 logger = setup_logging(__name__)

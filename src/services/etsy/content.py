@@ -9,7 +9,7 @@ from typing import Dict, Any, Optional
 from PIL import Image
 
 # Set up logging
-from utils.common import setup_logging
+from src.utils.common import setup_logging
 
 logger = setup_logging(__name__)
 

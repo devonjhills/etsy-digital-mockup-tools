@@ -5,7 +5,7 @@ import zipfile
 import shutil
 from pathlib import Path
 from typing import List, Dict, Any, Optional
-from utils.common import setup_logging, ensure_dir_exists
+from src.utils.common import setup_logging, ensure_dir_exists
 
 logger = setup_logging(__name__)
 

@@ -6,8 +6,8 @@ import os
 import requests
 from typing import Dict, List, Optional, Any
 
-from utils.common import setup_logging
-from etsy.auth import EtsyAuth
+from src.utils.common import setup_logging
+from src.services.etsy.auth import EtsyAuth
 
 # Set up logging
 logger = setup_logging(__name__)
@@ -226,6 +226,33 @@ class EtsyListings:
             logger.error(f"Error getting listing: {e}")
             return None
 
+    def get_shop_sections(self) -> Optional[List[Dict]]:
+        """
+        Get all shop sections for the shop.
+
+        Returns:
+            List of shop sections or None if not found
+        """
+        if not self.shop_id:
+            logger.error("No shop ID available.")
+            return None
+
+        try:
+            url = f"{self.base_url}/application/shops/{self.shop_id}/sections"
+            headers = self.auth.get_headers()
+            response = requests.get(url, headers=headers)
+
+            if response.status_code == 200:
+                return response.json().get("results", [])
+            else:
+                logger.error(
+                    f"Error getting shop sections: {response.status_code} {response.text}"
+                )
+                return None
+        except Exception as e:
+            logger.error(f"Error getting shop sections: {e}")
+            return None
+
     def upload_listing_image(
         self, listing_id: int, image_path: str, rank: int = 1
     ) -> Optional[Dict]:
@@ -334,7 +361,7 @@ class EtsyListings:
             return None
 
         # Validate video file before upload
-        from utils.video_utils import validate_video_for_etsy
+        from src.utils.video_utils import validate_video_for_etsy
         is_valid, validation_message = validate_video_for_etsy(video_path)
         if not is_valid:
             logger.error(f"Video validation failed: {validation_message}")

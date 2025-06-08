@@ -58,7 +58,8 @@ class BaseProcessor(ABC):
         
         try:
             for step in steps:
-                self.logger.info(f"Starting step: {step}")
+                step_name = step.replace("_", " ").title()
+                self.logger.info(f"Processing {step_name}...")
                 
                 if step == "resize":
                     results[step] = self.resize_images()
@@ -74,10 +75,18 @@ class BaseProcessor(ABC):
                 else:
                     results[step] = self.process_custom_step(step)
                 
-                self.logger.info(f"Completed step: {step}")
+                # Check if step was successful
+                step_result = results[step]
+                if isinstance(step_result, dict):
+                    if step_result.get("success", True):
+                        self.logger.info(f"✓ {step_name} completed successfully")
+                    else:
+                        self.logger.error(f"✗ {step_name} failed: {step_result.get('error', 'Unknown error')}")
+                else:
+                    self.logger.info(f"✓ {step_name} completed")
         
         except Exception as e:
-            self.logger.error(f"Workflow failed at step {step}: {str(e)}")
+            self.logger.error(f"✗ Workflow failed at {step.replace('_', ' ').title()}: {str(e)}")
             raise
         
         return results

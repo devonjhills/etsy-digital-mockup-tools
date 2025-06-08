@@ -12,24 +12,32 @@ import glob
 from PIL import Image, ImageDraw, ImageFont
 
 
-# Configure logging
-def setup_logging(name: str, level: int = logging.INFO) -> logging.Logger:
+# Global GUI log function (set by GUI when available)
+_gui_log_function = None
+
+def set_gui_log_function(log_func):
+    """Set the GUI log function to route logs to GUI instead of console."""
+    global _gui_log_function
+    _gui_log_function = log_func
+
+def gui_log(message: str, level: str = "info"):
+    """Send log message to GUI if available, otherwise ignore."""
+    if _gui_log_function:
+        _gui_log_function(message, level)
+
+# Configure logging for GUI-only mode
+def setup_logging(name: str, level: int = logging.INFO, gui_only: bool = True) -> logging.Logger:
     """
     Set up and return a logger with the given name and level.
 
     Args:
         name: The name of the logger
         level: The logging level (default: logging.INFO)
+        gui_only: If True, only log to GUI, not console (default: True)
 
     Returns:
         A configured logger instance
     """
-    # Check if root logger is already configured
-    root = logging.getLogger()
-    if not root.handlers:
-        # Configure root logger once
-        logging.basicConfig(format="%(message)s", level=level)
-
     # Get the named logger
     logger = logging.getLogger(name)
     logger.setLevel(level)
@@ -37,6 +45,24 @@ def setup_logging(name: str, level: int = logging.INFO) -> logging.Logger:
     # Remove any existing handlers to avoid duplicate messages
     for handler in logger.handlers[:]:
         logger.removeHandler(handler)
+
+    if gui_only:
+        # Custom handler that routes to GUI only
+        class GUIHandler(logging.Handler):
+            def emit(self, record):
+                message = self.format(record)
+                level = "error" if record.levelno >= logging.ERROR else "success" if "success" in message.lower() or "✓" in message else "info"
+                gui_log(message, level)
+        
+        handler = GUIHandler()
+        handler.setLevel(level)
+        handler.setFormatter(logging.Formatter("%(message)s"))
+        logger.addHandler(handler)
+        logger.propagate = False  # Prevent propagation to root logger
+    else:
+        # Fall back to console logging if GUI not available
+        if not logging.getLogger().handlers:
+            logging.basicConfig(format="%(message)s", level=level)
 
     return logger
 
@@ -204,7 +230,7 @@ def apply_watermark(
     font_size: int = 50,
     text_color: Tuple[int, int, int] = (120, 120, 120),
     opacity: int = 80,
-    diagonal_spacing: int = 350,
+    diagonal_spacing: Optional[int] = None,
 ) -> Image.Image:
     """
     Apply a clean diagonal text watermark to an image.
@@ -216,7 +242,7 @@ def apply_watermark(
         font_size: The font size for text watermarks
         text_color: The text color for text watermarks (RGB)
         opacity: The opacity of the watermark (0-255)
-        diagonal_spacing: Distance between watermarks diagonally
+        diagonal_spacing: Distance between watermarks diagonally (auto-calculated if None)
 
     Returns:
         The watermarked image
@@ -230,8 +256,18 @@ def apply_watermark(
     overlay = Image.new("RGBA", result.size, (0, 0, 0, 0))
     draw = ImageDraw.Draw(overlay)
     
-    # Get font
-    font = get_font(font_name, font_size)
+    # Auto-scale font size and spacing based on image size
+    # Use shorter dimension as reference for scaling
+    reference_size = min(result.width, result.height)
+    
+    # Scale font size based on image size (base: 1000px = 50pt font)
+    if font_size == 50:  # Using default font size, scale it
+        scaled_font_size = max(30, int(reference_size * 0.05))  # 5% of reference dimension
+    else:
+        scaled_font_size = font_size
+    
+    # Get font with scaled size
+    font = get_font(font_name, scaled_font_size)
     
     # Calculate text size
     try:
@@ -241,29 +277,51 @@ def apply_watermark(
     except AttributeError:
         text_width, text_height = draw.textsize(text, font=font)
     
+    # Auto-calculate diagonal spacing if not provided
+    if diagonal_spacing is None:
+        # Increase spacing for less cluttered watermarks
+        # Target: ~4-5 watermarks across the shorter dimension
+        diagonal_spacing = int(reference_size * 0.25)  # 25% of reference dimension (increased from 15%)
+    
     # Calculate how many watermarks we need
     image_diagonal = math.sqrt(result.width ** 2 + result.height ** 2)
     num_watermarks = int(image_diagonal / diagonal_spacing) + 2
     
-    # Place watermarks diagonally across the image
+    # Place watermarks in a 45-degree diagonal pattern across the canvas
     for i in range(-2, num_watermarks):
         for j in range(-2, num_watermarks):
-            # Calculate position on a diagonal grid
-            x = i * diagonal_spacing + j * diagonal_spacing * 0.5
+            # Create a regular grid pattern
+            x = i * diagonal_spacing
             y = j * diagonal_spacing
             
-            # Rotate the grid 45 degrees
-            rotated_x = x * math.cos(math.radians(45)) - y * math.sin(math.radians(45))
-            rotated_y = x * math.sin(math.radians(45)) + y * math.cos(math.radians(45))
+            # Rotate the entire grid 45 degrees for diagonal placement
+            angle_rad = math.radians(45)
+            rotated_x = x * math.cos(angle_rad) - y * math.sin(angle_rad)
+            rotated_y = x * math.sin(angle_rad) + y * math.cos(angle_rad)
             
-            # Offset to center the pattern
+            # Center the pattern on the image
             final_x = rotated_x + result.width // 2 - text_width // 2
             final_y = rotated_y + result.height // 2 - text_height // 2
             
-            # Only draw if the text would be visible
+            # Only draw if the text would be visible on the canvas
             if (final_x + text_width > 0 and final_x < result.width and
                 final_y + text_height > 0 and final_y < result.height):
-                draw.text((final_x, final_y), text, font=font, fill=(*text_color, opacity))
+                # Draw the text rotated -45 degrees so it appears horizontal when canvas is rotated
+                # Create a temporary image for the rotated text
+                temp_img = Image.new("RGBA", (text_width + 20, text_height + 20), (0, 0, 0, 0))
+                temp_draw = ImageDraw.Draw(temp_img)
+                temp_draw.text((10, 10), text, font=font, fill=(*text_color, opacity))
+                
+                # Rotate the text -45 degrees to counteract the grid rotation
+                rotated_text = temp_img.rotate(-45, expand=True)
+                
+                # Paste the rotated text onto the overlay
+                paste_x = int(final_x - rotated_text.width // 2 + text_width // 2)
+                paste_y = int(final_y - rotated_text.height // 2 + text_height // 2)
+                
+                if (paste_x > -rotated_text.width and paste_x < result.width and
+                    paste_y > -rotated_text.height and paste_y < result.height):
+                    overlay.paste(rotated_text, (paste_x, paste_y), rotated_text)
     
     # Composite the watermark onto the original image
     result = Image.alpha_composite(result, overlay)

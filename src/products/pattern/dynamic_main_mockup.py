@@ -411,6 +411,8 @@ def create_main_mockup(
     use_dynamic_title_colors: bool = None,
     top_subtitle_padding: int = None,
     bottom_subtitle_padding: int = None,
+    custom_top_subtitle: str = None,
+    custom_bottom_subtitle: str = None,
 ) -> Optional[str]:
     """
     Creates the main 2x6 grid mockup with a dynamic overlay.

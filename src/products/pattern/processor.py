@@ -59,8 +59,8 @@ class PatternProcessor(BaseProcessor):
             return {"success": False, "error": str(e)}
     
     def _create_main_mockup(self) -> Dict[str, Any]:
-        """Create main pattern mockup."""
-        from src.products.pattern.dynamic_main_mockup import create_main_mockup
+        """Create main pattern mockup using shared utility."""
+        from src.utils.mockup_utils import create_shared_main_mockup
         
         mockup_dir = os.path.join(self.config.input_dir, "mocks")
         ensure_directory(mockup_dir)
@@ -69,10 +69,23 @@ class PatternProcessor(BaseProcessor):
         folder_name = Path(self.config.input_dir).name
         title = folder_name.replace("_", " ").replace("-", " ").title()
         
+        # Count images for subtitle
+        image_files = find_files_by_extension(self.config.input_dir, ['.png', '.jpg', '.jpeg'])
+        image_files = [f for f in image_files if '/mocks/' not in f and '\\mocks\\' not in f]
+        num_images = len(image_files)
+        
+        # Pattern-specific subtitle text
+        top_subtitle_text = f"{num_images} Seamless Patterns"
+        bottom_subtitle_text = "commercial use | 300 dpi | 12x12in jpg"
+        
         try:
-            result_file = create_main_mockup(
+            result_file = create_shared_main_mockup(
                 input_folder=self.config.input_dir,
-                title=title
+                title=title,
+                top_subtitle_text=top_subtitle_text,
+                bottom_subtitle_text=bottom_subtitle_text,
+                output_filename="main.png",
+                config_type="pattern"
             )
             return {"success": True, "file": result_file, "output_folder": mockup_dir}
         except Exception as e:
