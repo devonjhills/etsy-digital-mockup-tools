@@ -5,7 +5,7 @@ import glob
 from typing import Optional
 from PIL import Image, ImageDraw
 
-from utils.common import (
+from src.utils.common import (
     setup_logging,
     get_resampling_filter,
     get_asset_path,

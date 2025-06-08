@@ -740,8 +740,8 @@ class EtsyIntegration:
 
                     # Check if the file is already properly named (follows the pattern safe_folder_name_X.jpg or safe_folder_name_X.png)
                     if re.match(
-                        f"{safe_folder_name}_\d+\.jpe?g$", file.lower()
-                    ) or re.match(f"{safe_folder_name}_\d+\.png$", file.lower()):
+                        rf"{safe_folder_name}_\d+\.jpe?g$", file.lower()
+                    ) or re.match(rf"{safe_folder_name}_\d+\.png$", file.lower()):
                         properly_named_files.append(file_path)
                     else:
                         image_files.append(file_path)
@@ -775,7 +775,7 @@ class EtsyIntegration:
                     file_name = os.path.basename(file_path)
                     # Check for both jpg and png files
                     match = re.search(
-                        f"{safe_folder_name}_(\d+)\.(jpe?g|png)$", file_name.lower()
+                        rf"{safe_folder_name}_(\d+)\.(jpe?g|png)$", file_name.lower()
                     )
                     if match:
                         numbers.append(int(match.group(1)))
@@ -964,7 +964,8 @@ class EtsyIntegration:
                 # Import clipart modules directly
                 # Note: Using square_mockup for main.png (2x3 grid) and grid for 2x2 grid mockups
                 from clipart.processing.square_mockup import create_square_mockup
-                from clipart.processing.grid import create_2x2_grid, apply_watermark
+                from src.utils.grid_utils import GridCreator
+                from src.utils.common import apply_watermark
                 from clipart.processing.transparency import create_transparency_demo
                 from utils.common import (
                     get_asset_path,
@@ -1068,11 +1069,12 @@ class EtsyIntegration:
                             "Failed to create main mockup. Using fallback approach."
                         )
                         # Create a simple grid as fallback
-                        final_main_mockup = create_2x2_grid(
-                            input_image_paths=input_image_paths[:4],
-                            canvas_bg_image=canvas_bg_2x2.copy(),
+                        grid_creator = GridCreator()
+                        final_main_mockup = grid_creator.create_2x2_grid(
+                            image_paths=input_image_paths[:4],
                             grid_size=(2000, 2000),
                             padding=30,
+                            background=canvas_bg_2x2.copy()
                         )
                     else:
                         logger.info(
@@ -1100,11 +1102,12 @@ class EtsyIntegration:
                         # Create a proper 2x2 grid mockup using the clipart module
                         try:
                             # Create the grid mockup
-                            grid_mockup = create_2x2_grid(
-                                input_image_paths=batch_paths,
-                                canvas_bg_image=canvas_bg_2x2.copy(),
+                            grid_creator = GridCreator()
+                            grid_mockup = grid_creator.create_2x2_grid(
+                                image_paths=batch_paths,
                                 grid_size=(2000, 2000),
                                 padding=30,
+                                background=canvas_bg_2x2.copy()
                             )
 
                             # Apply watermark

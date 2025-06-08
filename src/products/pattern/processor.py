@@ -93,14 +93,14 @@ class PatternProcessor(BaseProcessor):
     
     def _create_grid_mockup(self) -> Dict[str, Any]:
         """Create pattern grid mockup."""
-        from src.services.processing.grid import GridProcessor
+        from src.utils.grid_utils import GridCreator
         
         mockup_dir = os.path.join(self.config.input_dir, "mocks")
         ensure_directory(mockup_dir)
         
         try:
-            grid_processor = GridProcessor("pattern")
-            result_file = grid_processor.create_4x3_grid_with_borders(
+            grid_creator = GridCreator()
+            result_file = grid_creator.create_4x3_grid_with_borders(
                 input_folder=self.config.input_dir
             )
             return {"success": True, "file": result_file, "output_folder": mockup_dir}

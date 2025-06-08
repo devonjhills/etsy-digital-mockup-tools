@@ -14,7 +14,7 @@ from src.utils.common import setup_logging
 logger = setup_logging(__name__)
 
 # Import AI provider factory
-from utils.ai_utils import get_ai_provider
+from src.utils.ai_utils import get_ai_provider
 
 
 class ContentGenerator:

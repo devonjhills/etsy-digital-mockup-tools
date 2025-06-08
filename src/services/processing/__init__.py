@@ -2,8 +2,7 @@
 Unified processing modules for all product types.
 """
 
-from .grid import GridProcessor
 from .mockups import MockupProcessor  
 from .video.base import VideoProcessor
 
-__all__ = ["GridProcessor", "MockupProcessor", "VideoProcessor"]
+__all__ = ["MockupProcessor", "VideoProcessor"]

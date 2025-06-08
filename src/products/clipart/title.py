@@ -6,7 +6,7 @@ Module for adding titles to images.
 from typing import Tuple, Optional
 from PIL import Image, ImageDraw
 
-from utils.common import setup_logging, get_resampling_filter, get_font
+from src.utils.common import setup_logging, get_resampling_filter, get_font
 
 # Set up logging
 logger = setup_logging(__name__)

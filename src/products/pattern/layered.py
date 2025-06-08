@@ -6,7 +6,7 @@ import glob
 from typing import Optional, Tuple, List
 from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageOps
 
-from utils.common import (
+from src.utils.common import (
     setup_logging, 
     get_resampling_filter, 
     ensure_dir_exists

@@ -125,11 +125,20 @@ class MockupProcessor:
                 return None
             
             # Create a simple collage
-            from processing.grid import GridProcessor
-            grid_processor = GridProcessor("generic")
+            from src.utils.grid_utils import GridCreator
+            grid_creator = GridCreator()
             
             output_path = os.path.join(mockup_dir, "main.png")
-            return grid_processor.create_adaptive_grid(image_files, output_path)
+            
+            # Create a simple 2x2 grid as fallback
+            background = grid_creator.load_background("canvas.png", (2000, 2000))
+            grid_image = grid_creator.create_2x2_grid(
+                image_paths=image_files[:4],
+                grid_size=(2000, 2000),
+                background=background
+            )
+            grid_image.save(output_path, "PNG")
+            return output_path
             
         except Exception as e:
             logger.error(f"Error creating generic main mockup: {e}")

@@ -45,12 +45,13 @@ def add_log(message: str, level: str = "info"):
     global log_messages
     
     # Determine message type and add color/emoji coding
-    if level == "error" or "✗" in message or "failed" in message.lower() or "error" in message.lower():
-        formatted_msg = f"🔴 {message}"
-        level = "error"
-    elif level == "success" or "✓" in message or "success" in message.lower() or "completed" in message.lower():
+    # Check for success conditions first (higher priority)
+    if level == "success" or "✓" in message or "success" in message.lower() or "completed" in message.lower():
         formatted_msg = f"🟢 {message}"
         level = "success"
+    elif level == "error" or "✗" in message or ("failed" in message.lower() and "successful" not in message.lower()) or "error" in message.lower():
+        formatted_msg = f"🔴 {message}"
+        level = "error"
     elif "warning" in message.lower() or "warn" in message.lower():
         formatted_msg = f"🟡 {message}"
         level = "warning"
@@ -667,7 +668,8 @@ def upload_prepared_listings():
                         if result:
                             uploaded_listings.append(result)
                             successfully_uploaded_folders.append(listing_data['folder_name'])
-                            add_log(f"✓ Successfully uploaded: {listing_data['folder_name']}")
+                            listing_id = result.get('listing_id')
+                            add_log(f"✓ Successfully uploaded: {listing_data['folder_name']} (ID: {listing_id})")
                         else:
                             failed_listings.append(listing_data['folder_name'])
                             add_log(f"✗ Failed to upload: {listing_data['folder_name']}")

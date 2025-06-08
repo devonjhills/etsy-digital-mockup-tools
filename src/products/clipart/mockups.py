@@ -7,8 +7,8 @@ import colorsys
 from typing import List, Tuple, Optional
 from PIL import Image, ImageStat
 
-from utils.common import setup_logging, get_resampling_filter, safe_load_image
-from clipart.processing.title import add_title_bar_and_text
+from src.utils.common import setup_logging, get_resampling_filter, safe_load_image
+from src.products.clipart.title import add_title_bar_and_text
 
 # Set up logging
 logger = setup_logging(__name__)

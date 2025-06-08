@@ -7,7 +7,7 @@ import re
 from typing import Tuple, Dict, List, Optional
 from PIL import Image
 
-from utils.common import setup_logging, get_resampling_filter, ensure_dir_exists
+from src.utils.common import setup_logging, get_resampling_filter, ensure_dir_exists
 
 logger = setup_logging(__name__)
 
@@ -225,7 +225,7 @@ class ImageResizer:
         Resize images using pattern-style processing (JPG output, no trim).
         
         Args:
-            input_folder: Path to folder containing subfolders with images
+            input_folder: Path to folder containing images or subfolders with images
             
         Returns:
             Dictionary with processing results
@@ -241,15 +241,25 @@ class ImageResizer:
             "folders_processed": []
         }
         
-        for subfolder in os.listdir(input_folder):
-            subfolder_path = os.path.join(input_folder, subfolder)
-            
-            if not os.path.isdir(subfolder_path) or subfolder in ["mocks", "zipped"]:
-                continue
-            
-            folder_results = self._process_pattern_folder(subfolder_path, subfolder)
-            results["processed"] += folder_results["processed"]
-            results["folders_processed"].append(subfolder)
+        # Check for subfolders or process current folder
+        subfolders = [d for d in os.listdir(input_folder) 
+                     if os.path.isdir(os.path.join(input_folder, d)) and d not in ["mocks", "zipped", "videos"]]
+        
+        if not subfolders:
+            # Process images directly in folder
+            direct_images = self.get_image_files(input_folder)
+            if direct_images:
+                folder_name = os.path.basename(input_folder)
+                folder_results = self._process_pattern_folder(input_folder, folder_name)
+                results["processed"] += folder_results["processed"]
+                results["folders_processed"].append(folder_name)
+        else:
+            # Process subfolders
+            for subfolder in subfolders:
+                subfolder_path = os.path.join(input_folder, subfolder)
+                folder_results = self._process_pattern_folder(subfolder_path, subfolder)
+                results["processed"] += folder_results["processed"]
+                results["folders_processed"].append(subfolder)
         
         return results
     

@@ -198,3 +198,29 @@ def check_overlap(
         return True, float(w_intersect * h_intersect)
     else:
         return False, 0.0
+
+
+def extract_clipart_from_sheets(input_folder: str, output_folder: str) -> Dict[str, Any]:
+    """
+    Extract individual clipart from sprite sheets.
+    
+    Args:
+        input_folder: Folder containing sprite sheets
+        output_folder: Folder to save extracted clipart
+        
+    Returns:
+        Results dictionary
+    """
+    print(f"Extracting clipart from sheets in {input_folder} to {output_folder}")
+    
+    # This is a placeholder implementation
+    # In a real implementation, you would use computer vision techniques
+    # to detect and extract individual sprites from sprite sheets
+    
+    os.makedirs(output_folder, exist_ok=True)
+    
+    return {
+        "success": True,
+        "message": "Clipart extraction not yet implemented",
+        "extracted_count": 0
+    }

@@ -6,7 +6,7 @@ import os
 from typing import Tuple, Optional
 from PIL import Image, ImageDraw
 
-from utils.common import setup_logging, get_resampling_filter, safe_load_image
+from src.utils.common import setup_logging, get_resampling_filter, safe_load_image
 
 # Set up logging
 logger = setup_logging(__name__)

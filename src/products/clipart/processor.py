@@ -113,7 +113,7 @@ class ClipartProcessor(BaseProcessor):
     
     def _create_grid_mockup(self) -> Dict[str, Any]:
         """Create multiple 2x2 grid mockups to show all images."""
-        from src.services.processing.grid import GridProcessor
+        from src.utils.grid_utils import GridCreator
         from src.utils.file_operations import find_files_by_extension
         import os
         
@@ -140,8 +140,8 @@ class ClipartProcessor(BaseProcessor):
             
             self.logger.info(f"Total images: {len(image_files)}, will create {num_grids} grids")
             
-            # Use the unified grid processor
-            grid_processor = GridProcessor("clipart")
+            # Use the unified grid creator
+            grid_creator = GridCreator()
             
             created_files = []
             
@@ -161,13 +161,18 @@ class ClipartProcessor(BaseProcessor):
                 else:
                     output_path = os.path.join(mockup_dir, f"grid_{grid_num + 1}.png")
                 
-                # Create grid using unified processor
-                result_path = grid_processor.create_2x2_grid(
+                # Create grid using unified creator
+                background = grid_creator.load_background("canvas.png", (2000, 2000))
+                grid_image = grid_creator.create_2x2_grid(
                     image_paths=grid_images,
-                    output_path=output_path,
                     grid_size=(2000, 2000),
-                    padding=30
+                    padding=30,
+                    background=background
                 )
+                
+                # Save the grid
+                grid_image.save(output_path, "PNG")
+                result_path = output_path
                 
                 if result_path:
                     # Apply watermark to the created grid
@@ -205,10 +210,10 @@ class ClipartProcessor(BaseProcessor):
                 image=grid_image,
                 text="digital veil",
                 font_name="Clattering",
-                font_size=50,
+                font_size=30,
                 text_color=(120, 120, 120),
-                opacity=80,
-                diagonal_spacing=350
+                opacity=60,
+                diagonal_spacing=500
             )
             
             # Save watermarked version (overwrite original)
