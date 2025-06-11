@@ -376,7 +376,8 @@ def prepare_etsy_listings():
                     input_dir=input_base_dir,
                     product_type=processor_type,
                     skip_mockups=True,  # Assume mockups already exist
-                    skip_zips=True     # Assume zips already exist
+                    skip_zips=True,     # Assume zips already exist
+                    skip_resize=True    # Assume images already resized
                 )
                 
                 # Save prepared listings to file
@@ -412,6 +413,97 @@ def prepare_etsy_listings():
         return jsonify({
             "message": f"Started preparing {processor_type} listings with AI",
             "ai_provider": ai_provider
+        })
+        
+    except Exception as e:
+        processing_status["current_task"] = None
+        processing_status["is_running"] = False
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/full-bulk-processing", methods=["POST"])
+def full_bulk_processing():
+    """Run complete bulk processing workflow: resize, mockups, zips, then AI content generation."""
+    try:
+        data = request.json
+        processor_type = data.get("processor_type", "pattern")
+        ai_provider = data.get("ai_provider", "gemini")
+        
+        add_log(f"Starting full bulk processing for {processor_type} products")
+        
+        # Import Etsy integration
+        from src.services.etsy.main import EtsyIntegration
+        from src.services.etsy.constants import DEFAULT_ETSY_INSTRUCTIONS
+        from src.utils.env_loader import get_env_var
+        
+        # Get AI API key
+        if ai_provider == "gemini":
+            ai_api_key = get_env_var("GEMINI_API_KEY")
+        else:
+            ai_api_key = get_env_var("OPENAI_API_KEY")
+        
+        if not ai_api_key:
+            return jsonify({"error": f"{ai_provider.upper()} API key not configured. Please set it in your .env file."}), 400
+        
+        # Initialize Etsy integration with AI provider
+        etsy = EtsyIntegration(
+            etsy_api_key="dummy",  # Not needed for preparation
+            etsy_api_secret="dummy",  # Not needed for preparation
+            api_key=ai_api_key,
+            provider_type=ai_provider
+        )
+        
+        # Set processing status
+        processing_status["current_task"] = f"Full processing {processor_type} products"
+        processing_status["is_running"] = True
+        
+        def run_full_processing():
+            try:
+                # Run complete bulk processing (resize, mockups, zips, then AI content)
+                input_base_dir = "input"
+                prepared_listings = etsy.prepare_bulk_listings(
+                    input_dir=input_base_dir,
+                    product_type=processor_type,
+                    skip_mockups=False,  # Create mockups
+                    skip_zips=False,     # Create zips
+                    skip_resize=False    # Resize images
+                )
+                
+                # Save prepared listings to file
+                import json
+                output_file = "prepared_listings.json"
+                with open(output_file, 'w') as f:
+                    json.dump(prepared_listings, f, indent=2)
+                
+                # Update status
+                processing_status["current_task"] = None
+                processing_status["is_running"] = False
+                processing_status["last_result"] = {
+                    "success": True,
+                    "listings_prepared": len(prepared_listings),
+                    "output_file": output_file,
+                    "listings": prepared_listings,
+                    "workflow": "full_processing"
+                }
+                
+                add_log(f"Successfully completed full processing and prepared {len(prepared_listings)} Etsy listings")
+                add_log(f"Listings saved to {output_file}")
+                
+            except Exception as e:
+                add_log(f"Full bulk processing failed: {str(e)}")
+                processing_status["current_task"] = None
+                processing_status["is_running"] = False
+                processing_status["last_result"] = {"success": False, "error": str(e)}
+        
+        # Start background thread
+        import threading
+        thread = threading.Thread(target=run_full_processing)
+        thread.start()
+        
+        return jsonify({
+            "message": f"Started full bulk processing for {processor_type} products",
+            "ai_provider": ai_provider,
+            "workflow": "full_processing"
         })
         
     except Exception as e:

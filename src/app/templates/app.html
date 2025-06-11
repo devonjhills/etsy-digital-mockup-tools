@@ -987,10 +987,10 @@
                 <!-- Etsy Integration Tab -->
                 <div id="ai-content-tab" class="tab-content">
                     <div class="form-group">
-                        <label>Etsy Integration Workflow</label>
+                        <label>Etsy Integration Workflows</label>
                         <div class="info-box">
                             <span class="icon">🏪</span>
-                            <span>2-step process: Generate AI content from mockups, then upload to Etsy</span>
+                            <span>Choose between full processing or AI content generation only</span>
                         </div>
                     </div>
 
@@ -1011,16 +1011,43 @@
                         </select>
                     </div>
 
-                    <!-- Step 1: Prepare Listings -->
-                    <div class="workflow-card" style="margin: 1rem 0; padding: 1rem;">
-                        <h3 style="margin-bottom: 0.5rem;">Step 1: Prepare Listings with AI</h3>
-                        <p style="color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 1rem;">
-                            Analyzes mockup images with AI to generate SEO-optimized titles, descriptions, and tags using professional Etsy copywriting instructions.
-                        </p>
-                        <button class="btn" onclick="prepareEtsyListings()">
-                            <span class="icon">🤖</span>
-                            Generate AI Content for Listings
-                        </button>
+                    <!-- Workflow Options -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0;">
+                        <!-- Full Processing Workflow -->
+                        <div class="workflow-card" style="padding: 1rem; border: 2px solid var(--accent-primary);">
+                            <h3 style="margin-bottom: 0.5rem; color: var(--accent-primary);">
+                                <span class="icon">⚡</span>
+                                Full Processing
+                            </h3>
+                            <p style="color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 1rem;">
+                                Complete workflow: Resize images → Create mockups → Generate zip files → Create AI content → Ready for upload
+                            </p>
+                            <div style="background: var(--bg-tertiary); padding: 0.5rem; border-radius: 4px; margin-bottom: 1rem; font-size: 0.8rem;">
+                                <strong>Use when:</strong> Starting with raw images that need full processing
+                            </div>
+                            <button class="btn" onclick="fullBulkProcessing()" style="width: 100%;">
+                                <span class="icon">🔄</span>
+                                Process All + Generate AI Content
+                            </button>
+                        </div>
+
+                        <!-- AI Content Only Workflow -->
+                        <div class="workflow-card" style="padding: 1rem; border: 2px solid var(--accent-secondary);">
+                            <h3 style="margin-bottom: 0.5rem; color: var(--accent-secondary);">
+                                <span class="icon">🤖</span>
+                                AI Content Only
+                            </h3>
+                            <p style="color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 1rem;">
+                                Generate AI content only: Analyzes existing mockups to create titles, descriptions, and tags
+                            </p>
+                            <div style="background: var(--bg-tertiary); padding: 0.5rem; border-radius: 4px; margin-bottom: 1rem; font-size: 0.8rem;">
+                                <strong>Use when:</strong> Products already processed, just need AI content
+                            </div>
+                            <button class="btn" onclick="prepareEtsyListings()" style="width: 100%;">
+                                <span class="icon">🤖</span>
+                                Generate AI Content Only
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Prepared Listings Display -->
@@ -1056,8 +1083,9 @@
                     <div class="info-box" style="margin-top: 1rem;">
                         <span class="icon">⚠️</span>
                         <span style="font-size: 0.8rem;">
-                            Prerequisites: Products must be processed first (mockups and zip files created). 
-                            Requires AI API key for Step 1 and Etsy API credentials for Step 2.
+                            <strong>Full Processing:</strong> Processes raw images from scratch (resize → mockups → zips → AI content)<br>
+                            <strong>AI Content Only:</strong> Requires products already processed (existing mockups and zips needed)<br>
+                            <strong>Upload:</strong> Requires AI API key for content generation and Etsy API credentials for upload
                         </span>
                     </div>
                 </div>
@@ -1261,6 +1289,63 @@
 
             } catch (error) {
                 addLogMessage('Error starting listing preparation: ' + error.message, 'error');
+                setProcessingStatus(false, 'Ready');
+            }
+        }
+
+        async function fullBulkProcessing() {
+            if (isProcessing) {
+                alert('A workflow is already running. Please wait for it to complete.');
+                return;
+            }
+
+            const productType = document.getElementById('etsy-product-type').value;
+            const aiProvider = document.getElementById('etsy-ai-provider').value;
+
+            const confirmed = confirm(
+                `This will run the complete processing workflow for ${productType} products:\n\n` +
+                `1. Resize images\n` +
+                `2. Create mockups\n` +
+                `3. Generate zip files\n` +
+                `4. Generate AI content\n\n` +
+                `This may take several minutes. Continue?`
+            );
+
+            if (!confirmed) return;
+
+            try {
+                setProcessingStatus(true, 'Full bulk processing - this may take several minutes');
+                addLogMessage(`Starting full bulk processing for ${productType} products using ${aiProvider}`, 'info');
+
+                const response = await fetch('/full-bulk-processing', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        processor_type: productType,
+                        ai_provider: aiProvider
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    addLogMessage('Full bulk processing started successfully', 'success');
+                    addLogMessage(data.message, 'info');
+                    addLogMessage('This will resize images, create mockups, generate zips, and create AI content', 'info');
+                    
+                    // Refresh prepared listings display after a longer delay (full processing takes more time)
+                    setTimeout(() => {
+                        refreshPreparedListings();
+                    }, 10000);
+                } else {
+                    addLogMessage('Full bulk processing failed: ' + data.error, 'error');
+                    setProcessingStatus(false, 'Ready');
+                }
+
+            } catch (error) {
+                addLogMessage('Error starting full bulk processing: ' + error.message, 'error');
                 setProcessingStatus(false, 'Ready');
             }
         }

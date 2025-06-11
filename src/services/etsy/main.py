@@ -155,6 +155,18 @@ class EtsyIntegration:
                     "num_files": "12",
                 }
             )
+        elif product_type == "journal_papers":
+            product_info["journal_name"] = product_name
+            # Add default values for journal papers template variables
+            product_info.update(
+                {
+                    "style": "Modern",
+                    "theme": "Journaling",
+                    "dimensions": "2550x3300 pixels",
+                    "page_size": "8.5x11 inch",
+                    "num_files": "12",
+                }
+            )
 
         # Add additional info based on folder contents
         product_info.update(self._extract_product_info(folder_path, product_type))
@@ -249,6 +261,17 @@ class EtsyIntegration:
 
         # Upload images
         listing_id = listing.get("listing_id")
+        
+        if not listing_id:
+            logger.error("Failed to get listing ID from created listing.")
+            return None
+            
+        logger.info(f"Created listing with ID: {listing_id}")
+        
+        # Wait longer for listing to be fully processed before uploading files
+        import time
+        time.sleep(5)
+        logger.info("Waited 5 seconds for listing to be processed")
 
         # Find images in the mocks folder
         mocks_folder = os.path.join(folder_path, "mocks")
@@ -303,21 +326,59 @@ class EtsyIntegration:
                     logger.warning(f"Failed to upload image {image_path}")
 
         # Upload digital files if applicable
-        if template.get("is_digital", True):
+        is_digital = template.get("is_digital", True)
+        logger.info(f"Listing is_digital: {is_digital}")
+        
+        if is_digital:
             # Find zip files in the zipped folder
             zipped_folder = os.path.join(folder_path, "zipped")
+            logger.info(f"Looking for zip files in: {zipped_folder}")
+            
             if os.path.exists(zipped_folder):
                 import glob
 
                 zip_paths = sorted(glob.glob(os.path.join(zipped_folder, "*.zip")))
+                logger.info(f"Found {len(zip_paths)} zip files: {[os.path.basename(p) for p in zip_paths]}")
 
+                uploaded_files = []
                 for i, zip_path in enumerate(zip_paths):
+                    rank = i + 1  # Rank must be >= 1 per Etsy API docs
+                    logger.info(f"Uploading digital file: {os.path.basename(zip_path)} (rank {rank})")
                     file_result = self.listings.upload_digital_file(
-                        listing_id=listing_id, file_path=zip_path, rank=i
+                        listing_id=listing_id, file_path=zip_path, rank=rank
                     )
 
-                    if not file_result:
-                        logger.warning(f"Failed to upload digital file {zip_path}")
+                    if file_result:
+                        logger.info(f"✓ Successfully uploaded digital file: {os.path.basename(zip_path)}")
+                        uploaded_files.append(os.path.basename(zip_path))
+                    else:
+                        logger.error(f"✗ Failed to upload digital file: {zip_path}")
+
+                # Verify digital files were uploaded successfully
+                if uploaded_files:
+                    logger.info("Verifying digital files were uploaded successfully...")
+                    verification_success = self.listings.verify_digital_files(
+                        listing_id=listing_id, expected_filenames=uploaded_files
+                    )
+                    if verification_success:
+                        logger.info(f"✓ All digital files verified successfully for listing {listing_id}")
+                        
+                        # Wait and verify again to check if files become visible on website
+                        logger.info("Waiting 10 seconds and re-verifying files are accessible...")
+                        time.sleep(10)
+                        recheck_success = self.listings.verify_digital_files(
+                            listing_id=listing_id, expected_filenames=uploaded_files
+                        )
+                        if recheck_success:
+                            logger.info(f"✓ Files still verified after delay for listing {listing_id}")
+                        else:
+                            logger.warning(f"⚠️ Files no longer found after delay for listing {listing_id}")
+                    else:
+                        logger.error(f"✗ Digital file verification failed for listing {listing_id}")
+                else:
+                    logger.warning("No digital files were uploaded, skipping verification")
+            else:
+                logger.warning(f"No zipped folder found at {zipped_folder}")
 
         # Upload videos if available
         videos_folder = os.path.join(folder_path, "videos")
@@ -498,15 +559,17 @@ class EtsyIntegration:
         product_type: str,
         skip_mockups: bool = False,
         skip_zips: bool = False,
+        skip_resize: bool = False,
     ) -> List[Dict]:
         """
         Prepare Etsy listings for all subfolders in the input directory without uploading.
 
         Args:
             input_dir: Path to the input directory containing product subfolders
-            product_type: Product type (pattern or clipart)
+            product_type: Product type (pattern, clipart, or journal_papers)
             skip_mockups: Whether to skip creating mockups (use existing ones)
             skip_zips: Whether to skip creating zip files (use existing ones)
+            skip_resize: Whether to skip resizing and renaming images (use existing ones)
 
         Returns:
             List of prepared listings data
@@ -537,9 +600,12 @@ class EtsyIntegration:
             logger.info(f"Processing folder: {folder_path}")
 
             try:
-                # Step 1: Resize and rename images
-                logger.info(f"Resizing and renaming images for {subfolder}...")
-                self._resize_and_rename(folder_path, product_type)
+                # Step 1: Resize and rename images (if not skipped)
+                if not skip_resize:
+                    logger.info(f"Resizing and renaming images for {subfolder}...")
+                    self._resize_and_rename(folder_path, product_type)
+                else:
+                    logger.info(f"Skipping image resizing for {subfolder} as requested")
 
                 # Step 2: Generate mockups based on product type (if not skipped)
                 if not skip_mockups:
@@ -795,6 +861,8 @@ class EtsyIntegration:
                         # Determine max size based on product type
                         if product_type == "pattern" or product_type == "patterns":
                             max_size = (3600, 3600)
+                        elif product_type == "journal_papers":
+                            max_size = (2550, 3300)  # 8.5x11 inches at 300 DPI
                         else:  # clipart
                             max_size = (1500, 1500)
 

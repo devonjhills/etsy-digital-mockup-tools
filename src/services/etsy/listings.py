@@ -30,9 +30,13 @@ class EtsyListings:
         # If shop ID is not in environment, try to get it from the API
         if not self.shop_id:
             self.shop_id = self._get_shop_id()
-
-        if self.shop_id:
+            if self.shop_id:
+                logger.info(f"Retrieved shop ID from API: {self.shop_id}")
+        else:
             logger.info(f"Using shop ID from environment: {self.shop_id}")
+            
+        if not self.shop_id:
+            logger.error("No shop ID available - cannot proceed with Etsy operations")
 
     def _get_shop_id(self) -> Optional[str]:
         """
@@ -106,7 +110,7 @@ class EtsyListings:
         taxonomy_id: int,
         who_made: str = "i_did",
         is_supply: bool = False,
-        when_made: str = "2020_2024",
+        when_made: str = "2020_2025",
         is_digital: bool = True,
         is_personalizable: bool = False,
         personalization_instructions: str = "",
@@ -319,27 +323,31 @@ class EtsyListings:
 
         try:
             url = f"{self.base_url}/application/shops/{self.shop_id}/listings/{listing_id}/files"
-            headers = self.auth.get_headers()
 
-            # Remove Content-Type from headers to let requests set it correctly for multipart/form-data
-            if "Content-Type" in headers:
-                del headers["Content-Type"]
+            # Remove Content-Type header for file upload
+            upload_headers = self.auth.get_headers()
+            if "Content-Type" in upload_headers:
+                del upload_headers["Content-Type"]
 
             with open(file_path, "rb") as f:
                 files = {"file": (os.path.basename(file_path), f, "application/zip")}
-                data = {"rank": str(rank), "name": os.path.basename(file_path)}
-                response = requests.post(url, headers=headers, files=files, data=data)
+                data = {"name": os.path.basename(file_path), "rank": rank}
+                
+                response = requests.post(url, headers=upload_headers, files=files, data=data)
 
-            # Check if the request was successful
-            if response.status_code == 201:
-                return response.json()
-            else:
-                logger.error(
-                    f"Error uploading digital file: {response.status_code} {response.text}"
-                )
-                return None
+                if response.status_code == 201:
+                    file_data = response.json()
+                    file_id = file_data.get('listing_file_id')
+                    logger.info(f"✓ Digital file uploaded successfully: {os.path.basename(file_path)} (ID: {file_id})")
+                    logger.info(f"Upload response: {file_data}")
+                    return file_data
+                else:
+                    logger.error(
+                        f"✗ Error uploading digital file: {response.status_code} {response.text}"
+                    )
+                    return None
         except Exception as e:
-            logger.error(f"Error uploading digital file: {e}")
+            logger.error(f"Exception uploading digital file {file_path}: {e}")
             return None
 
     def upload_video(
@@ -491,4 +499,96 @@ class EtsyListings:
             logger.info(
                 f"Would have set length: {attributes['length']} {attributes.get('length_unit', 'inches')}"
             )
+        return True
+
+    def get_listing_files(self, listing_id: int) -> Optional[List[Dict]]:
+        """
+        Get all digital files for a listing to verify they were uploaded successfully.
+
+        Args:
+            listing_id: Listing ID
+
+        Returns:
+            List of file data or None if retrieval failed
+        """
+        if not self.shop_id:
+            logger.error("No shop ID available.")
+            return None
+
+        try:
+            url = f"{self.base_url}/application/shops/{self.shop_id}/listings/{listing_id}/files"
+            headers = self.auth.get_headers()
+            response = requests.get(url, headers=headers)
+
+            if response.status_code == 200:
+                files_data = response.json().get("results", [])
+                logger.info(f"Found {len(files_data)} digital files for listing {listing_id}")
+                for file_data in files_data:
+                    file_id = file_data.get('listing_file_id')
+                    filename = file_data.get('filename', 'Unknown')
+                    file_size = file_data.get('filesize', 0)
+                    logger.info(f"  - File ID: {file_id}, Name: {filename}, Size: {file_size} bytes")
+                return files_data
+            else:
+                logger.error(
+                    f"Error getting listing files: {response.status_code} {response.text}"
+                )
+                return None
+        except Exception as e:
+            logger.error(f"Error getting listing files: {e}")
+            return None
+
+    def verify_digital_files(self, listing_id: int, expected_filenames: Optional[List[str]] = None) -> bool:
+        """
+        Verify that digital files were uploaded successfully to a listing.
+
+        Args:
+            listing_id: Listing ID
+            expected_filenames: Optional list of expected filenames to check for
+
+        Returns:
+            True if verification successful, False otherwise
+        """
+        # First check the listing state
+        listing_info = self.get_listing(listing_id)
+        if listing_info:
+            listing_state = listing_info.get('state', 'unknown')
+            logger.info(f"Listing {listing_id} state: {listing_state}")
+        
+        files = self.get_listing_files(listing_id)
+        
+        if files is None:
+            logger.error(f"Failed to retrieve files for listing {listing_id}")
+            return False
+        
+        if len(files) == 0:
+            logger.error(f"No digital files found for listing {listing_id}")
+            return False
+        
+        # Log detailed file information for debugging
+        total_size = 0
+        for file_data in files:
+            file_size_mb = file_data.get('size_bytes', 0) / (1024 * 1024) if file_data.get('size_bytes') else 0
+            total_size += file_size_mb
+            create_time = file_data.get('create_timestamp', 0)
+            logger.info(f"  File details: {file_data.get('filename')} - {file_size_mb:.1f}MB - Created: {create_time}")
+        
+        logger.info(f"Total files size: {total_size:.1f}MB")
+        
+        # If expected filenames provided, verify they exist
+        if expected_filenames:
+            found_filenames = [f.get('filename', '') for f in files]
+            missing_files = []
+            for expected_name in expected_filenames:
+                if not any(expected_name in found_name for found_name in found_filenames):
+                    missing_files.append(expected_name)
+            
+            if missing_files:
+                logger.error(f"Missing expected files in listing {listing_id}: {missing_files}")
+                return False
+            else:
+                logger.info(f"✓ All expected files verified for listing {listing_id}")
+        else:
+            logger.info(f"✓ Digital files verified for listing {listing_id} ({len(files)} files found)")
+        
         return True

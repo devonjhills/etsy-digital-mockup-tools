@@ -129,8 +129,8 @@ class ConfigManager:
                 "title_font": "GreatVibes-Regular",
                 "subtitle_font": "LibreBaskerville-Italic",
                 "title_font_size": 250,
-                "top_subtitle_font_size": 0,  # Auto-calculated
-                "bottom_subtitle_font_size": 0,  # Auto-calculated
+                "top_subtitle_font_size": 90,  # Increased from auto-calc (~75)
+                "bottom_subtitle_font_size": 80,  # Increased from auto-calc (~60)
                 "available_fonts": get_available_fonts(),
             },
             color_settings={
@@ -138,7 +138,7 @@ class ConfigManager:
                 "dynamic_title_contrast_threshold": 4.5,  # WCAG AA standard
                 "dynamic_title_color_clusters": 5,
             },
-            layout_settings={"top_subtitle_padding": 60, "bottom_subtitle_padding": 55},
+            layout_settings={"top_subtitle_padding": 85, "bottom_subtitle_padding": 85},
             video_settings={
                 "fps": 30,
                 "duration_per_image": 2.0,
@@ -186,7 +186,7 @@ class ConfigManager:
                 "subtitle_font": "LibreBaskerville-Italic",
                 "title_max_font_size": 250,
                 "title_min_font_size": 40,
-                "subtitle_font_size": 60,
+                "subtitle_font_size": 85,
                 "title_padding_x": 80,
                 "title_padding_y": 40,
                 "title_line_spacing": 15,
@@ -254,6 +254,9 @@ class ConfigManager:
             font_settings={
                 "title_font": "GreatVibes-Regular",
                 "subtitle_font": "LibreBaskerville-Italic",
+                "title_font_size": 250,
+                "top_subtitle_font_size": 90,  # Larger subtitle text
+                "bottom_subtitle_font_size": 80,  # Larger subtitle text
                 "available_fonts": get_available_fonts(),
             },
             color_settings={
@@ -264,6 +267,7 @@ class ConfigManager:
                 ),  # White background for journal papers
                 "border_color": (240, 240, 240),
             },
+            layout_settings={"top_subtitle_padding": 85, "bottom_subtitle_padding": 85},
             video_settings={
                 "fps": 30,
                 "duration_per_image": 2.5,

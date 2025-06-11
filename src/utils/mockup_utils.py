@@ -404,7 +404,7 @@ def create_shared_dynamic_overlay(
     # Position subtitles closer to backdrop edges and center the title between them
 
     # Top subtitle - position near the top of the backdrop
-    top_margin = 25  # Close to backdrop top
+    top_margin = 45  # More padding from backdrop top
     subtitle_x = backdrop_x + (backdrop_width - subtitle_width) // 2
     subtitle_y = backdrop_y + top_margin
     draw_text(
@@ -416,7 +416,7 @@ def create_shared_dynamic_overlay(
     )
 
     # Bottom subtitle - position near the bottom of the backdrop
-    bottom_margin = 25  # Close to backdrop bottom
+    bottom_margin = 45  # More padding from backdrop bottom
     bottom_subtitle_x = backdrop_x + (backdrop_width - bottom_subtitle_width) // 2
     bottom_subtitle_y = (
         backdrop_y + backdrop_height - bottom_subtitle_height - bottom_margin
