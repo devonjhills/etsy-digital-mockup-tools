@@ -475,6 +475,124 @@
             background: var(--ctp-surface2);
         }
 
+        /* Toast notification styles */
+        .toast-container {
+            position: fixed;
+            top: 2rem;
+            right: 2rem;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            max-width: 400px;
+        }
+
+        .toast {
+            background: var(--ctp-surface0);
+            color: var(--foreground);
+            padding: 1rem 1.25rem;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            min-height: 60px;
+            animation: slideIn 0.3s ease-out;
+            backdrop-filter: blur(10px);
+        }
+
+        .toast.success {
+            border-color: var(--success);
+            background: linear-gradient(135deg, var(--ctp-surface0) 0%, rgba(166, 227, 161, 0.1) 100%);
+        }
+
+        .toast.success .toast-icon {
+            color: var(--success);
+            font-size: 1.2rem;
+        }
+
+        .toast-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .toast-title {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: var(--foreground);
+        }
+
+        .toast-message {
+            font-size: 0.8rem;
+            color: var(--muted-foreground);
+        }
+
+        .toast-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .toast-link {
+            background: var(--primary);
+            color: var(--primary-foreground);
+            text-decoration: none;
+            padding: 0.4rem 0.8rem;
+            border-radius: 0.375rem;
+            font-size: 0.8rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            border: none;
+            cursor: pointer;
+        }
+
+        .toast-link:hover {
+            background: var(--ctp-sapphire);
+            transform: translateY(-1px);
+        }
+
+        .toast-close {
+            background: transparent;
+            border: none;
+            color: var(--muted-foreground);
+            cursor: pointer;
+            padding: 0.25rem;
+            border-radius: 0.25rem;
+            font-size: 1rem;
+            line-height: 1;
+            transition: color 0.2s ease;
+        }
+
+        .toast-close:hover {
+            color: var(--foreground);
+            background: var(--muted);
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+        }
+
         .log-message {
             margin-bottom: 0.5rem;
             padding: 0.5rem 0.75rem;
@@ -1116,6 +1234,9 @@
         </div>
     </div>
 
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
+
     <script>
         // Global state
         let currentWorkflow = 'full';
@@ -1158,6 +1279,7 @@
                     // Add selected to clicked card
                     this.classList.add('selected');
                     currentWorkflow = this.dataset.workflow;
+                    addLogMessage(`Selected workflow: ${this.dataset.workflow}`, 'info');
                 });
             });
         }
@@ -1186,19 +1308,25 @@
         }
 
         async function runPatternWorkflow() {
+            addLogMessage(`Starting pattern workflow with currentWorkflow: ${currentWorkflow}`, 'info');
             const workflowSteps = getWorkflowSteps('pattern', currentWorkflow, true);
+            addLogMessage(`Pattern workflow steps: ${workflowSteps.join(', ')}`, 'info');
 
             await runWorkflow('pattern', workflowSteps);
         }
 
         async function runClipartWorkflow() {
+            addLogMessage(`Starting clipart workflow with currentWorkflow: ${currentWorkflow}`, 'info');
             const workflowSteps = getWorkflowSteps('clipart', currentWorkflow, true);
+            addLogMessage(`Clipart workflow steps: ${workflowSteps.join(', ')}`, 'info');
 
             await runWorkflow('clipart', workflowSteps);
         }
 
         async function runJournalPapersWorkflow() {
+            addLogMessage(`Starting journal papers workflow with currentWorkflow: ${currentWorkflow}`, 'info');
             const workflowSteps = getWorkflowSteps('journal_papers', currentWorkflow, true);
+            addLogMessage(`Journal papers workflow steps: ${workflowSteps.join(', ')}`, 'info');
 
             await runWorkflow('journal_papers', workflowSteps);
         }
@@ -1224,6 +1352,7 @@
 
             try {
                 setProcessingStatus(true, `Running ${processorType} batch workflow`);
+                addLogMessage(`Starting ${processorType} workflow with steps: ${workflowSteps.join(', ')}`, 'info');
                 
                 const response = await fetch('/run-workflow', {
                     method: 'POST',
@@ -1237,11 +1366,12 @@
                 });
 
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    const errorText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
                 }
 
                 const data = await response.json();
-                addLogMessage(`Started ${processorType} batch workflow for all folders`, 'success');
+                addLogMessage(`Successfully started ${processorType} batch workflow for all folders`, 'success');
                 
             } catch (error) {
                 addLogMessage('Error starting workflow: ' + error.message, 'error');
@@ -1746,6 +1876,49 @@
             }
         }
 
+        // Toast notification functions
+        function showEtsyEditToast(listingId, folderName) {
+            const toastContainer = document.getElementById('toast-container');
+            const toastId = `toast-${Date.now()}`;
+            
+            const toast = document.createElement('div');
+            toast.className = 'toast success';
+            toast.id = toastId;
+            
+            toast.innerHTML = `
+                <div class="toast-icon">🎉</div>
+                <div class="toast-content">
+                    <div class="toast-title">Listing Created Successfully!</div>
+                    <div class="toast-message">${folderName} uploaded to Etsy (ID: ${listingId})</div>
+                    <div class="toast-actions">
+                        <a href="https://www.etsy.com/your/shops/me/listing-editor/edit/${listingId}" 
+                           target="_blank" 
+                           class="toast-link">
+                            ✏️ Edit on Etsy
+                        </a>
+                    </div>
+                </div>
+                <button class="toast-close" onclick="removeToast('${toastId}')" title="Close">×</button>
+            `;
+            
+            toastContainer.appendChild(toast);
+            
+            // Don't auto-remove - let user manually close during bulk processing
+            // This ensures all listing notifications remain visible until manually dismissed
+        }
+
+        function removeToast(toastId) {
+            const toast = document.getElementById(toastId);
+            if (toast) {
+                toast.style.animation = 'slideOut 0.3s ease-in';
+                setTimeout(() => {
+                    if (toast.parentNode) {
+                        toast.parentNode.removeChild(toast);
+                    }
+                }, 300);
+            }
+        }
+
         function addLogMessage(messageData, type = 'info') {
             const logContainer = document.getElementById('log-container');
             const messageElement = document.createElement('div');
@@ -1764,13 +1937,17 @@
             messageElement.className = `log-message log-${level}`;
             
             // Check if this is a successful upload message with listing ID
-            const uploadMatch = message.match(/✓ Successfully uploaded: .+ \(ID: (\d+)\)/);
+            const uploadMatch = message.match(/✓ Successfully uploaded: (.+) \(ID: (\d+)\)/);
             if (uploadMatch) {
-                const listingId = uploadMatch[1];
+                const folderName = uploadMatch[1];
+                const listingId = uploadMatch[2];
                 const timestamp = `[${new Date().toLocaleTimeString()}] `;
                 
-                // Create message with edit link
-                messageElement.innerHTML = `${timestamp}${message} <a href="https://www.etsy.com/your/shops/me/listing-editor/edit/${listingId}" target="_blank" style="color: #007bff; text-decoration: underline; margin-left: 10px;">Edit on Etsy</a>`;
+                // Show regular log message without inline link
+                messageElement.textContent = `${timestamp}${message}`;
+                
+                // Show toast notification with edit link
+                showEtsyEditToast(listingId, folderName);
             } else {
                 messageElement.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
             }

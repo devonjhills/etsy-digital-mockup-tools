@@ -38,7 +38,7 @@ class MockupProcessor:
     def _create_clipart_main_mockup(self, input_folder: str, title: str) -> Optional[str]:
         """Create main mockup for clipart."""
         try:
-            from clipart.processing.square_mockup import create_square_mockup
+            from src.products.clipart.mockups import create_square_mockup
             
             mockup_dir = os.path.join(input_folder, "mocks")
             ensure_dir_exists(mockup_dir)
@@ -94,7 +94,7 @@ class MockupProcessor:
     def _create_pattern_main_mockup(self, input_folder: str, title: str) -> Optional[str]:
         """Create main mockup for patterns."""
         try:
-            from pattern.mockups.dynamic_main_mockup import create_main_mockup
+            from src.products.pattern.dynamic_main_mockup import create_main_mockup
             
             result_file = create_main_mockup(input_folder, title)
             if result_file:

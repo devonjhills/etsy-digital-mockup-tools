@@ -243,6 +243,7 @@ def run_workflow():
     """Run a processing workflow on all subfolders in input directory."""
     try:
         data = request.json
+        add_log(f"Received workflow request: {data}")
         
         # Extract parameters
         processor_type = data.get("processor_type")
@@ -251,11 +252,15 @@ def run_workflow():
         
         # Validate required parameters
         if not processor_type:
+            add_log("Error: processor_type is required", "error")
             return jsonify({"error": "processor_type is required"}), 400
         
         # Check if processor type is supported
         if not ProcessorFactory.supports_type(processor_type):
+            add_log(f"Error: Unsupported processor type: {processor_type}", "error")
             return jsonify({"error": f"Unsupported processor type: {processor_type}"}), 400
+        
+        add_log(f"Starting {processor_type} workflow with steps: {workflow_steps}")
         
         # Set processing status
         processing_status["current_task"] = f"{processor_type} batch workflow"
@@ -275,7 +280,7 @@ def run_workflow():
                 processing_status["last_result"] = result
                 
             except Exception as e:
-                add_log(f"Background task failed: {e}")
+                add_log(f"Background task failed: {e}", "error")
                 processing_status["current_task"] = None
                 processing_status["is_running"] = False
                 processing_status["last_result"] = {"success": False, "error": str(e)}
@@ -284,13 +289,17 @@ def run_workflow():
         thread = threading.Thread(target=run_in_background)
         thread.start()
         
+        add_log(f"Successfully started {processor_type} batch workflow", "success")
+        
         return jsonify({
             "message": "Batch workflow started",
             "processor_type": processor_type,
+            "workflow_steps": workflow_steps,
             "mode": "all_subfolders"
         })
         
     except Exception as e:
+        add_log(f"Workflow startup failed: {str(e)}", "error")
         processing_status["current_task"] = None
         processing_status["is_running"] = False
         return jsonify({"error": str(e)}), 500

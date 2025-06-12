@@ -830,7 +830,7 @@ class EtsyIntegration:
 
             # Process each image file that needs processing
             from PIL import Image
-            from utils.common import get_resampling_filter
+            # Removed old import - using Image.Resampling.LANCZOS directly
 
             # Start numbering from the highest existing number + 1
             next_index = 1
@@ -875,7 +875,7 @@ class EtsyIntegration:
                         # Create new filename with appropriate extension based on product type
                         file_extension = (
                             "jpg"
-                            if product_type == "pattern" or product_type == "patterns"
+                            if product_type in ["pattern", "patterns", "journal_papers"]
                             else "png"
                         )
                         new_filename = f"{safe_folder_name}_{i}.{file_extension}"
@@ -907,7 +907,7 @@ class EtsyIntegration:
 
                             # Resize the image
                             img_to_save = img.resize(
-                                (new_width, new_height), get_resampling_filter()
+                                (new_width, new_height), Image.Resampling.LANCZOS
                             )
 
                             # Set DPI
@@ -930,24 +930,33 @@ class EtsyIntegration:
                                 # Convert to RGBA to preserve transparency
                                 img_to_save = img_to_save.convert("RGBA")
 
-                                # Import and apply the trim function from clipart.resize
-                                from clipart.resize import trim
-
+                                # Note: Trimming functionality now handled by clipart processor
                                 logger.info(
-                                    f"  Applying trim to remove empty space around clipart"
+                                    f"  Saving clipart image (trimming handled by processor)"
                                 )
-                                img_to_save = trim(img_to_save)
 
                                 img_to_save.save(
                                     new_file_path, format="PNG", dpi=(300, 300)
                                 )
                             else:
-                                # For patterns, save as JPEG
+                                # For patterns and journal_papers, save as JPEG
+                                # Convert to RGB if needed (for JPEG compatibility)
+                                if img_to_save.mode in ("RGBA", "LA"):
+                                    # For transparent images, convert to white background
+                                    background = Image.new("RGB", img_to_save.size, (255, 255, 255))
+                                    if img_to_save.mode == "RGBA":
+                                        background.paste(img_to_save, mask=img_to_save.split()[-1])
+                                    else:
+                                        background.paste(img_to_save)
+                                    img_to_save = background
+                                elif img_to_save.mode != "RGB":
+                                    img_to_save = img_to_save.convert("RGB")
+                                    
                                 img_to_save.save(
                                     new_file_path,
                                     format="JPEG",
                                     dpi=(300, 300),
-                                    quality=85,
+                                    quality=95,
                                     optimize=True,
                                 )
                             logger.info(f"  Saved as: {new_filename}")
@@ -991,262 +1000,108 @@ class EtsyIntegration:
                 .title()
             )
 
-            # Import mockup modules dynamically to avoid circular imports
-            import importlib
-
             # Create mocks directory if it doesn't exist
             mocks_dir = os.path.join(folder_path, "mocks")
             os.makedirs(mocks_dir, exist_ok=True)
 
             if product_type == "pattern" or product_type == "patterns":
-                # Import pattern mockup modules
-                dynamic_main_mockup = importlib.import_module(
-                    "pattern.mockups.dynamic_main_mockup"
+                # Import pattern processor and use it directly
+                from src.core.processor_factory import ProcessorFactory
+                from src.core.base_processor import ProcessingConfig
+                
+                logger.info(f"Creating pattern mockups for {product_name}...")
+                
+                # Create configuration for the pattern processor
+                config = ProcessingConfig(
+                    product_type="pattern",
+                    input_dir=folder_path,
+                    output_dir=folder_path
                 )
-                seamless = importlib.import_module("pattern.seamless")
-                layered = importlib.import_module("pattern.mockups.layered")
-                grid = importlib.import_module("pattern.mockups.grid")
-                pattern_video = importlib.import_module("pattern.video")
-
-                # Generate pattern mockups
-                logger.info(f"Creating main mockup for {product_name}...")
-                dynamic_main_mockup.create_main_mockup(folder_path, product_name)
-
-                logger.info(f"Creating seamless mockup for {product_name}...")
-                seamless_pattern_file = seamless.create_pattern(folder_path)
-                seamless.create_seamless_mockup(folder_path)
-
-                logger.info(f"Creating layered mockup for {product_name}...")
-                layered.create_large_grid(folder_path)
-
-                logger.info(f"Creating grid mockup for {product_name}...")
-                grid.create_grid_mockup_with_borders(folder_path)
-
-                # Create video mockup
-                logger.info(f"Creating video mockup for {product_name}...")
-                pattern_video.create_seamless_zoom_video(
-                    folder_path, seamless_pattern_file
-                )
+                
+                # Create processor and run mockup creation
+                processor = ProcessorFactory.create_processor(config)
+                
+                # Create mockups
+                mockup_result = processor.create_mockups()
+                if mockup_result.get("success", True):
+                    logger.info(f"Successfully created pattern mockups for {product_name}")
+                else:
+                    logger.error(f"Failed to create pattern mockups: {mockup_result.get('error', 'Unknown error')}")
+                
+                # Create videos
+                logger.info(f"Creating pattern video for {product_name}...")
+                video_result = processor.create_videos()
+                if video_result.get("success", True):
+                    logger.info(f"Successfully created pattern video for {product_name}")
+                else:
+                    logger.error(f"Failed to create pattern video: {video_result.get('error', 'Unknown error')}")
 
             elif product_type == "clipart":
-                # Import clipart modules directly
-                # Note: Using square_mockup for main.png (2x3 grid) and grid for 2x2 grid mockups
-                from clipart.processing.square_mockup import create_square_mockup
-                from src.utils.grid_utils import GridCreator
-                from src.utils.common import apply_watermark
-                from clipart.processing.transparency import create_transparency_demo
-                from utils.common import (
-                    get_asset_path,
-                    get_resampling_filter,
+                # Import clipart processor and use it directly
+                from src.core.processor_factory import ProcessorFactory
+                from src.core.base_processor import ProcessingConfig
+                
+                logger.info(f"Creating clipart mockups for {product_name}...")
+                
+                # Create configuration for the clipart processor
+                config = ProcessingConfig(
+                    product_type="clipart",
+                    input_dir=folder_path,
+                    output_dir=folder_path
                 )
-
-                clipart_video = importlib.import_module("clipart.video")
-
-                # Create mocks directory
-                mocks_folder = os.path.join(folder_path, "mocks")
-                os.makedirs(mocks_folder, exist_ok=True)
-
-                # Find PNG images in the folder
-                import glob
-
-                input_image_paths = sorted(
-                    glob.glob(os.path.join(folder_path, "*.png"))
-                )
-
-                if not input_image_paths:
-                    logger.warning(
-                        f"No PNG images found in {folder_path}. Skipping mockup generation."
-                    )
+                
+                # Create processor and run mockup creation
+                processor = ProcessorFactory.create_processor(config)
+                
+                # Create mockups
+                mockup_result = processor.create_mockups()
+                if mockup_result.get("success", True):
+                    logger.info(f"Successfully created clipart mockups for {product_name}")
                 else:
-                    num_images = len(input_image_paths)
-                    logger.info(f"Found {num_images} PNG images for mockup generation.")
+                    logger.error(f"Failed to create clipart mockups: {mockup_result.get('error', 'Unknown error')}")
+                
+                # Create videos
+                logger.info(f"Creating clipart video for {product_name}...")
+                video_result = processor.create_videos()
+                if video_result.get("success", True):
+                    logger.info(f"Successfully created clipart video for {product_name}")
+                else:
+                    logger.error(f"Failed to create clipart video: {video_result.get('error', 'Unknown error')}")
 
-                    # Import PIL for image processing
-                    from PIL import Image, ImageDraw, ImageFont
+            elif product_type == "journal_papers":
+                # Import journal papers processor and use it directly
+                from src.core.processor_factory import ProcessorFactory
+                from src.core.base_processor import ProcessingConfig
+                
+                logger.info(f"Creating journal papers mockups for {product_name}...")
+                
+                # Create configuration for the journal papers processor
+                config = ProcessingConfig(
+                    product_type="journal_papers",
+                    input_dir=folder_path,
+                    output_dir=folder_path
+                )
+                
+                # Create processor and run mockup creation
+                processor = ProcessorFactory.create_processor(config)
+                
+                # Create mockups
+                mockup_result = processor.create_mockups()
+                if mockup_result.get("success", True):
+                    logger.info(f"Successfully created journal papers mockups for {product_name}")
+                else:
+                    logger.error(f"Failed to create journal papers mockups: {mockup_result.get('error', 'Unknown error')}")
+                
+                # Create videos
+                logger.info(f"Creating journal papers video for {product_name}...")
+                video_result = processor.create_videos()
+                if video_result.get("success", True):
+                    logger.info(f"Successfully created journal papers video for {product_name}")
+                else:
+                    logger.error(f"Failed to create journal papers video: {video_result.get('error', 'Unknown error')}")
 
-                    # Load canvas backgrounds
-                    canvas_bg_main = None
-                    canvas_bg_2x2 = None
-
-                    # Try to load canvas.png from assets
-                    canvas_path = get_asset_path("canvas.png")
-                    if canvas_path:
-                        try:
-                            canvas_bg = Image.open(canvas_path).convert("RGBA")
-                            # Create copies for different mockups
-                            canvas_bg_main = canvas_bg.copy().resize(
-                                (3000, 2250), get_resampling_filter()
-                            )
-                            canvas_bg_2x2 = canvas_bg.copy().resize(
-                                (2000, 2000), get_resampling_filter()
-                            )
-                            logger.info(f"Loaded canvas background from {canvas_path}")
-                        except Exception as e:
-                            logger.warning(
-                                f"Error loading canvas.png: {e}. Using white background."
-                            )
-
-                    # If canvas loading failed, create white backgrounds
-                    if not canvas_bg_main:
-                        canvas_bg_main = Image.new(
-                            "RGBA", (3000, 2250), (255, 255, 255, 255)
-                        )
-                    if not canvas_bg_2x2:
-                        canvas_bg_2x2 = Image.new(
-                            "RGBA", (2000, 2000), (255, 255, 255, 255)
-                        )
-
-                    # 1. Create collage layout for main mockup
-                    logger.info(f"Creating collage layout for {product_name}...")
-
-                    # Removed unused collage layout code
-
-                    # Create title text for the mockup
-                    title = product_name
-                    # Import clipart config to use the shared subtitle format
-                    from clipart import config as clipart_config
-
-                    subtitle_bottom_text = (
-                        clipart_config.SUBTITLE_BOTTOM_TEXT_FORMAT.format(
-                            num_images=num_images
-                        )
-                    )
-
-                    # Create main mockup using square_mockup with 8 images
-                    logger.info(
-                        "Creating square mockup with 8 images layout for main mockup..."
-                    )
-
-                    # Create the main mockup using the square_mockup module with 8 images
-                    final_main_mockup, used_images = create_square_mockup(
-                        input_image_paths=input_image_paths[
-                            :8
-                        ],  # Use up to 8 images for the mockup
-                        canvas_bg_image=canvas_bg_2x2.copy(),  # Use the 2000x2000 canvas
-                        title=title,
-                        subtitle_top=clipart_config.SUBTITLE_TEXT_TOP.format(
-                            num_images=num_images
-                        ),
-                        subtitle_bottom=subtitle_bottom_text,
-                        grid_size=(2000, 2000),  # Use square 2000x2000 size
-                        padding=30,
-                    )
-
-                    if not final_main_mockup:
-                        logger.warning(
-                            "Failed to create main mockup. Using fallback approach."
-                        )
-                        # Create a simple grid as fallback
-                        grid_creator = GridCreator()
-                        final_main_mockup = grid_creator.create_2x2_grid(
-                            image_paths=input_image_paths[:4],
-                            grid_size=(2000, 2000),
-                            padding=30,
-                            background=canvas_bg_2x2.copy()
-                        )
-                    else:
-                        logger.info(
-                            f"Successfully created main mockup with {len(used_images)} images"
-                        )
-
-                    # Save main mockup
-                    main_mockup_path = os.path.join(mocks_folder, "main.png")
-                    final_main_mockup.save(main_mockup_path)
-                    logger.info(f"Saved main collage mockup: {main_mockup_path}")
-
-                    # 2. Create 2x2 Grid Mockups
-                    logger.info("Generating 2x2 Grid Mockups...")
-                    grid_count = 0
-                    for i in range(0, num_images, 4):
-                        batch_paths = input_image_paths[i : i + 4]
-                        if not batch_paths:
-                            continue
-
-                        grid_count += 1
-                        logger.info(
-                            f"Creating grid {grid_count} (images {i+1}-{i+len(batch_paths)})..."
-                        )
-
-                        # Create a proper 2x2 grid mockup using the clipart module
-                        try:
-                            # Create the grid mockup
-                            grid_creator = GridCreator()
-                            grid_mockup = grid_creator.create_2x2_grid(
-                                image_paths=batch_paths,
-                                grid_size=(2000, 2000),
-                                padding=30,
-                                background=canvas_bg_2x2.copy()
-                            )
-
-                            # Apply watermark
-                            grid_mockup = apply_watermark(grid_mockup)
-
-                            # Save the grid mockup
-                            output_filename = os.path.join(
-                                mocks_folder, f"{grid_count+1:02d}_grid_mockup.png"
-                            )
-                            grid_mockup.save(output_filename)
-                            logger.info(f"Saved grid mockup: {output_filename}")
-                        except Exception as e:
-                            logger.error(f"Error creating grid mockup: {e}")
-
-                    # 3. Create transparency demo
-                    logger.info("Creating transparency demo...")
-                    try:
-                        if input_image_paths:
-                            # Use the proper transparency demo function from clipart module
-                            transparency_demo = create_transparency_demo(
-                                image_path=input_image_paths[0],
-                                checkerboard_size=30,
-                                checkerboard_color1=(255, 255, 255),
-                                checkerboard_color2=(200, 200, 200),
-                                scale=0.7,
-                            )
-
-                            # Save the transparency demo
-                            transparency_output = os.path.join(
-                                mocks_folder, "transparency_demo.png"
-                            )
-                            transparency_demo.save(transparency_output)
-                            logger.info(
-                                f"Saved transparency demo: {transparency_output}"
-                            )
-                    except Exception as e:
-                        logger.error(f"Error creating transparency demo: {e}")
-
-                # Create video mockup
-                logger.info(f"Creating clipart video mockup for {product_name}...")
-                # Create videos folder for Etsy integration
-                videos_folder = os.path.join(folder_path, "videos")
-                os.makedirs(videos_folder, exist_ok=True)
-
-                # Find mockup images to use for video
-                mocks_folder = os.path.join(folder_path, "mocks")
-                if os.path.exists(mocks_folder):
-                    import glob
-
-                    mockup_images = sorted(
-                        glob.glob(os.path.join(mocks_folder, "*.jpg"))
-                        + glob.glob(os.path.join(mocks_folder, "*.png"))
-                    )
-
-                    if mockup_images:
-                        # Create a video output path in the videos folder
-                        video_output_path = os.path.join(
-                            videos_folder, "mockup_video.mp4"
-                        )
-                        try:
-                            # Create video in the videos folder
-                            clipart_video.create_video_mockup(
-                                image_paths=mockup_images,
-                                output_path=video_output_path,
-                                fps=30,
-                                transition_frames=20,
-                                display_frames=50,
-                            )
-                            logger.info(f"Created video mockup: {video_output_path}")
-                        except Exception as e:
-                            logger.error(f"Error creating video mockup: {e}")
+            else:
+                logger.warning(f"Unsupported product type for mockup generation: {product_type}")
 
             logger.info(f"Mockups generated successfully for {product_name}")
 
