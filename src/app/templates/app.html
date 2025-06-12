@@ -1130,38 +1130,38 @@
                     </div>
 
                     <!-- Workflow Options -->
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin: 1.5rem 0;">
                         <!-- Full Processing Workflow -->
-                        <div class="workflow-card" style="padding: 1rem; border: 2px solid var(--accent-primary);">
-                            <h3 style="margin-bottom: 0.5rem; color: var(--accent-primary);">
+                        <div class="workflow-card" style="padding: 1.5rem; border: 2px solid var(--primary); background: var(--card);">
+                            <h3 style="margin-bottom: 0.75rem; color: var(--primary); font-size: 1.1rem;">
                                 <span class="icon">⚡</span>
                                 Full Processing
                             </h3>
-                            <p style="color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 1rem;">
+                            <p style="color: var(--muted-foreground); font-size: 0.875rem; margin-bottom: 1rem; line-height: 1.5;">
                                 Complete workflow: Resize images → Create mockups → Generate zip files → Create AI content → Ready for upload
                             </p>
-                            <div style="background: var(--bg-tertiary); padding: 0.5rem; border-radius: 4px; margin-bottom: 1rem; font-size: 0.8rem;">
-                                <strong>Use when:</strong> Starting with raw images that need full processing
+                            <div style="background: var(--muted); padding: 0.75rem; border-radius: var(--radius); margin-bottom: 1.25rem; font-size: 0.8rem; border-left: 3px solid var(--primary);">
+                                <strong style="color: var(--card-foreground);">Use when:</strong> <span style="color: var(--muted-foreground);">Starting with raw images that need full processing</span>
                             </div>
-                            <button class="btn" onclick="fullBulkProcessing()" style="width: 100%;">
+                            <button class="btn" onclick="fullBulkProcessing()" style="width: 100%; padding: 0.875rem; font-size: 0.875rem;">
                                 <span class="icon">🔄</span>
                                 Process All + Generate AI Content
                             </button>
                         </div>
 
                         <!-- AI Content Only Workflow -->
-                        <div class="workflow-card" style="padding: 1rem; border: 2px solid var(--accent-secondary);">
-                            <h3 style="margin-bottom: 0.5rem; color: var(--accent-secondary);">
+                        <div class="workflow-card" style="padding: 1.5rem; border: 2px solid var(--accent); background: var(--card);">
+                            <h3 style="margin-bottom: 0.75rem; color: var(--accent); font-size: 1.1rem;">
                                 <span class="icon">🤖</span>
                                 AI Content Only
                             </h3>
-                            <p style="color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 1rem;">
+                            <p style="color: var(--muted-foreground); font-size: 0.875rem; margin-bottom: 1rem; line-height: 1.5;">
                                 Generate AI content only: Analyzes existing mockups to create titles, descriptions, and tags
                             </p>
-                            <div style="background: var(--bg-tertiary); padding: 0.5rem; border-radius: 4px; margin-bottom: 1rem; font-size: 0.8rem;">
-                                <strong>Use when:</strong> Products already processed, just need AI content
+                            <div style="background: var(--muted); padding: 0.75rem; border-radius: var(--radius); margin-bottom: 1.25rem; font-size: 0.8rem; border-left: 3px solid var(--accent);">
+                                <strong style="color: var(--card-foreground);">Use when:</strong> <span style="color: var(--muted-foreground);">Products already processed, just need AI content</span>
                             </div>
-                            <button class="btn" onclick="prepareEtsyListings()" style="width: 100%;">
+                            <button class="btn" onclick="prepareEtsyListings()" style="width: 100%; padding: 0.875rem; font-size: 0.875rem;">
                                 <span class="icon">🤖</span>
                                 Generate AI Content Only
                             </button>
@@ -1169,42 +1169,64 @@
                     </div>
 
                     <!-- Prepared Listings Display -->
-                    <div id="prepared-listings-section" style="margin: 1rem 0; padding: 1rem; background: var(--bg-tertiary); border-radius: 8px; display: none;">
-                        <h3 style="margin-bottom: 0.5rem;">Prepared Listings</h3>
+                    <div id="prepared-listings-section" style="margin: 1.5rem 0; padding: 1.5rem; background: var(--muted); border-radius: var(--radius); border: 1px solid var(--border); display: none;">
+                        <h3 style="margin-bottom: 1rem; color: var(--card-foreground); font-size: 1.1rem;">
+                            <span class="icon">📋</span>
+                            Prepared Listings
+                        </h3>
                         <div id="prepared-listings-list"></div>
                     </div>
 
                     <!-- Step 2: Upload to Etsy -->
-                    <div class="workflow-card" style="margin: 1rem 0; padding: 1rem;">
-                        <h3 style="margin-bottom: 0.5rem;">Step 2: Upload to Etsy</h3>
-                        <p style="color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 1rem;">
-                            Uploads prepared listings with generated content to your Etsy shop. Requires Etsy API credentials.
+                    <div class="workflow-card" style="margin: 1.5rem 0; padding: 1.5rem; border: 2px solid var(--border);">
+                        <h3 style="margin-bottom: 0.75rem; font-size: 1.1rem; color: var(--card-foreground);">
+                            <span class="icon">🏪</span>
+                            Step 2: Upload to Etsy
+                        </h3>
+                        <p style="color: var(--muted-foreground); font-size: 0.875rem; margin-bottom: 1.5rem; line-height: 1.5;">
+                            Upload prepared listings with generated content to your Etsy shop. Requires Etsy API credentials.
                         </p>
                         
-
-                        <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
-                            <button class="btn btn-secondary" onclick="uploadPreparedListings()">
+                        <!-- Primary Upload Button -->
+                        <div style="margin-bottom: 1rem;">
+                            <button class="btn" onclick="uploadPreparedListings()" style="width: 100%; padding: 1rem; font-size: 0.9rem;">
                                 <span class="icon">🏪</span>
                                 Upload Prepared Listings to Etsy
                             </button>
-                            <button class="btn btn-small" onclick="refreshPreparedListings()">
+                        </div>
+
+                        <!-- Secondary Actions -->
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                            <button class="btn btn-secondary" onclick="refreshPreparedListings()" style="justify-content: center;">
                                 <span class="icon">🔄</span>
-                                Refresh
+                                Refresh Listings
                             </button>
-                            <button class="btn btn-small btn-danger" onclick="deletePreparedListings()" style="font-weight: 600; box-shadow: 0 2px 4px rgba(243, 139, 168, 0.3);">
+                            <button class="btn btn-danger" onclick="deletePreparedListings()" style="justify-content: center;">
                                 <span class="icon">🗑️</span>
-                                Delete All Listings
+                                Delete All
                             </button>
                         </div>
                     </div>
 
-                    <div class="info-box" style="margin-top: 1rem;">
-                        <span class="icon">⚠️</span>
-                        <span style="font-size: 0.8rem;">
-                            <strong>Full Processing:</strong> Processes raw images from scratch (resize → mockups → zips → AI content)<br>
-                            <strong>AI Content Only:</strong> Requires products already processed (existing mockups and zips needed)<br>
-                            <strong>Upload:</strong> Requires AI API key for content generation and Etsy API credentials for upload
-                        </span>
+                    <!-- Information Box -->
+                    <div style="margin-top: 1.5rem; padding: 1.25rem; background: var(--muted); border-radius: var(--radius); border: 1px solid var(--border); border-left: 4px solid var(--warning);">
+                        <div style="display: flex; align-items: flex-start; gap: 0.75rem;">
+                            <span class="icon" style="font-size: 1.2rem; margin-top: 0.1rem;">⚠️</span>
+                            <div style="flex: 1; font-size: 0.875rem; line-height: 1.6;">
+                                <div style="margin-bottom: 0.75rem;">
+                                    <strong style="color: var(--card-foreground);">Full Processing:</strong> 
+                                    <span style="color: var(--muted-foreground);">Processes raw images from scratch (resize → mockups → zips → AI content)</span>
+                                </div>
+                                <div style="margin-bottom: 0.75rem;">
+                                    <strong style="color: var(--card-foreground);">AI Content Only:</strong> 
+                                    <span style="color: var(--muted-foreground);">Requires products already processed (existing mockups and zips needed)</span>
+                                </div>
+                                <div>
+                                    <strong style="color: var(--card-foreground);">Upload:</strong> 
+                                    <span style="color: var(--muted-foreground);">Requires AI API key for content generation and Etsy API credentials for upload</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
