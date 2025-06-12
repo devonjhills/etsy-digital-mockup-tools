@@ -473,6 +473,9 @@ class JournalPapersProcessor(BaseProcessor):
 
             tags = [tag.strip() for tag in tags_text.split(",") if tag.strip()][:13]
 
+            # Generate attributes for Etsy listing
+            attributes = self._generate_etsy_attributes(representative_image)
+            
             return {
                 "title": title,
                 "description": description,
@@ -480,11 +483,89 @@ class JournalPapersProcessor(BaseProcessor):
                 "category": "Digital",
                 "subcategory": "Journal Pages",
                 "image_analyzed": representative_image,
+                "attributes": attributes
             }
 
         except Exception as e:
             self.logger.error(f"Content generation failed: {e}")
             return {"error": str(e)}
+    
+    def _generate_etsy_attributes(self, representative_image: str) -> Dict[str, Any]:
+        """Generate Etsy listing attributes for journal papers."""
+        try:
+            attributes = {
+                "width": "8.5",
+                "height": "11",
+                "materials": ["Digital", "Paper"],
+                "orientation": "Portrait",
+                "occasion": "Everyday",
+                "can_be_personalized": "No"
+            }
+            
+            # Use AI to analyze colors and themes if available
+            if self.ai_provider and representative_image:
+                try:
+                    # Analyze primary color
+                    color_prompt = """
+                    Analyze this journal page design and identify the primary color.
+                    Return only one of these exact color names:
+                    Red, Orange, Yellow, Green, Blue, Purple, Pink, Black, White, Gray, Brown, Beige
+                    Return only the color name, nothing else.
+                    """
+                    
+                    primary_color = generate_content_with_ai(
+                        self.ai_provider,
+                        color_prompt,
+                        representative_image
+                    ).strip()
+                    
+                    # Validate the color is in the allowed list
+                    allowed_colors = ["Red", "Orange", "Yellow", "Green", "Blue", "Purple", 
+                                    "Pink", "Black", "White", "Gray", "Brown", "Beige"]
+                    if primary_color in allowed_colors:
+                        attributes["primary_color"] = primary_color
+                    else:
+                        attributes["primary_color"] = "Blue"  # Default
+                    
+                    # Analyze occasion/theme
+                    occasion_prompt = """
+                    Analyze this journal page design and identify the most appropriate occasion or theme.
+                    Choose from these options only:
+                    Everyday, Wedding, Birthday, Holiday, Valentine's Day, Mother's Day, 
+                    Father's Day, Graduation, Anniversary, Back to school, Christmas
+                    Return only one option, nothing else.
+                    """
+                    
+                    occasion = generate_content_with_ai(
+                        self.ai_provider,
+                        occasion_prompt,
+                        representative_image
+                    ).strip()
+                    
+                    valid_occasions = ["Everyday", "Wedding", "Birthday", "Holiday", "Valentine's Day", 
+                                     "Mother's Day", "Father's Day", "Graduation", "Anniversary", 
+                                     "Back to school", "Christmas"]
+                    if occasion in valid_occasions:
+                        attributes["occasion"] = occasion
+                        
+                except Exception as e:
+                    self.logger.warning(f"Could not analyze journal page attributes: {e}")
+                    attributes["primary_color"] = "Blue"  # Default
+            else:
+                attributes["primary_color"] = "Blue"  # Default
+                
+            return attributes
+            
+        except Exception as e:
+            self.logger.error(f"Error generating Etsy attributes: {e}")
+            return {
+                "width": "8.5",
+                "height": "11",
+                "primary_color": "Blue",
+                "materials": ["Digital"],
+                "orientation": "Portrait",
+                "can_be_personalized": "No"
+            }
 
     def create_videos(self) -> Dict[str, Any]:
         """Create videos using unified video processor."""

@@ -204,18 +204,99 @@ class PatternProcessor(BaseProcessor):
             
             tags = [tag.strip() for tag in tags_text.split(',') if tag.strip()][:13]
             
+            # Generate attributes for Etsy listing
+            attributes = self._generate_etsy_attributes(representative_image)
+            
             return {
                 "title": title,
                 "description": description,
                 "tags": tags,
                 "category": "Digital",
                 "subcategory": "Patterns",
-                "image_analyzed": representative_image
+                "image_analyzed": representative_image,
+                "attributes": attributes
             }
             
         except Exception as e:
             self.logger.error(f"Content generation failed: {e}")
             return {"error": str(e)}
+    
+    def _generate_etsy_attributes(self, representative_image: str) -> Dict[str, Any]:
+        """Generate Etsy listing attributes for patterns."""
+        try:
+            # Count actual pattern files for accurate piece count
+            pattern_files = find_files_by_extension(self.config.input_dir, ['.png', '.jpg', '.jpeg'])
+            pattern_files = [f for f in pattern_files if '/mocks/' not in f and '\\mocks\\' not in f]
+            num_patterns = len(pattern_files)
+            
+            # Determine number of pieces description (based on valid Etsy options)
+            # Valid options are typically: 1, 2, 3, 4, 5 or more
+            if num_patterns >= 5:
+                pieces_desc = "5 or more"
+            elif num_patterns == 4:
+                pieces_desc = "4"
+            elif num_patterns == 3:
+                pieces_desc = "3"
+            elif num_patterns == 2:
+                pieces_desc = "2"
+            elif num_patterns == 1:
+                pieces_desc = "1"
+            else:
+                pieces_desc = "5 or more"  # Default fallback
+            
+            attributes = {
+                "width": "12",
+                "height": "12", 
+                "materials": ["Digital", "Paper", "Fabric"],
+                "style": "Bohemian & eclectic",
+                "orientation": "Square",
+                "number_of_pieces": pieces_desc,
+                "occasion": "Everyday",
+                "room": ["Bedroom", "Living room", "Craft room"],
+                "can_be_personalized": "No"
+            }
+            
+            # Use AI to analyze colors if available
+            if self.ai_provider and representative_image:
+                try:
+                    color_prompt = """
+                    Analyze this pattern image and identify the primary color.
+                    Return only one of these exact color names:
+                    Red, Orange, Yellow, Green, Blue, Purple, Pink, Black, White, Gray, Brown, Beige
+                    Return only the color name, nothing else.
+                    """
+                    
+                    primary_color = generate_content_with_ai(
+                        self.ai_provider,
+                        color_prompt,
+                        representative_image
+                    ).strip()
+                    
+                    # Validate the color is in the allowed list
+                    allowed_colors = ["Red", "Orange", "Yellow", "Green", "Blue", "Purple", 
+                                    "Pink", "Black", "White", "Gray", "Brown", "Beige"]
+                    if primary_color in allowed_colors:
+                        attributes["primary_color"] = primary_color
+                    else:
+                        attributes["primary_color"] = "Blue"  # Default
+                        
+                except Exception as e:
+                    self.logger.warning(f"Could not analyze primary color: {e}")
+                    attributes["primary_color"] = "Blue"  # Default
+            else:
+                attributes["primary_color"] = "Blue"  # Default
+                
+            return attributes
+            
+        except Exception as e:
+            self.logger.error(f"Error generating Etsy attributes: {e}")
+            return {
+                "width": "12",
+                "height": "12",
+                "primary_color": "Blue",
+                "materials": ["Digital"],
+                "can_be_personalized": "No"
+            }
     
     def create_seamless_pattern(self) -> Dict[str, Any]:
         """Create seamless pattern from input image - custom workflow step."""

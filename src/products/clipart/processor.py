@@ -336,19 +336,94 @@ class ClipartProcessor(BaseProcessor):
             # Count images for description enhancement
             image_count = len(image_files)
             
+            # Generate attributes for Etsy listing
+            attributes = self._generate_etsy_attributes(representative_image)
+            
             return {
                 "title": title,
                 "description": description,
                 "tags": tags,
-                "category": "Digital",
+                "category": "Digital", 
                 "subcategory": "Clipart",
                 "image_count": image_count,
-                "image_analyzed": representative_image
+                "image_analyzed": representative_image,
+                "attributes": attributes
             }
             
         except Exception as e:
             self.logger.error(f"Content generation failed: {e}")
             return {"error": str(e)}
+    
+    def _generate_etsy_attributes(self, representative_image: str) -> Dict[str, Any]:
+        """Generate Etsy listing attributes for clipart."""
+        try:
+            attributes = {
+                "materials": ["Digital"],
+                "orientation": "Mixed",
+                "occasion": "Everyday",
+                "subject": ["Animals", "Nature", "Decorative"],
+                "can_be_personalized": "No"
+            }
+            
+            # Use AI to analyze colors and subjects if available
+            if self.ai_provider and representative_image:
+                try:
+                    # Analyze primary color
+                    color_prompt = """
+                    Analyze this clipart/illustration image and identify the primary color.
+                    Return only one of these exact color names:
+                    Red, Orange, Yellow, Green, Blue, Purple, Pink, Black, White, Gray, Brown, Beige
+                    Return only the color name, nothing else.
+                    """
+                    
+                    primary_color = generate_content_with_ai(
+                        self.ai_provider,
+                        color_prompt,
+                        representative_image
+                    ).strip()
+                    
+                    # Validate the color is in the allowed list
+                    allowed_colors = ["Red", "Orange", "Yellow", "Green", "Blue", "Purple", 
+                                    "Pink", "Black", "White", "Gray", "Brown", "Beige"]
+                    if primary_color in allowed_colors:
+                        attributes["primary_color"] = primary_color
+                    else:
+                        attributes["primary_color"] = "Blue"  # Default
+                    
+                    # Analyze subject matter
+                    subject_prompt = """
+                    Analyze this clipart/illustration and identify up to 3 main subjects or themes.
+                    Choose from these categories only:
+                    Animals, Nature, People, Food, Holiday, Wedding, Baby, Sports, Music, 
+                    Decorative, Floral, Geometric, Abstract, Vintage, Modern
+                    Return up to 3 categories separated by commas, nothing else.
+                    """
+                    
+                    subjects_text = generate_content_with_ai(
+                        self.ai_provider,
+                        subject_prompt,
+                        representative_image
+                    ).strip()
+                    
+                    subjects = [s.strip() for s in subjects_text.split(',') if s.strip()][:3]
+                    if subjects:
+                        attributes["subject"] = subjects
+                        
+                except Exception as e:
+                    self.logger.warning(f"Could not analyze clipart attributes: {e}")
+                    attributes["primary_color"] = "Blue"  # Default
+            else:
+                attributes["primary_color"] = "Blue"  # Default
+                
+            return attributes
+            
+        except Exception as e:
+            self.logger.error(f"Error generating Etsy attributes: {e}")
+            return {
+                "primary_color": "Blue",
+                "materials": ["Digital"],
+                "can_be_personalized": "No"
+            }
     
     def extract_from_sheets(self) -> Dict[str, Any]:
         """Extract individual clipart from sprite sheets - custom workflow step."""

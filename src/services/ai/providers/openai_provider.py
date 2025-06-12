@@ -13,8 +13,8 @@ from PIL import Image
 from .base import AIProvider
 
 # Set up logging
-from utils.common import setup_logging
-from utils.ai_utils import process_ai_response
+from src.utils.common import setup_logging
+from src.utils.ai_utils import process_ai_response
 
 logger = setup_logging(__name__)
 
@@ -234,3 +234,110 @@ class OpenAIProvider(AIProvider):
         except Exception as e:
             logger.error(f"Error generating content from image with OpenAI: {e}")
             return {"title": "", "description": "", "tags": []}
+
+    def analyze_image_with_prompt(self, image_path: str, prompt: str) -> str:
+        """
+        Analyze an image with a given prompt using OpenAI API.
+        
+        Args:
+            image_path: Path to the image file
+            prompt: Text prompt for analysis
+            
+        Returns:
+            Generated text response
+        """
+        if not OPENAI_AVAILABLE:
+            logger.error("OpenAI API not available. Install with: pip install openai")
+            return ""
+
+        if not self.client:
+            logger.error("OpenAI client not initialized")
+            return ""
+
+        if not os.path.exists(image_path):
+            logger.error(f"Image file not found: {image_path}")
+            return ""
+
+        try:
+            # Open and validate the image
+            try:
+                img = Image.open(image_path)
+                logger.info(f"Successfully opened image: {image_path}")
+            except Exception as e:
+                logger.error(f"Error opening image: {e}")
+                return ""
+
+            # Convert image to base64 for OpenAI API
+            img_byte_arr = io.BytesIO()
+            img.save(img_byte_arr, format=img.format or "PNG")
+            img_bytes = img_byte_arr.getvalue()
+            base64_image = base64.b64encode(img_bytes).decode("utf-8")
+
+            # Create the content for OpenAI API
+            response = self.client.chat.completions.create(
+                model=self.model_name,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": prompt},
+                            {
+                                "type": "image_url",
+                                "image_url": {
+                                    "url": f"data:image/{img.format.lower() if img.format else 'png'};base64,{base64_image}"
+                                },
+                            },
+                        ],
+                    }
+                ],
+            )
+
+            # Get the raw response text and process it
+            raw_content = response.choices[0].message.content.strip()
+            logger.info("Successfully received response from OpenAI API")
+            
+            return process_ai_response(raw_content, is_thinking_model=False)
+
+        except Exception as e:
+            logger.error(f"Error analyzing image with prompt: {e}")
+            return ""
+
+    def generate_text(self, prompt: str) -> str:
+        """
+        Generate text using OpenAI API.
+        
+        Args:
+            prompt: Text prompt for generation
+            
+        Returns:
+            Generated text response
+        """
+        if not OPENAI_AVAILABLE:
+            logger.error("OpenAI API not available. Install with: pip install openai")
+            return ""
+
+        if not self.client:
+            logger.error("OpenAI client not initialized")
+            return ""
+
+        try:
+            # Generate content
+            response = self.client.chat.completions.create(
+                model=self.model_name,
+                messages=[
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ],
+            )
+
+            # Get the raw response text and process it
+            raw_content = response.choices[0].message.content.strip()
+            logger.info("Successfully received response from OpenAI API")
+            
+            return process_ai_response(raw_content, is_thinking_model=False)
+
+        except Exception as e:
+            logger.error(f"Error generating text: {e}")
+            return ""

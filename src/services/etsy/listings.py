@@ -479,27 +479,241 @@ class EtsyListings:
         self, listing_id: int, product_type: str, attributes: Dict[str, Any]
     ) -> bool:
         """
-        Placeholder method that does nothing and returns True.
-        Attribute setting functionality has been removed as it doesn't work with Etsy API.
+        Set listing attributes via inventory update with property values.
+        This uses the updateListingInventory endpoint to set product properties.
 
         Args:
             listing_id: Listing ID
-            product_type: Type of product (pattern, clipart, etc.) - kept for backward compatibility
+            product_type: Type of product (pattern, clipart, journal_papers)
             attributes: Dictionary of attributes to set
 
         Returns:
-            Always returns True
+            True if successful, False otherwise
         """
-        logger.info(
-            f"Attribute setting has been removed - skipping for listing {listing_id} (type: {product_type})"
-        )
-        if "craft_types" in attributes:
-            logger.info(f"Would have set craft types: {attributes['craft_types']}")
-        if "length" in attributes:
-            logger.info(
-                f"Would have set length: {attributes['length']} {attributes.get('length_unit', 'inches')}"
-            )
-        return True
+        try:
+            # Get attribute mapping for this product type
+            property_values = self._map_attributes_to_properties(product_type, attributes)
+            
+            if not property_values:
+                logger.info(f"No property values to set for {product_type} listing {listing_id}")
+                return True
+            
+            # Create products array with property values
+            products = [{
+                "sku": f"{product_type}_main",
+                "property_values": property_values,
+                "offerings": [{
+                    "price": attributes.get("price", 10.00),
+                    "quantity": attributes.get("quantity", 999),
+                    "is_enabled": True
+                }]
+            }]
+            
+            # Update listing inventory with attributes
+            result = self.update_listing_inventory(listing_id, products)
+            
+            if result:
+                logger.info(f"✓ Successfully set attributes for {product_type} listing {listing_id}")
+                for prop in property_values:
+                    logger.info(f"  - {prop['property_name']}: {prop['values']}")
+                return True
+            else:
+                logger.error(f"Failed to set attributes for listing {listing_id}")
+                return False
+                
+        except Exception as e:
+            logger.error(f"Error setting attributes for listing {listing_id}: {e}")
+            return False
+
+    def _map_attributes_to_properties(self, product_type: str, attributes: Dict[str, Any]) -> List[Dict[str, Any]]:
+        """
+        Map product attributes to Etsy property values based on product type.
+        
+        Args:
+            product_type: Type of product (pattern, clipart, journal_papers)
+            attributes: Dictionary of attributes to map
+            
+        Returns:
+            List of property value dictionaries
+        """
+        property_values = []
+        
+        # Common attribute mappings (property IDs from Etsy API documentation)
+        PROPERTY_IDS = {
+            "primary_color": 200,
+            "secondary_color": 201,
+            "material": 46803063641,
+            "width": 100,
+            "height": 101,
+            "orientation": 46803063659,
+            "style": 46803063647,
+            "occasion": 46803063648,
+            "room": 46803063650,
+            "subject": 46803063651,
+            "personalization": 46803063652,
+            "number_of_pieces": 46803063653,  # Number of pieces included
+            "aspect_ratio": 46803063654,  # Additional aspect ratio property
+        }
+        
+        # Product type specific mappings
+        if product_type == "pattern":
+            # Patterns - typically for fabric, wallpaper, scrapbooking
+            if "width" in attributes:
+                property_values.append({
+                    "property_id": PROPERTY_IDS["width"],
+                    "property_name": "Width",
+                    "values": [str(attributes["width"])]
+                })
+                
+            if "height" in attributes:
+                property_values.append({
+                    "property_id": PROPERTY_IDS["height"], 
+                    "property_name": "Height",
+                    "values": [str(attributes["height"])]
+                })
+                
+            if "primary_color" in attributes:
+                property_values.append({
+                    "property_id": PROPERTY_IDS["primary_color"],
+                    "property_name": "Primary color",
+                    "values": [attributes["primary_color"]]
+                })
+                
+            if "materials" in attributes:
+                property_values.append({
+                    "property_id": PROPERTY_IDS["material"],
+                    "property_name": "Material",
+                    "values": attributes["materials"][:5]  # Max 5 materials
+                })
+                
+            if "orientation" in attributes:
+                property_values.append({
+                    "property_id": PROPERTY_IDS["orientation"],
+                    "property_name": "Orientation",
+                    "values": [attributes["orientation"]]
+                })
+                
+            if "number_of_pieces" in attributes:
+                property_values.append({
+                    "property_id": PROPERTY_IDS["number_of_pieces"],
+                    "property_name": "Number of pieces included",
+                    "values": [attributes["number_of_pieces"]]
+                })
+                
+            # Default pattern attributes
+            property_values.extend([
+                {
+                    "property_id": PROPERTY_IDS["width"],
+                    "property_name": "Width", 
+                    "values": ["12"]
+                },
+                {
+                    "property_id": PROPERTY_IDS["height"],
+                    "property_name": "Height",
+                    "values": ["12"]
+                },
+                {
+                    "property_id": PROPERTY_IDS["orientation"],
+                    "property_name": "Orientation",
+                    "values": ["Square"]
+                },
+                {
+                    "property_id": PROPERTY_IDS["number_of_pieces"],
+                    "property_name": "Number of pieces included",
+                    "values": ["5 or more"]
+                },
+                {
+                    "property_id": PROPERTY_IDS["style"],
+                    "property_name": "Style",
+                    "values": ["Bohemian & eclectic"]
+                }
+            ])
+            
+        elif product_type == "clipart":
+            # Clipart - digital illustrations
+            if "primary_color" in attributes:
+                property_values.append({
+                    "property_id": PROPERTY_IDS["primary_color"],
+                    "property_name": "Primary color",
+                    "values": [attributes["primary_color"]]
+                })
+                
+            if "subject" in attributes:
+                property_values.append({
+                    "property_id": PROPERTY_IDS["subject"],
+                    "property_name": "Subject",
+                    "values": attributes["subject"][:3]  # Max 3 subjects
+                })
+                
+            if "occasion" in attributes:
+                property_values.append({
+                    "property_id": PROPERTY_IDS["occasion"],
+                    "property_name": "Occasion", 
+                    "values": [attributes["occasion"]]
+                })
+                
+            # Default clipart attributes
+            property_values.extend([
+                {
+                    "property_id": PROPERTY_IDS["material"],
+                    "property_name": "Material",
+                    "values": ["Digital"]
+                },
+                {
+                    "property_id": PROPERTY_IDS["personalization"],
+                    "property_name": "Can be personalized",
+                    "values": ["No"]
+                }
+            ])
+            
+        elif product_type == "journal_papers":
+            # Journal papers - 8.5x11 printable pages
+            property_values.extend([
+                {
+                    "property_id": PROPERTY_IDS["width"],
+                    "property_name": "Width",
+                    "values": ["8.5"]
+                },
+                {
+                    "property_id": PROPERTY_IDS["height"], 
+                    "property_name": "Height",
+                    "values": ["11"]
+                },
+                {
+                    "property_id": PROPERTY_IDS["material"],
+                    "property_name": "Material", 
+                    "values": ["Digital", "Paper"]
+                },
+                {
+                    "property_id": PROPERTY_IDS["orientation"],
+                    "property_name": "Orientation",
+                    "values": ["Portrait"]
+                }
+            ])
+            
+            if "primary_color" in attributes:
+                property_values.append({
+                    "property_id": PROPERTY_IDS["primary_color"],
+                    "property_name": "Primary color",
+                    "values": [attributes["primary_color"]]
+                })
+                
+            if "occasion" in attributes:
+                property_values.append({
+                    "property_id": PROPERTY_IDS["occasion"],
+                    "property_name": "Occasion",
+                    "values": [attributes["occasion"]]
+                })
+        
+        # Remove duplicates by property_id
+        seen_ids = set()
+        unique_properties = []
+        for prop in property_values:
+            if prop["property_id"] not in seen_ids:
+                seen_ids.add(prop["property_id"])
+                unique_properties.append(prop)
+                
+        return unique_properties
 
     def get_listing_files(self, listing_id: int) -> Optional[List[Dict]]:
         """

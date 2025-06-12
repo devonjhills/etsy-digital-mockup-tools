@@ -3,7 +3,7 @@ Main module for Etsy integration.
 """
 
 import os
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any
 
 from src.utils.common import setup_logging
 from src.services.etsy.auth import EtsyAuth
@@ -397,61 +397,71 @@ class EtsyIntegration:
                 if not video_result:
                     logger.warning(f"Failed to upload video {video_path}")
 
-        # Set additional attributes based on product type
+        # Set product attributes using processor-generated content
         if listing_id:
+            # Try to get attributes from generated content if available  
             attributes = {}
-
+            
+            # Check if we have content with attributes from the processor
+            if hasattr(self, '_last_generated_content') and self._last_generated_content:
+                processor_attributes = self._last_generated_content.get("attributes", {})
+                if processor_attributes:
+                    attributes.update(processor_attributes)
+                    logger.info(f"Using processor-generated attributes: {list(attributes.keys())}")
+            
+            # Add default attributes based on product type if not already set
             if product_type == "pattern" or product_type == "patterns":
-                # Set attributes for patterns - using only verified Etsy options
-                attributes = {
-                    "craft_types": [
-                        "Card making & stationery",
-                        "Collage",
-                        "Kids' crafts",
-                        "Scrapbooking",
-                    ],
-                    "length": 12,  # 12 inches
-                    "width": 12,  # 12 inches
-                    "length_unit": "inches",
-                    "width_unit": "inches",
-                }
-
-                # Log the attributes for debugging
-                logger.info(f"Setting pattern attributes: {attributes}")
-
-                # Try to extract primary color from product info if available
-                if "colors" in product_info and product_info["colors"]:
-                    # If specific colors are mentioned, use the first one as primary
-                    colors = product_info["colors"].split(",")
-                    if colors:
-                        # Let the API match to valid Etsy color options
-                        attributes["primary_color"] = colors[0].strip()
-                        if len(colors) > 1:
-                            attributes["secondary_color"] = colors[1].strip()
+                if not attributes:
+                    attributes = {
+                        "width": "12",
+                        "height": "12",
+                        "primary_color": "Blue",
+                        "materials": ["Digital", "Paper", "Fabric"],
+                        "can_be_personalized": "No"
+                    }
+                    
+                # Add pricing info for inventory update
+                attributes["price"] = float(template.get("price", 3.32))
+                attributes["quantity"] = int(template.get("quantity", 999))
 
             elif product_type == "clipart":
-                # Set attributes for clipart - using only verified Etsy options
-                attributes = {
-                    "craft_types": [
-                        "Card making & stationery",
-                        "Collage",
-                        "Kids' crafts",
-                        "Scrapbooking",
-                    ],
-                    "length": 5,  # 5 inches length for clipart
-                    "length_unit": "inches",
-                }
+                if not attributes:
+                    attributes = {
+                        "primary_color": "Blue",
+                        "materials": ["Digital"],
+                        "subject": ["Animals", "Nature", "Decorative"],
+                        "can_be_personalized": "No"
+                    }
+                    
+                # Add pricing info for inventory update
+                attributes["price"] = float(template.get("price", 3.32))
+                attributes["quantity"] = int(template.get("quantity", 999))
+                
+            elif product_type == "journal_papers":
+                if not attributes:
+                    attributes = {
+                        "width": "8.5",
+                        "height": "11",
+                        "primary_color": "Blue",
+                        "materials": ["Digital", "Paper"],
+                        "orientation": "Portrait",
+                        "can_be_personalized": "No"
+                    }
+                    
+                # Add pricing info for inventory update  
+                attributes["price"] = float(template.get("price", 3.32))
+                attributes["quantity"] = int(template.get("quantity", 999))
 
-                # Log the attributes for debugging
-                logger.info(f"Setting clipart attributes: {attributes}")
-
-                # Try to extract subject from product info if available
-                if "theme" in product_info and product_info["theme"]:
-                    # Let the API match to valid Etsy subject options
-                    attributes["subjects"] = [product_info["theme"]]
-
-            # Attribute setting has been removed as it doesn't work with Etsy API
-            logger.info(f"Skipping attribute setting for listing {listing_id}")
+            # Set the attributes using the new Etsy listings method
+            if attributes:
+                logger.info(f"Setting product attributes for listing {listing_id}: {list(attributes.keys())}")
+                success = self.listings.set_listing_attributes(listing_id, product_type, attributes)
+                if success:
+                    logger.info(f"✓ Successfully set attributes for {product_type} listing {listing_id}")
+                else:
+                    logger.warning(f"⚠️ Failed to set attributes for listing {listing_id}")
+            else:
+                logger.info(f"No attributes to set for listing {listing_id}")
 
         logger.info(f"Created listing {listing_id} for {product_name}")
         return listing
@@ -508,14 +518,9 @@ class EtsyIntegration:
                 logger.info(f"Creating zip files for {subfolder}...")
                 self._create_zip_files(folder_path)
 
-                # Step 4: Generate content using Gemini API
+                # Step 4: Generate content using unified processor
                 logger.info(f"Generating content for {subfolder}...")
-                # Use the standard instructions from constants
-                content = self.generate_content_from_mockup(
-                    folder_path=folder_path,
-                    product_type=product_type,
-                    instructions=DEFAULT_ETSY_INSTRUCTIONS,
-                )
+                content = self._generate_content_with_processor(folder_path, product_type)
 
                 # Step 4: Create listing with generated content
                 if content and content["title"]:
@@ -639,16 +644,9 @@ class EtsyIntegration:
                             f"No existing zip files found in {zipped_folder}."
                         )
 
-                # Step 4: Generate content using Gemini API
+                # Step 4: Generate content using unified processor
                 logger.info(f"Generating content for {subfolder}...")
-                # Import the default instructions from constants
-                from src.services.etsy.constants import DEFAULT_ETSY_INSTRUCTIONS
-
-                content = self.generate_content_from_mockup(
-                    folder_path=folder_path,
-                    product_type=product_type,
-                    instructions=DEFAULT_ETSY_INSTRUCTIONS,
-                )
+                content = self._generate_content_with_processor(folder_path, product_type)
 
                 # If title is empty but we have content, use folder name as fallback title
                 if content and not content["title"] and subfolder:
@@ -1347,6 +1345,69 @@ class EtsyIntegration:
 
         # Return whatever we got from the primary provider, even if incomplete
         return content
+
+    def _generate_content_with_processor(self, folder_path: str, product_type: str) -> Dict[str, Any]:
+        """
+        Generate content using the unified processor architecture with AI.
+        
+        Args:
+            folder_path: Path to the product folder
+            product_type: Type of product (pattern, clipart, journal_papers)
+            
+        Returns:
+            Generated content with title, description, tags, and attributes
+        """
+        try:
+            # Import processors to register them
+            from src.products.pattern.processor import PatternProcessor
+            from src.products.clipart.processor import ClipartProcessor  
+            from src.products.journal_papers.processor import JournalPapersProcessor
+            
+            from src.core.processor_factory import ProcessorFactory
+            from src.core.base_processor import ProcessingConfig
+            
+            # Create configuration for the processor
+            config = ProcessingConfig(
+                product_type=product_type,
+                input_dir=folder_path,
+                output_dir=folder_path
+            )
+            
+            # Create processor
+            processor = ProcessorFactory.create_processor(config)
+            
+            # Generate AI content
+            content = processor.generate_etsy_content()
+            
+            if content and not content.get("error"):
+                # Store content for later use in attribute setting
+                self._last_generated_content = content
+                logger.info(f"Generated content with processor for {product_type}: {content.get('title', 'No title')}")
+                
+                # Return in the expected format for Etsy integration
+                return {
+                    "title": content.get("title", ""),
+                    "description": content.get("description", ""),
+                    "tags": content.get("tags", []),
+                    "attributes": content.get("attributes", {})
+                }
+            else:
+                logger.error(f"Failed to generate content with processor: {content.get('error', 'Unknown error')}")
+                # Fall back to old method
+                return self.generate_content_from_mockup(
+                    folder_path=folder_path,
+                    product_type=product_type,
+                    instructions=DEFAULT_ETSY_INSTRUCTIONS,
+                )
+                
+        except Exception as e:
+            logger.error(f"Error generating content with processor: {e}")
+            # Fall back to old method
+            return self.generate_content_from_mockup(
+                folder_path=folder_path,
+                product_type=product_type,
+                instructions=DEFAULT_ETSY_INSTRUCTIONS,
+            )
 
     def _extract_product_info(self, folder_path: str, product_type: str) -> Dict:
         """

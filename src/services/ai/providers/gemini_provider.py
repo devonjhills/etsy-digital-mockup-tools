@@ -13,8 +13,8 @@ from PIL import Image
 from .base import AIProvider
 
 # Set up logging
-from utils.common import setup_logging
-from utils.ai_utils import process_ai_response
+from src.utils.common import setup_logging
+from src.utils.ai_utils import process_ai_response
 
 logger = setup_logging(__name__)
 
@@ -245,3 +245,129 @@ class GeminiProvider(AIProvider):
         except Exception as e:
             logger.error(f"Error generating content from image: {e}")
             return {"title": "", "description": "", "tags": []}
+
+    def analyze_image_with_prompt(self, image_path: str, prompt: str) -> str:
+        """
+        Analyze an image with a given prompt using Gemini API.
+        
+        Args:
+            image_path: Path to the image file
+            prompt: Text prompt for analysis
+            
+        Returns:
+            Generated text response
+        """
+        if not GEMINI_AVAILABLE:
+            logger.error(
+                "Gemini API not available. Install with: pip install google-generativeai"
+            )
+            return ""
+
+        if not self.gemini_model:
+            logger.error("Gemini model not initialized")
+            return ""
+
+        if not os.path.exists(image_path):
+            logger.error(f"Image file not found: {image_path}")
+            return ""
+
+        try:
+            # Load the image
+            img = Image.open(image_path)
+            logger.info(f"Successfully loaded image: {image_path}")
+
+            # Get the image file size
+            file_size_mb = os.path.getsize(image_path) / (1024 * 1024)
+            logger.info(f"Image file size: {file_size_mb:.2f} MB")
+
+            # If image is too large, resize it
+            max_size_mb = 3.5  # Maximum size in MB for reliable API calls
+            if file_size_mb > max_size_mb:
+                logger.info(
+                    f"Image is large ({file_size_mb:.2f} MB), resizing for API call"
+                )
+                # Calculate new dimensions while maintaining aspect ratio
+                max_dimension = 1500  # Maximum dimension in pixels
+                if img.width > img.height:
+                    new_width = min(img.width, max_dimension)
+                    new_height = int(img.height * (new_width / img.width))
+                else:
+                    new_height = min(img.height, max_dimension)
+                    new_width = int(img.width * (new_height / img.height))
+
+                # Resize the image
+                img = img.resize((new_width, new_height), Image.LANCZOS)
+                logger.info(f"Resized image to {new_width}x{new_height} for API call")
+
+            # Convert image to bytes for Gemini API
+            img_byte_arr = io.BytesIO()
+            img.save(img_byte_arr, format=img.format or "PNG")
+            img_bytes = img_byte_arr.getvalue()
+
+            # Create the content parts
+            parts = [
+                {"text": prompt},
+                {
+                    "inline_data": {
+                        "mime_type": f"image/{img.format.lower() if img.format else 'png'}",
+                        "data": base64.b64encode(img_bytes).decode("utf-8"),
+                    }
+                },
+            ]
+
+            # Generate content
+            response = self.gemini_model.generate_content(parts)
+
+            # Check if the response is valid
+            if not hasattr(response, "text"):
+                logger.error(f"Invalid response from Gemini API: {response}")
+                return ""
+
+            # Get the raw response text and process it
+            raw_content = response.text.strip()
+            logger.info("Successfully received response from Gemini API")
+            
+            return process_ai_response(raw_content, is_thinking_model=False)
+
+        except Exception as e:
+            logger.error(f"Error analyzing image with prompt: {e}")
+            return ""
+
+    def generate_text(self, prompt: str) -> str:
+        """
+        Generate text using Gemini API.
+        
+        Args:
+            prompt: Text prompt for generation
+            
+        Returns:
+            Generated text response
+        """
+        if not GEMINI_AVAILABLE:
+            logger.error(
+                "Gemini API not available. Install with: pip install google-generativeai"
+            )
+            return ""
+
+        if not self.gemini_model:
+            logger.error("Gemini model not initialized")
+            return ""
+
+        try:
+            # Generate content
+            response = self.gemini_model.generate_content(prompt)
+
+            # Check if the response is valid
+            if not hasattr(response, "text"):
+                logger.error(f"Invalid response from Gemini API: {response}")
+                return ""
+
+            # Get the raw response text and process it
+            raw_content = response.text.strip()
+            logger.info("Successfully received response from Gemini API")
+            
+            return process_ai_response(raw_content, is_thinking_model=False)
+
+        except Exception as e:
+            logger.error(f"Error generating text: {e}")
+            return ""
