@@ -37,7 +37,7 @@ class EtsyContentGenerator:
             subcategory: Etsy subcategory (optional)
         
         Returns:
-            Dictionary containing title, description, tags, and attributes
+            Dictionary containing title, description, and tags
         """
         if not ai_provider:
             return {}

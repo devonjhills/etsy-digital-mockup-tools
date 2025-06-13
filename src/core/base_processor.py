@@ -167,11 +167,7 @@ class BaseProcessor(ABC):
             logger=self.logger
         )
         
-        # Allow processors to add custom attributes
-        if content and not content.get("error"):
-            custom_attributes = self._generate_custom_attributes(content.get("image_analyzed"))
-            if custom_attributes:
-                content["attributes"] = custom_attributes
+        # Note: Etsy API does not support setting attributes via API, so no custom attributes are generated
         
         return content
     
@@ -188,10 +184,6 @@ class BaseProcessor(ABC):
         
         return category_map.get(self.config.product_type, ("Digital", None))
     
-    def _generate_custom_attributes(self, representative_image: Optional[str]) -> Dict[str, Any]:
-        """Generate custom attributes for Etsy listings. Override in subclasses."""
-        _ = representative_image  # Suppress unused parameter warning
-        return {}
     
     # Common helper methods to eliminate duplication across processors
     

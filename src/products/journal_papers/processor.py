@@ -8,6 +8,7 @@ from PIL import Image, ImageDraw
 from src.core.base_processor import BaseProcessor
 from src.core.processor_factory import register_processor
 from src.utils.ai_utils import generate_content_with_ai
+from src.utils.file_operations import find_files_by_extension
 from src.utils.common import ensure_dir_exists
 from src.utils.common import apply_watermark
 
@@ -201,11 +202,20 @@ class JournalPapersProcessor(BaseProcessor):
             results = {}
 
             # Create main mockup (pattern-style with journal papers branding)
-            results["main_mockup"] = self._create_main_mockup()
+            main_result = self._create_main_mockup()
+            results["main_mockup"] = main_result
+            
+            # Check if main mockup creation failed
+            if not main_result.get("success", True):
+                self.logger.error(f"Main mockup creation failed: {main_result.get('error', 'Unknown error')}")
+                return {"success": False, "error": f"Main mockup failed: {main_result.get('error', 'Unknown error')}"}
 
             # Create 2x2 grid mockups (multiple grids if >4 images)
-            results["grid_mockups"] = self._create_grid_mockups()
-
+            grid_result = self._create_grid_mockups()
+            results["grid_mockups"] = grid_result
+            
+            # Return success with results
+            results["success"] = True
             return results
 
         except Exception as e:
@@ -216,22 +226,11 @@ class JournalPapersProcessor(BaseProcessor):
         """Create main journal papers mockup using shared utility."""
         from src.utils.mockup_utils import create_shared_main_mockup
 
-        mockup_dir = os.path.join(self.config.input_dir, "mocks")
-        ensure_dir_exists(mockup_dir)
-
-        # Generate title from folder name
-        folder_name = Path(self.config.input_dir).name
-        title = folder_name.replace("_", " ").replace("-", " ").title()
+        mockup_dir = self._setup_mockup_directory()
+        title = self._generate_title_from_folder()
+        num_images = self._count_product_images()
 
         try:
-            # Count images for subtitle
-            image_files = find_files_by_extension(
-                self.config.input_dir, [".jpg", ".jpeg", ".png"]
-            )
-            image_files = [
-                f for f in image_files if "/mocks/" not in f and "\\mocks\\" not in f
-            ]
-            num_images = len(image_files)
 
             # Create journal papers-specific subtitles
             top_subtitle = f"{num_images} Digital Journal Pages"
@@ -251,8 +250,7 @@ class JournalPapersProcessor(BaseProcessor):
 
     def _create_grid_mockups(self) -> Dict[str, Any]:
         """Create 2x2 grid mockups for journal papers (multiple grids if >4 images)."""
-        mockup_dir = os.path.join(self.config.input_dir, "mocks")
-        ensure_dir_exists(mockup_dir)
+        mockup_dir = self._setup_mockup_directory()
 
         try:
             # Find all journal paper images (excluding mocks folder)
@@ -411,80 +409,4 @@ class JournalPapersProcessor(BaseProcessor):
         """Override to use 'Journal Pages' as subcategory."""
         return ("Digital", "Journal Pages")
     
-    def _generate_custom_attributes(self, representative_image: str) -> Dict[str, Any]:
-        """Generate Etsy listing attributes for journal papers."""
-        try:
-            attributes = {
-                "width": "8.5",
-                "height": "11",
-                "materials": ["Digital", "Paper"],
-                "orientation": "Portrait",
-                "occasion": "Everyday",
-                "can_be_personalized": "No"
-            }
-            
-            # Use AI to analyze colors and themes if available
-            if self.ai_provider and representative_image:
-                try:
-                    # Analyze primary color
-                    color_prompt = """
-                    Analyze this journal page design and identify the primary color.
-                    Return only one of these exact color names:
-                    Red, Orange, Yellow, Green, Blue, Purple, Pink, Black, White, Gray, Brown, Beige
-                    Return only the color name, nothing else.
-                    """
-                    
-                    primary_color = generate_content_with_ai(
-                        self.ai_provider,
-                        color_prompt,
-                        representative_image
-                    ).strip()
-                    
-                    # Validate the color is in the allowed list
-                    allowed_colors = ["Red", "Orange", "Yellow", "Green", "Blue", "Purple", 
-                                    "Pink", "Black", "White", "Gray", "Brown", "Beige"]
-                    if primary_color in allowed_colors:
-                        attributes["primary_color"] = primary_color
-                    else:
-                        attributes["primary_color"] = "Blue"  # Default
-                    
-                    # Analyze occasion/theme
-                    occasion_prompt = """
-                    Analyze this journal page design and identify the most appropriate occasion or theme.
-                    Choose from these options only:
-                    Everyday, Wedding, Birthday, Holiday, Valentine's Day, Mother's Day, 
-                    Father's Day, Graduation, Anniversary, Back to school, Christmas
-                    Return only one option, nothing else.
-                    """
-                    
-                    occasion = generate_content_with_ai(
-                        self.ai_provider,
-                        occasion_prompt,
-                        representative_image
-                    ).strip()
-                    
-                    valid_occasions = ["Everyday", "Wedding", "Birthday", "Holiday", "Valentine's Day", 
-                                     "Mother's Day", "Father's Day", "Graduation", "Anniversary", 
-                                     "Back to school", "Christmas"]
-                    if occasion in valid_occasions:
-                        attributes["occasion"] = occasion
-                        
-                except Exception as e:
-                    self.logger.warning(f"Could not analyze journal page attributes: {e}")
-                    attributes["primary_color"] = "Blue"  # Default
-            else:
-                attributes["primary_color"] = "Blue"  # Default
-                
-            return attributes
-            
-        except Exception as e:
-            self.logger.error(f"Error generating Etsy attributes: {e}")
-            return {
-                "width": "8.5",
-                "height": "11",
-                "primary_color": "Blue",
-                "materials": ["Digital"],
-                "orientation": "Portrait",
-                "can_be_personalized": "No"
-            }
 

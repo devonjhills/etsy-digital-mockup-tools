@@ -398,71 +398,8 @@ class EtsyIntegration:
                 if not video_result:
                     logger.warning(f"Failed to upload video {video_path}")
 
-        # Set product attributes using processor-generated content
-        if listing_id:
-            # Try to get attributes from generated content if available  
-            attributes = {}
-            
-            # Check if we have content with attributes from the processor
-            if hasattr(self, '_last_generated_content') and self._last_generated_content:
-                processor_attributes = self._last_generated_content.get("attributes", {})
-                if processor_attributes:
-                    attributes.update(processor_attributes)
-                    logger.info(f"Using processor-generated attributes: {list(attributes.keys())}")
-            
-            # Add default attributes based on product type if not already set
-            if product_type == "pattern" or product_type == "patterns":
-                if not attributes:
-                    attributes = {
-                        "width": "12",
-                        "height": "12",
-                        "primary_color": "Blue",
-                        "materials": ["Digital", "Paper", "Fabric"],
-                        "can_be_personalized": "No"
-                    }
-                    
-                # Add pricing info for inventory update
-                attributes["price"] = float(template.get("price", 3.32))
-                attributes["quantity"] = int(template.get("quantity", 999))
-
-            elif product_type == "clipart":
-                if not attributes:
-                    attributes = {
-                        "primary_color": "Blue",
-                        "materials": ["Digital"],
-                        "subject": ["Animals", "Nature", "Decorative"],
-                        "can_be_personalized": "No"
-                    }
-                    
-                # Add pricing info for inventory update
-                attributes["price"] = float(template.get("price", 3.32))
-                attributes["quantity"] = int(template.get("quantity", 999))
-                
-            elif product_type == "journal_papers":
-                if not attributes:
-                    attributes = {
-                        "width": "8.5",
-                        "height": "11",
-                        "primary_color": "Blue",
-                        "materials": ["Digital", "Paper"],
-                        "orientation": "Portrait",
-                        "can_be_personalized": "No"
-                    }
-                    
-                # Add pricing info for inventory update  
-                attributes["price"] = float(template.get("price", 3.32))
-                attributes["quantity"] = int(template.get("quantity", 999))
-
-            # Set the attributes using the new Etsy listings method
-            if attributes:
-                logger.info(f"Setting product attributes for listing {listing_id}: {list(attributes.keys())}")
-                success = self.listings.set_listing_attributes(listing_id, product_type, attributes)
-                if success:
-                    logger.info(f"✓ Successfully set attributes for {product_type} listing {listing_id}")
-                else:
-                    logger.warning(f"⚠️ Failed to set attributes for listing {listing_id}")
-            else:
-                logger.info(f"No attributes to set for listing {listing_id}")
+        # Note: Etsy API does not support setting attributes via API
+        # All attributes must be set manually in the Etsy seller dashboard
 
         logger.info(f"Created listing {listing_id} for {product_name}")
         return listing
@@ -1356,7 +1293,7 @@ class EtsyIntegration:
             product_type: Type of product (pattern, clipart, journal_papers)
             
         Returns:
-            Generated content with title, description, tags, and attributes
+            Generated content with title, description, and tags
         """
         try:
             # Import processors to register them
@@ -1389,8 +1326,7 @@ class EtsyIntegration:
                 return {
                     "title": content.get("title", ""),
                     "description": content.get("description", ""),
-                    "tags": content.get("tags", []),
-                    "attributes": content.get("attributes", {})
+                    "tags": content.get("tags", [])
                 }
             else:
                 logger.error(f"Failed to generate content with processor: {content.get('error', 'Unknown error')}")
