@@ -1,15 +1,14 @@
 """Journal papers processor implementation."""
 
 import os
-from typing import Dict, List, Any, Tuple
+from typing import Dict, List, Any, Tuple, Optional
 from pathlib import Path
 from PIL import Image, ImageDraw
 
 from src.core.base_processor import BaseProcessor
 from src.core.processor_factory import register_processor
 from src.utils.ai_utils import generate_content_with_ai
-from src.utils.file_operations import find_files_by_extension, ensure_directory
-from src.services.processing.video.base import VideoProcessor
+from src.utils.common import ensure_dir_exists
 from src.utils.common import apply_watermark
 
 
@@ -218,7 +217,7 @@ class JournalPapersProcessor(BaseProcessor):
         from src.utils.mockup_utils import create_shared_main_mockup
 
         mockup_dir = os.path.join(self.config.input_dir, "mocks")
-        ensure_directory(mockup_dir)
+        ensure_dir_exists(mockup_dir)
 
         # Generate title from folder name
         folder_name = Path(self.config.input_dir).name
@@ -253,7 +252,7 @@ class JournalPapersProcessor(BaseProcessor):
     def _create_grid_mockups(self) -> Dict[str, Any]:
         """Create 2x2 grid mockups for journal papers (multiple grids if >4 images)."""
         mockup_dir = os.path.join(self.config.input_dir, "mocks")
-        ensure_directory(mockup_dir)
+        ensure_dir_exists(mockup_dir)
 
         try:
             # Find all journal paper images (excluding mocks folder)
@@ -408,61 +407,11 @@ class JournalPapersProcessor(BaseProcessor):
         canvas_with_shadow = Image.alpha_composite(canvas_rgba, shadow_overlay)
         canvas.paste(canvas_with_shadow.convert("RGB"))
 
-    def _generate_content_for_type(self) -> Dict[str, Any]:
-        """Generate journal papers-specific content for Etsy listings."""
-        if not self.ai_provider:
-            return {}
-
-        try:
-            # Use main mockup for AI content generation
-            main_mockup = os.path.join(self.config.input_dir, "mocks", "main.png")
-            
-            # Fallback to main.jpg if main.png doesn't exist
-            if not os.path.exists(main_mockup):
-                main_mockup = os.path.join(self.config.input_dir, "mocks", "main.jpg")
-            
-            # If no main mockup exists, skip content generation
-            if not os.path.exists(main_mockup):
-                self.logger.warning("No main mockup found for content generation")
-                return {}
-
-            representative_image = main_mockup
-
-            # Generate complete Etsy listing using DEFAULT_ETSY_INSTRUCTIONS
-            from src.services.etsy.constants import DEFAULT_ETSY_INSTRUCTIONS
-            from src.utils.ai_utils import parse_etsy_listing_response
-
-            ai_response = generate_content_with_ai(
-                self.ai_provider, DEFAULT_ETSY_INSTRUCTIONS, representative_image
-            )
-
-            # Parse the response to extract title, description, and tags
-            parsed_content = parse_etsy_listing_response(ai_response)
-            title = parsed_content['title']
-            description = parsed_content['description']
-            tags_text = parsed_content['tags']
-
-            # Convert tags to list
-            tags = [tag.strip() for tag in tags_text.split(",") if tag.strip()][:13]
-
-            # Generate attributes for Etsy listing
-            attributes = self._generate_etsy_attributes(representative_image)
-            
-            return {
-                "title": title,
-                "description": description,
-                "tags": tags,
-                "category": "Digital",
-                "subcategory": "Journal Pages",
-                "image_analyzed": representative_image,
-                "attributes": attributes
-            }
-
-        except Exception as e:
-            self.logger.error(f"Content generation failed: {e}")
-            return {"error": str(e)}
+    def _get_etsy_categories(self) -> tuple[str, Optional[str]]:
+        """Override to use 'Journal Pages' as subcategory."""
+        return ("Digital", "Journal Pages")
     
-    def _generate_etsy_attributes(self, representative_image: str) -> Dict[str, Any]:
+    def _generate_custom_attributes(self, representative_image: str) -> Dict[str, Any]:
         """Generate Etsy listing attributes for journal papers."""
         try:
             attributes = {
@@ -539,20 +488,3 @@ class JournalPapersProcessor(BaseProcessor):
                 "can_be_personalized": "No"
             }
 
-    def create_videos(self) -> Dict[str, Any]:
-        """Create videos using unified video processor."""
-        try:
-            video_processor = VideoProcessor("journal_papers")
-            video_path = video_processor.create_product_showcase_video(
-                self.config.input_dir
-            )
-
-            if video_path:
-                self.logger.info(f"Video created: {video_path}")
-                return {"success": True, "file": video_path}
-            else:
-                return {"success": False, "error": "Failed to create video"}
-
-        except Exception as e:
-            self.logger.error(f"Video creation failed: {e}")
-            return {"success": False, "error": str(e)}

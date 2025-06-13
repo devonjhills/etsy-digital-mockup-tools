@@ -217,6 +217,7 @@ class ConfigManager:
             etsy_settings={
                 "category": "Digital",
                 "subcategory": "Clipart",
+                "shop_section": "→ CLIP ART",
                 "default_tags": [
                     "clipart",
                     "digital clipart",

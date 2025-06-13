@@ -7,8 +7,8 @@ from pathlib import Path
 from src.core.base_processor import BaseProcessor
 from src.core.processor_factory import register_processor
 from src.utils.ai_utils import generate_content_with_ai
-from src.utils.file_operations import find_files_by_extension, ensure_directory
-from src.services.processing.video import VideoProcessor
+from src.utils.file_operations import find_files_by_extension
+from src.utils.common import ensure_dir_exists
 
 
 @register_processor("clipart")
@@ -64,7 +64,7 @@ class ClipartProcessor(BaseProcessor):
         
         # Create mocks folder inside the input directory (like patterns)
         mockup_dir = os.path.join(self.config.input_dir, "mocks")
-        ensure_directory(mockup_dir)
+        ensure_dir_exists(mockup_dir)
         
         try:
             # Find image files (excluding the mocks folder)
@@ -119,7 +119,7 @@ class ClipartProcessor(BaseProcessor):
         
         # Create mocks folder inside the input directory (like patterns)
         mockup_dir = os.path.join(self.config.input_dir, "mocks")
-        ensure_directory(mockup_dir)
+        ensure_dir_exists(mockup_dir)
         
         try:
             # Find image files (excluding the mocks folder)
@@ -198,32 +198,8 @@ class ClipartProcessor(BaseProcessor):
     
     def _apply_watermark_to_grid(self, grid_path: str) -> Optional[str]:
         """Apply watermark to a grid mockup using unified watermarking."""
-        try:
-            from PIL import Image
-            from src.utils.common import apply_watermark
-            
-            # Load the grid image
-            grid_image = Image.open(grid_path)
-            
-            # Apply watermark using unified function
-            watermarked_image = apply_watermark(
-                image=grid_image,
-                text="digital veil",
-                font_name="Clattering",
-                font_size=30,
-                text_color=(120, 120, 120),
-                opacity=60,
-                diagonal_spacing=500
-            )
-            
-            # Save watermarked version (overwrite original)
-            watermarked_image.convert("RGB").save(grid_path, "PNG", quality=95, optimize=True)
-            self.logger.info(f"Applied watermark to grid: {grid_path}")
-            return grid_path
-            
-        except Exception as e:
-            self.logger.error(f"Failed to apply watermark to grid {grid_path}: {e}")
-            return None
+        from src.utils.grid_utils import apply_watermark_to_grid
+        return apply_watermark_to_grid(grid_path, self.logger)
     
     def _create_transparency_demo(self) -> Dict[str, Any]:
         """Create transparency demonstration mockup."""
@@ -233,7 +209,7 @@ class ClipartProcessor(BaseProcessor):
         
         # Create mocks folder inside the input directory (like patterns)
         mockup_dir = os.path.join(self.config.input_dir, "mocks")
-        ensure_directory(mockup_dir)
+        ensure_dir_exists(mockup_dir)
         
         try:
             # Find image files (excluding the mocks folder)
@@ -265,68 +241,7 @@ class ClipartProcessor(BaseProcessor):
         except Exception as e:
             return {"success": False, "error": str(e)}
     
-    def _generate_content_for_type(self) -> Dict[str, Any]:
-        """Generate clipart-specific content for Etsy listings."""
-        if not self.ai_provider:
-            return {}
-        
-        try:
-            # Use main mockup for AI content generation
-            main_mockup = os.path.join(self.config.input_dir, "mocks", "main.png")
-            
-            # Fallback to main.jpg if main.png doesn't exist
-            if not os.path.exists(main_mockup):
-                main_mockup = os.path.join(self.config.input_dir, "mocks", "main.jpg")
-            
-            # If no main mockup exists, skip content generation
-            if not os.path.exists(main_mockup):
-                self.logger.warning("No main mockup found for content generation")
-                return {}
-            
-            representative_image = main_mockup
-            
-            # Generate complete Etsy listing using DEFAULT_ETSY_INSTRUCTIONS
-            from src.services.etsy.constants import DEFAULT_ETSY_INSTRUCTIONS
-            from src.utils.ai_utils import parse_etsy_listing_response
-            
-            ai_response = generate_content_with_ai(
-                self.ai_provider,
-                DEFAULT_ETSY_INSTRUCTIONS,
-                representative_image
-            )
-            
-            # Parse the response to extract title, description, and tags
-            parsed_content = parse_etsy_listing_response(ai_response)
-            title = parsed_content['title']
-            description = parsed_content['description']
-            tags_text = parsed_content['tags']
-            
-            # Convert tags to list
-            tags = [tag.strip() for tag in tags_text.split(',') if tag.strip()][:13]
-            
-            # Count images for description enhancement
-            image_files = find_files_by_extension(self.config.input_dir, ['.png', '.jpg', '.jpeg'])
-            image_count = len(image_files)
-            
-            # Generate attributes for Etsy listing
-            attributes = self._generate_etsy_attributes(representative_image)
-            
-            return {
-                "title": title,
-                "description": description,
-                "tags": tags,
-                "category": "Digital", 
-                "subcategory": "Clipart",
-                "image_count": image_count,
-                "image_analyzed": representative_image,
-                "attributes": attributes
-            }
-            
-        except Exception as e:
-            self.logger.error(f"Content generation failed: {e}")
-            return {"error": str(e)}
-    
-    def _generate_etsy_attributes(self, representative_image: str) -> Dict[str, Any]:
+    def _generate_custom_attributes(self, representative_image: str) -> Dict[str, Any]:
         """Generate Etsy listing attributes for clipart."""
         try:
             attributes = {
@@ -403,7 +318,7 @@ class ClipartProcessor(BaseProcessor):
             from src.products.clipart.utils import extract_clipart_from_sheets
             
             extracted_dir = os.path.join(self.config.output_dir, "extracted")
-            ensure_directory(extracted_dir)
+            ensure_dir_exists(extracted_dir)
             
             return extract_clipart_from_sheets(
                 input_folder=self.config.input_dir,
@@ -414,21 +329,6 @@ class ClipartProcessor(BaseProcessor):
             self.logger.error(f"Clipart extraction failed: {e}")
             return {"success": False, "error": str(e)}
     
-    def create_videos(self) -> Dict[str, Any]:
-        """Create videos using unified video processor."""
-        try:
-            video_processor = VideoProcessor("clipart")
-            video_path = video_processor.create_product_showcase_video(self.config.input_dir)
-            
-            if video_path:
-                self.logger.info(f"Video created: {video_path}")
-                return {"success": True, "file": video_path}
-            else:
-                return {"success": False, "error": "Failed to create video"}
-                
-        except Exception as e:
-            self.logger.error(f"Video creation failed: {e}")
-            return {"success": False, "error": str(e)}
     
     def process_custom_step(self, step: str) -> Dict[str, Any]:
         """Process clipart-specific custom steps."""

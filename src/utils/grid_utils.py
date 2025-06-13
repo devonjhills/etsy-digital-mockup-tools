@@ -343,4 +343,47 @@ class GridCreator:
             return None
 
 
-# Removed duplicate watermarking function - use utils.common.apply_watermark() directly instead
+def apply_watermark_to_grid(grid_path: str, logger=None) -> Optional[str]:
+    """
+    Apply watermark to a grid mockup using unified watermarking.
+    
+    This function was extracted to eliminate 100% duplication between
+    clipart and border_clipart processors.
+    
+    Args:
+        grid_path: Path to the grid image file
+        logger: Optional logger instance
+        
+    Returns:
+        Path to watermarked grid or None if failed
+    """
+    try:
+        # Load the grid image
+        grid_image = Image.open(grid_path)
+        
+        # Apply watermark using unified function
+        watermarked_image = apply_watermark(
+            image=grid_image,
+            text="digital veil",
+            font_name="Clattering",
+            font_size=30,
+            text_color=(120, 120, 120),
+            opacity=60,
+            diagonal_spacing=500
+        )
+        
+        # Save watermarked version (overwrite original)
+        watermarked_image.convert("RGB").save(grid_path, "PNG", quality=95, optimize=True)
+        
+        if logger:
+            logger.info(f"Applied watermark to grid: {grid_path}")
+        
+        return grid_path
+        
+    except Exception as e:
+        error_msg = f"Failed to apply watermark to grid {grid_path}: {e}"
+        if logger:
+            logger.error(error_msg)
+        else:
+            print(error_msg)
+        return None

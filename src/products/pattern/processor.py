@@ -7,8 +7,8 @@ from pathlib import Path
 from src.core.base_processor import BaseProcessor
 from src.core.processor_factory import register_processor
 from src.utils.ai_utils import generate_content_with_ai
-from src.utils.file_operations import find_files_by_extension, ensure_directory
-from src.services.processing.video import VideoProcessor
+from src.utils.file_operations import find_files_by_extension
+from src.utils.common import ensure_dir_exists
 
 
 @register_processor("pattern")
@@ -62,17 +62,9 @@ class PatternProcessor(BaseProcessor):
         """Create main pattern mockup using shared utility."""
         from src.utils.mockup_utils import create_shared_main_mockup
         
-        mockup_dir = os.path.join(self.config.input_dir, "mocks")
-        ensure_directory(mockup_dir)
-        
-        # Generate title from folder name
-        folder_name = Path(self.config.input_dir).name
-        title = folder_name.replace("_", " ").replace("-", " ").title()
-        
-        # Count images for subtitle
-        image_files = find_files_by_extension(self.config.input_dir, ['.png', '.jpg', '.jpeg'])
-        image_files = [f for f in image_files if '/mocks/' not in f and '\\mocks\\' not in f]
-        num_images = len(image_files)
+        mockup_dir = self._setup_mockup_directory()
+        title = self._generate_title_from_folder()
+        num_images = self._count_product_images()
         
         # Pattern-specific subtitle text
         top_subtitle_text = f"{num_images} Seamless Patterns"
@@ -96,7 +88,7 @@ class PatternProcessor(BaseProcessor):
         from src.utils.grid_utils import GridCreator
         
         mockup_dir = os.path.join(self.config.input_dir, "mocks")
-        ensure_directory(mockup_dir)
+        ensure_dir_exists(mockup_dir)
         
         try:
             grid_creator = GridCreator()
@@ -112,7 +104,7 @@ class PatternProcessor(BaseProcessor):
         from src.products.pattern.layered import create_large_grid
         
         mockup_dir = os.path.join(self.config.input_dir, "mocks")
-        ensure_directory(mockup_dir)
+        ensure_dir_exists(mockup_dir)
         
         try:
             result = create_large_grid(self.config.input_dir)
@@ -125,7 +117,7 @@ class PatternProcessor(BaseProcessor):
         from src.products.pattern.seamless import create_seamless_tiling_mockup
         
         mockup_dir = os.path.join(self.config.input_dir, "mocks")
-        ensure_directory(mockup_dir)
+        ensure_dir_exists(mockup_dir)
         
         try:
             result_file = create_seamless_tiling_mockup(self.config.input_dir)
@@ -136,63 +128,7 @@ class PatternProcessor(BaseProcessor):
         except Exception as e:
             return {"success": False, "error": str(e)}
     
-    def _generate_content_for_type(self) -> Dict[str, Any]:
-        """Generate pattern-specific content for Etsy listings."""
-        if not self.ai_provider:
-            return {}
-        
-        try:
-            # Use main mockup for AI content generation
-            main_mockup = os.path.join(self.config.input_dir, "mocks", "main.png")
-            
-            # Fallback to main.jpg if main.png doesn't exist
-            if not os.path.exists(main_mockup):
-                main_mockup = os.path.join(self.config.input_dir, "mocks", "main.jpg")
-            
-            # If no main mockup exists, skip content generation
-            if not os.path.exists(main_mockup):
-                self.logger.warning("No main mockup found for content generation")
-                return {}
-            
-            representative_image = main_mockup
-            
-            # Generate complete Etsy listing using DEFAULT_ETSY_INSTRUCTIONS
-            from src.services.etsy.constants import DEFAULT_ETSY_INSTRUCTIONS
-            from src.utils.ai_utils import parse_etsy_listing_response
-            
-            ai_response = generate_content_with_ai(
-                self.ai_provider,
-                DEFAULT_ETSY_INSTRUCTIONS,
-                representative_image
-            )
-            
-            # Parse the response to extract title, description, and tags
-            parsed_content = parse_etsy_listing_response(ai_response)
-            title = parsed_content['title']
-            description = parsed_content['description']
-            tags_text = parsed_content['tags']
-            
-            # Convert tags to list
-            tags = [tag.strip() for tag in tags_text.split(',') if tag.strip()][:13]
-            
-            # Generate attributes for Etsy listing
-            attributes = self._generate_etsy_attributes(representative_image)
-            
-            return {
-                "title": title,
-                "description": description,
-                "tags": tags,
-                "category": "Digital",
-                "subcategory": "Patterns",
-                "image_analyzed": representative_image,
-                "attributes": attributes
-            }
-            
-        except Exception as e:
-            self.logger.error(f"Content generation failed: {e}")
-            return {"error": str(e)}
-    
-    def _generate_etsy_attributes(self, representative_image: str) -> Dict[str, Any]:
+    def _generate_custom_attributes(self, representative_image: str) -> Dict[str, Any]:
         """Generate Etsy listing attributes for patterns."""
         try:
             # Count actual pattern files for accurate piece count
@@ -275,7 +211,7 @@ class PatternProcessor(BaseProcessor):
         
         try:
             seamless_dir = os.path.join(self.config.input_dir, "seamless")
-            ensure_directory(seamless_dir)
+            ensure_dir_exists(seamless_dir)
             
             return create_seamless_pattern(
                 input_folder=self.config.input_dir,
@@ -286,21 +222,6 @@ class PatternProcessor(BaseProcessor):
             self.logger.error(f"Seamless pattern creation failed: {e}")
             return {"success": False, "error": str(e)}
     
-    def create_videos(self) -> Dict[str, Any]:
-        """Create videos using unified video processor."""
-        try:
-            video_processor = VideoProcessor("pattern")
-            video_path = video_processor.create_product_showcase_video(self.config.input_dir)
-            
-            if video_path:
-                self.logger.info(f"Video created: {video_path}")
-                return {"success": True, "file": video_path}
-            else:
-                return {"success": False, "error": "Failed to create video"}
-                
-        except Exception as e:
-            self.logger.error(f"Video creation failed: {e}")
-            return {"success": False, "error": str(e)}
     
     def process_custom_step(self, step: str) -> Dict[str, Any]:
         """Process pattern-specific custom steps."""

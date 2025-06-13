@@ -61,16 +61,6 @@ def create_zip_archive(source_dir: str, output_path: str = None, exclude_pattern
         return {"success": False, "error": str(e)}
 
 
-def ensure_directory(directory: str) -> bool:
-    """Ensure a directory exists, creating it if necessary.
-    
-    Args:
-        directory: Directory path to ensure
-        
-    Returns:
-        True if directory exists or was created successfully
-    """
-    return ensure_dir_exists(directory)
 
 
 def clean_directory(directory: str, keep_patterns: List[str] = None) -> bool:

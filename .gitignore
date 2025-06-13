@@ -56,3 +56,6 @@ prepared_listings.json
 etsy_token.json
 *.token.json
 *.credentials.json
+
+# Claude Code project instructions (sensitive)
+CLAUDE.md

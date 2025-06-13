@@ -4,7 +4,6 @@ Provides common interface and workflow orchestration.
 """
 
 import os
-import logging
 from abc import ABC, abstractmethod
 from typing import Dict, List, Any, Optional
 from dataclasses import dataclass
@@ -107,9 +106,22 @@ class BaseProcessor(ABC):
         pass
     
     def create_videos(self) -> Dict[str, Any]:
-        """Create promotional videos. Default implementation."""
-        logger.warning("Video creation not implemented for this processor type")
-        return {"videos": [], "success": False}
+        """Create promotional videos using unified video processor."""
+        try:
+            from src.services.processing.video import VideoProcessor
+            
+            video_processor = VideoProcessor(self.config.product_type)
+            video_path = video_processor.create_product_showcase_video(self.config.input_dir)
+            
+            if video_path:
+                self.logger.info(f"Video created: {video_path}")
+                return {"success": True, "file": video_path}
+            else:
+                return {"success": False, "error": "Failed to create video"}
+                
+        except Exception as e:
+            self.logger.error(f"Video creation failed: {e}")
+            return {"success": False, "error": str(e)}
     
     def create_zip_files(self) -> Dict[str, Any]:
         """Create ZIP files for download with intelligent splitting to stay under 20MB per Etsy limits."""
@@ -139,13 +151,110 @@ class BaseProcessor(ABC):
             self.logger.warning("No AI provider available for content generation")
             return {}
         
-        # This will be implemented by specific processors
-        return self._generate_content_for_type()
+        # Use centralized content generator to avoid code duplication
+        from src.services.etsy.content_generator import generate_etsy_content
+        
+        # Get product-specific category and subcategory
+        category, subcategory = self._get_etsy_categories()
+        
+        # Generate content using unified logic
+        content = generate_etsy_content(
+            input_dir=self.config.input_dir,
+            ai_provider=self.ai_provider,
+            product_type=self.config.product_type,
+            category=category,
+            subcategory=subcategory,
+            logger=self.logger
+        )
+        
+        # Allow processors to add custom attributes
+        if content and not content.get("error"):
+            custom_attributes = self._generate_custom_attributes(content.get("image_analyzed"))
+            if custom_attributes:
+                content["attributes"] = custom_attributes
+        
+        return content
     
-    @abstractmethod
-    def _generate_content_for_type(self) -> Dict[str, Any]:
-        """Generate type-specific content for Etsy listings."""
-        pass
+    def _get_etsy_categories(self) -> tuple[str, Optional[str]]:
+        """Get Etsy category and subcategory for this product type."""
+        # Default mapping for common product types
+        category_map = {
+            "pattern": ("Digital", "Patterns"),
+            "clipart": ("Digital", "Clipart"),
+            "border_clipart": ("Digital", "Clipart"),
+            "journal_papers": ("Digital", "Papers"),
+            "wall_art": ("Digital", "Wall Art")
+        }
+        
+        return category_map.get(self.config.product_type, ("Digital", None))
+    
+    def _generate_custom_attributes(self, representative_image: Optional[str]) -> Dict[str, Any]:
+        """Generate custom attributes for Etsy listings. Override in subclasses."""
+        _ = representative_image  # Suppress unused parameter warning
+        return {}
+    
+    # Common helper methods to eliminate duplication across processors
+    
+    def _setup_mockup_directory(self) -> str:
+        """Set up and return the mockup directory path."""
+        mockup_dir = os.path.join(self.config.input_dir, "mocks")
+        ensure_dir_exists(mockup_dir)
+        return mockup_dir
+    
+    def _generate_title_from_folder(self) -> str:
+        """Generate a title from the folder name."""
+        from pathlib import Path
+        
+        folder_name = Path(self.config.input_dir).name
+        return folder_name.replace("_", " ").replace("-", " ").title()
+    
+    def _count_product_images(self) -> int:
+        """Count product images excluding mockups."""
+        from src.utils.file_operations import find_files_by_extension
+        
+        image_files = find_files_by_extension(self.config.input_dir, ['.png', '.jpg', '.jpeg'])
+        # Exclude files in mocks directory
+        product_images = [
+            f for f in image_files 
+            if '/mocks/' not in f and '\\mocks\\' not in f
+        ]
+        return len(product_images)
+    
+    def _analyze_primary_color_with_ai(self, representative_image: str) -> str:
+        """Analyze primary color using AI with common validation."""
+        if not self.ai_provider or not representative_image:
+            return "Blue"  # Default fallback
+        
+        try:
+            from src.utils.ai_utils import generate_content_with_ai
+            
+            color_prompt = """
+            Analyze this image and identify the primary color.
+            Return only one of these exact color names:
+            Red, Orange, Yellow, Green, Blue, Purple, Pink, Black, White, Gray, Brown, Beige
+            Return only the color name, nothing else.
+            """
+            
+            primary_color = generate_content_with_ai(
+                self.ai_provider,
+                color_prompt,
+                representative_image
+            ).strip()
+            
+            # Validate against allowed colors
+            allowed_colors = ["Red", "Orange", "Yellow", "Green", "Blue", "Purple", 
+                            "Pink", "Black", "White", "Gray", "Brown", "Beige"]
+            
+            return primary_color if primary_color in allowed_colors else "Blue"
+            
+        except Exception as e:
+            self.logger.error(f"Error analyzing primary color: {e}")
+            return "Blue"
+    
+    def _apply_watermark_to_grid(self, grid_path: str) -> Optional[str]:
+        """Apply watermark to a grid mockup using unified function."""
+        from src.utils.grid_utils import apply_watermark_to_grid
+        return apply_watermark_to_grid(grid_path, self.logger)
     
     def process_custom_step(self, step: str) -> Dict[str, Any]:
         """Process custom workflow steps. Override in subclasses."""

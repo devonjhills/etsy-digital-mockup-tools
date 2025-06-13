@@ -1353,7 +1353,7 @@
                         </p>
                         
                         <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 0.75rem;">
-                            <button class="btn" onclick="uploadPreparedListings()">
+                            <button id="upload-to-etsy-btn" class="btn" onclick="uploadPreparedListings()">
                                 <span class="icon">🏪</span>
                                 Upload to Etsy
                             </button>
@@ -1664,7 +1664,11 @@
             const isDraft = true; // Always create as draft
 
             try {
+                // Auto-scroll to top to view log status
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                
                 setProcessingStatus(true, 'Uploading to Etsy');
+                updateUploadButtonState(); // Update button state when upload starts
                 addLogMessage(`Starting upload of prepared listings to Etsy (${isDraft ? 'draft' : 'active'} mode)`, 'info');
 
                 const response = await fetch('/upload-prepared-listings', {
@@ -1685,11 +1689,13 @@
                 } else {
                     addLogMessage('Etsy upload failed: ' + data.error, 'error');
                     setProcessingStatus(false, 'Ready');
+                    updateUploadButtonState(); // Update button state on failure
                 }
 
             } catch (error) {
                 addLogMessage('Error starting Etsy upload: ' + error.message, 'error');
                 setProcessingStatus(false, 'Ready');
+                updateUploadButtonState(); // Update button state on error
             }
         }
 
@@ -1724,8 +1730,41 @@
                     section.style.display = 'none';
                 }
                 
+                // Update upload button state based on available listings
+                updateUploadButtonState();
+                
             } catch (error) {
                 console.error('Error refreshing prepared listings:', error);
+            }
+        }
+
+        function updateUploadButtonState() {
+            const uploadBtn = document.getElementById('upload-to-etsy-btn');
+            const preparedSection = document.getElementById('prepared-listings-section');
+            
+            if (!uploadBtn) return;
+            
+            // Check if there are prepared listings
+            const hasPreparedListings = preparedSection && preparedSection.style.display !== 'none';
+            
+            // Disable if no listings or if processing
+            const shouldDisable = !hasPreparedListings || isProcessing;
+            
+            uploadBtn.disabled = shouldDisable;
+            
+            if (shouldDisable) {
+                uploadBtn.style.opacity = '0.5';
+                uploadBtn.style.cursor = 'not-allowed';
+                
+                if (isProcessing) {
+                    uploadBtn.innerHTML = '<span class="icon">⏳</span>Uploading...';
+                } else {
+                    uploadBtn.innerHTML = '<span class="icon">🏪</span>No Listings to Upload';
+                }
+            } else {
+                uploadBtn.style.opacity = '1';
+                uploadBtn.style.cursor = 'pointer';
+                uploadBtn.innerHTML = '<span class="icon">🏪</span>Upload to Etsy';
             }
         }
 
@@ -2047,6 +2086,9 @@
                 indicator.className = 'status-indicator status-idle';
                 indicator.innerHTML = '<span>●</span><span>' + statusText + '</span>';
             }
+            
+            // Update upload button state when processing status changes
+            updateUploadButtonState();
         }
 
         // Toast notification functions

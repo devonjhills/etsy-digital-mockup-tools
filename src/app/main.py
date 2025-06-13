@@ -21,7 +21,7 @@ from src.core.processor_factory import ProcessorFactory
 from src.core.base_processor import ProcessingConfig
 from src.utils.env_loader import setup_environment
 from src.utils.ai_utils import get_available_providers
-from src.utils.file_operations import ensure_directory
+from src.utils.common import ensure_dir_exists
 
 # Import processors to register them
 from src.products.pattern.processor import PatternProcessor
@@ -37,8 +37,8 @@ processing_status = {"current_task": None, "is_running": False}
 app = Flask(__name__)
 
 # Ensure required directories exist
-ensure_directory("input")
-ensure_directory("templates")
+ensure_dir_exists("input")
+ensure_dir_exists("templates")
 
 
 def add_log(message: str, level: str = "info"):
@@ -130,7 +130,7 @@ def get_subfolders():
     """Get all subfolders in the input directory."""
     try:
         input_dir = "input"
-        ensure_directory(input_dir)
+        ensure_dir_exists(input_dir)
         
         subfolders = [
             f for f in os.listdir(input_dir)
