@@ -20,101 +20,125 @@ The toolkit streamlines the entire workflow from product creation to Etsy listin
 
 ## ✨ Key Features
 
-### 🎨 Product Processing
+### 🎨 Advanced Product Processing
 
-- **Pattern Processing**: Resize, rename, and prepare seamless pattern files
-- **Clipart Processing**: Optimize clipart images for digital downloads
-- **Batch Processing**: Handle multiple products in a single operation
+- **Multi-Product Support**: Seamless patterns, clipart, border clipart, and journal papers
+- **Intelligent Resizing**: Optimized dimensions and quality for each product type
+- **Batch Processing**: Process multiple product folders simultaneously
+- **Professional Mockups**: Dynamic color extraction, grid layouts, transparency demos
 
-### 🖼️ Mockup Generation
+### 🖼️ Comprehensive Mockup Generation
 
-- **Dynamic Mockups**: Create professional product mockups with color extraction
-- **Grid Layouts**: Generate multi-image grid displays
-- **Video Creation**: Produce promotional videos for listings
+- **Dynamic Main Mockups**: Color-extracted titles and professional layouts
+- **Grid Compositions**: Multi-image displays with configurable layouts
+- **Specialized Mockups**: Seamless borders, transparency demonstrations, layered previews
+- **Video Creation**: Promotional videos for social media and listings
 
-### 🔄 Etsy Integration
+### 🔄 Complete Etsy Integration
 
-- **OAuth Authentication**: Secure API authentication with PKCE
-- **Listing Creation**: Automated listing creation with all required fields
-- **Digital File Upload**: Streamlined upload of digital products
-- **Bulk Operations**: Create multiple listings in a single batch
+- **OAuth 2.0 + PKCE**: Secure authentication flow
+- **Bulk Listing Creation**: Process entire product catalogs
+- **Template System**: Product-specific listing templates
+- **Draft & Active Support**: Upload as drafts or active listings
+- **Automatic Management**: Remove uploaded listings from preparation queue
 
-### 🤖 AI-Powered Content
+### 🤖 AI-Powered Content Generation
 
-- **SEO Optimization**: Generate listing titles, descriptions, and tags
-- **Image Analysis**: Extract product details from mockup images
-- **Content Generation**: Create compelling marketing copy
-- **AI-Powered**: Leverages Google Gemini for intelligent content generation
+- **Multi-Provider Support**: Google Gemini and OpenAI integration
+- **Image Analysis**: Intelligent product detail extraction
+- **SEO Optimization**: Generate compelling titles, descriptions, and tags
+- **Contextual Content**: Product-specific prompts and templates
+- **Editable Results**: Review and modify AI-generated content before upload
 
-### 🖥️ User Interface
+### 🖥️ Modern Web Interface
 
-- **Web-Based GUI**: Easy-to-use interface built with Flask
-- **Real-Time Logs**: Monitor operations with live updates
-- **Responsive Design**: Works on desktop and mobile devices
+- **Catppuccin Theme**: Beautiful, modern dark interface
+- **Real-Time Logging**: Live updates with emoji indicators and color coding
+- **Background Processing**: Non-blocking operations with progress tracking
+- **Responsive Design**: Works seamlessly on all devices
+- **Status Monitoring**: Current task tracking and completion status
 
 ## 🛠️ Technical Implementation
 
 ### Architecture
 
-The project follows a modular architecture with clear separation of concerns:
+The project follows a modern, modular architecture with unified processing:
 
 ```
 mockup-tools/
-├── pattern/         # Pattern processing modules
-├── clipart/         # Clipart processing modules
-├── etsy/            # Etsy API integration
-├── utils/           # Shared utilities
-├── templates/       # Web UI templates
-├── assets/          # Static assets
-├── cli.py           # Command-line interface
-└── gui.py           # Web-based interface
+├── src/
+│   ├── core/               # Core framework (processors, config)
+│   ├── app/                # Flask web application
+│   ├── products/           # Product-specific processors
+│   │   ├── pattern/        # Seamless pattern processing
+│   │   ├── clipart/        # Clipart processing
+│   │   ├── border_clipart/ # Border clipart processing  
+│   │   └── journal_papers/ # Journal pages processing
+│   ├── services/           # Shared business logic
+│   │   ├── ai/             # AI provider integration
+│   │   ├── etsy/           # Complete Etsy integration
+│   │   └── processing/     # Generic processing engines
+│   └── utils/              # Shared utilities
+├── templates/              # Etsy listing templates (JSON)
+├── assets/                 # Static assets (fonts, logos)
+├── input/                  # Product input folders
+└── main.py                 # Unified entry point
 ```
 
 ### Technologies
 
-- **Python**: Core language for all processing logic
-- **Flask**: Web framework for the GUI
-- **Pillow (PIL)**: Image processing and manipulation
-- **OpenCV**: Advanced image processing and video creation
-- **AI Integration**: Google Gemini for image analysis and content generation
-- **Etsy API v3**: E-commerce platform integration
-- **OAuth 2.0**: Secure authentication with PKCE flow
-- **JavaScript/CSS**: Frontend enhancements
+- **Python 3.8+**: Modern Python with type hints and async capabilities
+- **Flask**: Lightweight web framework with real-time features
+- **Pillow (PIL)**: Advanced image processing and manipulation
+- **MoviePy**: Video creation and editing
+- **AI Integration**: Google Gemini and OpenAI for content generation
+- **Etsy API v3**: Complete marketplace integration with OAuth 2.0 + PKCE
+- **Modern Frontend**: HTML5, CSS3 (Catppuccin theme), JavaScript
+- **Background Processing**: Threading for non-blocking operations
 
 ## 📊 Demonstrated Skills
 
 ### Software Engineering
 
-- **Object-Oriented Design**: Clean, modular architecture
-- **API Integration**: RESTful API consumption and OAuth implementation
-- **Error Handling**: Robust error management and logging
-- **Testing**: Comprehensive test coverage
+- **Modern Architecture**: Factory pattern, dependency injection, decorator-based registration
+- **API Integration**: RESTful APIs, OAuth 2.0 + PKCE, error handling and retry logic
+- **Real-time Systems**: Background processing, live logging, status tracking
+- **Configuration Management**: Centralized, type-safe configuration system
 
 ### Python Development
 
-- **Modern Python**: Type hints, f-strings, context managers
-- **Package Management**: Proper dependency handling
-- **Asynchronous Operations**: Efficient processing of multiple tasks
-- **CLI Development**: Intuitive command-line interfaces
+- **Advanced Python**: Type hints, dataclasses, context managers, decorators
+- **Async Processing**: Threading, background tasks, non-blocking operations  
+- **Package Architecture**: Clean imports, modular design, shared utilities
+- **CLI & Web**: Unified codebase serving both interfaces
 
 ### Web Development
 
-- **Flask Application**: Lightweight web server implementation
-- **Responsive Design**: Mobile-friendly interface
-- **AJAX**: Asynchronous updates without page reloads
-- **Frontend Skills**: JavaScript, HTML5, and CSS3
+- **Modern Flask**: Real-time updates, background processing, RESTful APIs
+- **Frontend Excellence**: Responsive design, modern CSS (Catppuccin), dynamic UI
+- **User Experience**: Live logging, progress indicators, intuitive workflows
+- **State Management**: Session handling, real-time status updates
 
-### AI Integration
+### AI & Machine Learning
 
-- **Prompt Engineering**: Crafting effective AI prompts for Gemini
-- **Content Generation**: AI-powered SEO optimization
-- **Image Analysis**: Extracting meaningful content from product images
+- **Multi-Provider Integration**: Gemini and OpenAI with unified interface
+- **Prompt Engineering**: Context-aware, product-specific prompts
+- **Image Analysis**: AI-powered content extraction and SEO optimization
+- **Content Generation**: Automated title, description, and tag creation
 
-### Image Processing
+### Image & Video Processing
 
-- **Algorithmic Image Manipulation**: Advanced transformations
-- **Color Analysis**: Extraction and palette generation
-- **Video Creation**: Programmatic video production
+- **Advanced Manipulation**: Dynamic color extraction, transparency handling
+- **Mockup Generation**: Professional layouts with typography and branding
+- **Video Production**: Automated promotional video creation
+- **Batch Processing**: Efficient handling of multiple product catalogs
+
+### E-commerce Integration
+
+- **Marketplace APIs**: Complete Etsy integration with listing management
+- **Automation Workflows**: End-to-end product-to-listing pipelines
+- **Template Systems**: Product-specific listing configurations
+- **Bulk Operations**: Scalable processing of entire product catalogs
 
 ## 📸 Screenshots
 
@@ -190,15 +214,15 @@ _Screenshots will be added as the project develops_
 
 Create a `.env` file with the following variables:
 
-```
-# Etsy API credentials
+```bash
+# Etsy API credentials (required for marketplace integration)
 ETSY_API_KEY="your_etsy_api_key_here"
 ETSY_API_SECRET="your_etsy_api_secret_here"
 ETSY_SHOP_ID="your_etsy_shop_id_here"
 
-# Google Gemini API credentials
+# AI providers (at least one recommended)
 GEMINI_API_KEY="your_gemini_api_key_here"
-GEMINI_MODEL="gemini-2.0-flash"
+OPENAI_API_KEY="your_openai_api_key_here"
 ```
 
 ### API Setup
@@ -209,10 +233,10 @@ GEMINI_MODEL="gemini-2.0-flash"
    - Create a new app to get your API key and secret
    - Set the OAuth redirect URI to `http://localhost:3003/oauth/redirect`
 
-2. **Google Gemini API**:
+2. **AI Providers**:
 
-   - Visit https://ai.google.dev/ to get an API key
-   - Enable the Gemini API for your project
+   - **Google Gemini**: Visit https://ai.google.dev/ to get an API key
+   - **OpenAI**: Visit https://platform.openai.com/ for API access
 
 ### Running the Application
 
@@ -236,22 +260,41 @@ run.bat --help             # Show all options
 
 **Web Interface (Recommended):**
 ```bash
-python main.py
+python main.py                  # Start GUI (default)
+python main.py gui              # Explicit GUI start
 ```
-This starts the streamlined web interface on http://localhost:8096 with real-time processing and logging.
+The web interface runs on http://localhost:8096 with:
+- Real-time processing logs with emoji indicators
+- Background processing with progress tracking  
+- Modern Catppuccin-themed interface
+- Complete workflow management
 
 **Command Line Options:**
 ```bash
 # Process products directly
 python main.py process pattern input/my-pattern
-python main.py process clipart input/my-clipart
+python main.py process border_clipart input/my-borders
 
-# Generate AI content only
-python main.py generate-content pattern input/my-pattern --ai-provider gemini
+# Generate AI content only  
+python main.py generate-content clipart input/my-clipart --ai-provider gemini
 
 # List available product types
 python main.py list-types
 ```
+
+### Supported Product Types
+
+- **pattern**: Seamless patterns with dynamic color extraction
+- **clipart**: Transparent PNG cliparts with grid layouts
+- **border_clipart**: Seamless horizontal border elements
+- **journal_papers**: Printable journal pages (8.5x11)
+
+### Complete Workflows
+
+1. **Bulk Processing**: Process all folders in `input/` directory
+2. **AI Content Generation**: Create Etsy-ready titles, descriptions, tags
+3. **Etsy Integration**: Upload listings directly to your Etsy shop
+4. **Review & Edit**: Modify AI-generated content before upload
 
 ## 📝 License
 
