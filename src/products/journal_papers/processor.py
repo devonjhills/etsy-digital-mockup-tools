@@ -414,63 +414,35 @@ class JournalPapersProcessor(BaseProcessor):
             return {}
 
         try:
-            # Find a representative image for analysis
-            image_files = find_files_by_extension(
-                self.config.input_dir, [".jpg", ".jpeg", ".png"]
-            )
-
-            if not image_files:
-                self.logger.warning("No images found for content generation")
+            # Use main mockup for AI content generation
+            main_mockup = os.path.join(self.config.input_dir, "mocks", "main.png")
+            
+            # Fallback to main.jpg if main.png doesn't exist
+            if not os.path.exists(main_mockup):
+                main_mockup = os.path.join(self.config.input_dir, "mocks", "main.jpg")
+            
+            # If no main mockup exists, skip content generation
+            if not os.path.exists(main_mockup):
+                self.logger.warning("No main mockup found for content generation")
                 return {}
 
-            representative_image = image_files[0]  # Use first image
+            representative_image = main_mockup
 
-            # Generate title
-            title_prompt = """
-            Analyze this journal paper page design and create a compelling Etsy listing title.
-            The title should be SEO-optimized, descriptive, and under 140 characters.
-            Focus on the design style, themes, and journal/planner use cases.
-            These are digital journal pages sized for 8.5x11 inch printing.
-            Return only the title, nothing else.
-            """
+            # Generate complete Etsy listing using DEFAULT_ETSY_INSTRUCTIONS
+            from src.services.etsy.constants import DEFAULT_ETSY_INSTRUCTIONS
+            from src.utils.ai_utils import parse_etsy_listing_response
 
-            title = generate_content_with_ai(
-                self.ai_provider, title_prompt, representative_image
+            ai_response = generate_content_with_ai(
+                self.ai_provider, DEFAULT_ETSY_INSTRUCTIONS, representative_image
             )
 
-            # Generate description
-            description_prompt = """
-            Create a detailed Etsy listing description for these digital journal pages.
-            Include:
-            - Journal page design and style description
-            - Size details (8.5x11 inches, US Letter size)
-            - Suggested uses (journaling, planning, note-taking, etc.)
-            - Technical details (high resolution, printable)
-            - Commercial use information if applicable
-            
-            Keep it engaging and SEO-friendly for the journal/planner niche.
-            """
+            # Parse the response to extract title, description, and tags
+            parsed_content = parse_etsy_listing_response(ai_response)
+            title = parsed_content['title']
+            description = parsed_content['description']
+            tags_text = parsed_content['tags']
 
-            description = generate_content_with_ai(
-                self.ai_provider, description_prompt, representative_image
-            )
-
-            # Generate tags
-            tags_prompt = """
-            Generate 13 relevant Etsy tags for these digital journal pages.
-            Focus on:
-            - Journal/planner keywords
-            - Design style/theme
-            - Use cases (bullet journal, daily planner, etc.)
-            - Size/format keywords
-            
-            Return only comma-separated tags, nothing else.
-            """
-
-            tags_text = generate_content_with_ai(
-                self.ai_provider, tags_prompt, representative_image
-            )
-
+            # Convert tags to list
             tags = [tag.strip() for tag in tags_text.split(",") if tag.strip()][:13]
 
             # Generate attributes for Etsy listing

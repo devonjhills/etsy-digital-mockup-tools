@@ -161,8 +161,8 @@ class ListingTemplate:
                 ],
                 "taxonomy_id": 2078,  # Digital Prints
                 "who_made": "i_did",
-                "is_supply": True,
-                "when_made": "made_to_order",
+                "is_supply": False,
+                "when_made": "2020_2025",
                 "is_digital": True,
                 "is_personalizable": False,
                 "personalization_instructions": "",
@@ -198,8 +198,8 @@ class ListingTemplate:
                 ],
                 "taxonomy_id": 6844,  # Digital Clip Art
                 "who_made": "i_did",
-                "is_supply": True,
-                "when_made": "made_to_order",
+                "is_supply": False,
+                "when_made": "2020_2025",
                 "is_digital": True,
                 "is_personalizable": False,
                 "personalization_instructions": "",
@@ -236,7 +236,7 @@ class ListingTemplate:
                 "taxonomy_id": 2429,  # Digital Prints
                 "who_made": "i_did",
                 "is_supply": False,
-                "when_made": "made_to_order",
+                "when_made": "2020_2025",
                 "is_digital": True,
                 "is_personalizable": False,
                 "personalization_instructions": "",

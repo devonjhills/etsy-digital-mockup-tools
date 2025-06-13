@@ -26,6 +26,7 @@ from src.utils.file_operations import ensure_directory
 # Import processors to register them
 from src.products.pattern.processor import PatternProcessor
 from src.products.clipart.processor import ClipartProcessor
+from src.products.border_clipart.processor import BorderClipartProcessor
 from src.products.journal_papers.processor import JournalPapersProcessor
 
 # Global variables for logging

@@ -240,6 +240,7 @@ class EtsyIntegration:
             "pattern": 42625767,  # Support both singular and plural
             "patterns": 42625767,
             "clipart": 42698827,
+            "border_clipart": 53021679,  # → Border clipart section
             "journal_papers": 54352339,  # → JOURNAL PAPERS section
         }
 

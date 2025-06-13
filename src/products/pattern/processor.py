@@ -142,66 +142,37 @@ class PatternProcessor(BaseProcessor):
             return {}
         
         try:
-            # Find a representative image for analysis
-            image_files = find_files_by_extension(self.config.input_dir, ['.png', '.jpg', '.jpeg'])
+            # Use main mockup for AI content generation
+            main_mockup = os.path.join(self.config.input_dir, "mocks", "main.png")
             
-            if not image_files:
-                self.logger.warning("No images found for content generation")
+            # Fallback to main.jpg if main.png doesn't exist
+            if not os.path.exists(main_mockup):
+                main_mockup = os.path.join(self.config.input_dir, "mocks", "main.jpg")
+            
+            # If no main mockup exists, skip content generation
+            if not os.path.exists(main_mockup):
+                self.logger.warning("No main mockup found for content generation")
                 return {}
             
-            representative_image = image_files[0]  # Use first image
+            representative_image = main_mockup
             
-            # Generate title
-            title_prompt = """
-            Analyze this seamless pattern image and create a compelling Etsy listing title.
-            The title should be SEO-optimized, descriptive, and under 140 characters.
-            Focus on the pattern style, colors, and potential uses.
-            Return only the title, nothing else.
-            """
+            # Generate complete Etsy listing using DEFAULT_ETSY_INSTRUCTIONS
+            from src.services.etsy.constants import DEFAULT_ETSY_INSTRUCTIONS
+            from src.utils.ai_utils import parse_etsy_listing_response
             
-            title = generate_content_with_ai(
+            ai_response = generate_content_with_ai(
                 self.ai_provider,
-                title_prompt,
+                DEFAULT_ETSY_INSTRUCTIONS,
                 representative_image
             )
             
-            # Generate description
-            description_prompt = """
-            Create a detailed Etsy listing description for this seamless pattern.
-            Include:
-            - Pattern description and style
-            - Color palette details
-            - Suggested uses (fabric, wallpaper, scrapbooking, etc.)
-            - Technical details (seamless, high resolution)
-            - Commercial use information
+            # Parse the response to extract title, description, and tags
+            parsed_content = parse_etsy_listing_response(ai_response)
+            title = parsed_content['title']
+            description = parsed_content['description']
+            tags_text = parsed_content['tags']
             
-            Keep it engaging and SEO-friendly.
-            """
-            
-            description = generate_content_with_ai(
-                self.ai_provider,
-                description_prompt,
-                representative_image
-            )
-            
-            # Generate tags
-            tags_prompt = """
-            Generate 13 relevant Etsy tags for this seamless pattern.
-            Focus on:
-            - Pattern style/type
-            - Colors
-            - Uses/applications
-            - Style keywords
-            
-            Return only comma-separated tags, nothing else.
-            """
-            
-            tags_text = generate_content_with_ai(
-                self.ai_provider,
-                tags_prompt,
-                representative_image
-            )
-            
+            # Convert tags to list
             tags = [tag.strip() for tag in tags_text.split(',') if tag.strip()][:13]
             
             # Generate attributes for Etsy listing

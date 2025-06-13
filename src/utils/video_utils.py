@@ -166,12 +166,27 @@ class VideoCreator:
             video_writer.release()
             return False
         
-        # Calculate minimum frames needed for Etsy (5 seconds)
+        # Calculate minimum frames needed for Etsy (5 seconds minimum, 15 seconds maximum)
         min_frames_for_etsy = 5 * fps
+        max_frames_for_etsy = 15 * fps
         frames_per_cycle = len(cv_images) * (display_frames + transition_frames)
-        cycles_needed = max(1, min_frames_for_etsy // frames_per_cycle + 1)
         
-        logger.info(f"Creating video with {cycles_needed} cycles to meet 5s minimum duration")
+        # Calculate cycles needed to meet minimum duration but not exceed maximum
+        cycles_needed = max(1, min_frames_for_etsy // frames_per_cycle + 1)
+        total_frames_with_cycles = cycles_needed * frames_per_cycle
+        
+        # If cycles would exceed 15 seconds, reduce to fit within limit
+        if total_frames_with_cycles > max_frames_for_etsy:
+            cycles_needed = max(1, max_frames_for_etsy // frames_per_cycle)
+            # If even 1 cycle is too long, reduce display frames per image
+            if cycles_needed == 1 and frames_per_cycle > max_frames_for_etsy:
+                available_frames_per_image = max_frames_for_etsy // len(cv_images)
+                display_frames = max(10, available_frames_per_image - transition_frames)
+                frames_per_cycle = len(cv_images) * (display_frames + transition_frames)
+                logger.info(f"Reduced display frames to {display_frames} to fit 15s limit")
+        
+        final_duration = (cycles_needed * frames_per_cycle) / fps
+        logger.info(f"Creating video with {cycles_needed} cycles, estimated duration: {final_duration:.1f}s")
         
         # Create frames
         try:

@@ -291,8 +291,84 @@ class ConfigManager:
             },
         )
 
+        # Border clipart configuration
+        border_clipart_config = ProductTypeConfig(
+            name="border_clipart",
+            display_name="Border Clip Arts",
+            processor_class="src.products.border_clipart.processor.BorderClipartProcessor",
+            default_workflow_steps=["resize", "mockup", "video", "zip"],
+            resize_settings={
+                "max_size": 1500,
+                "format": "png",
+                "preserve_transparency": True,
+                "dpi": 300,
+            },
+            mockup_settings={
+                "create_horizontal_seamless": True,
+                "create_grid": True,
+                "create_transparency_demo": True,
+                "rows": 3,
+                "grid_size": [2, 2],
+                "output_size": (3000, 2250),
+                "grid_2x2_size": (2000, 2000),
+                "cell_padding": 30,
+            },
+            font_settings={
+                "title_font": "GreatVibes-Regular",
+                "subtitle_font": "LibreBaskerville-Italic",
+                "title_max_font_size": 250,
+                "title_min_font_size": 40,
+                "subtitle_font_size": 85,
+                "title_padding_x": 80,
+                "title_padding_y": 40,
+                "title_line_spacing": 15,
+                "title_font_step": 5,
+                "title_max_lines": 3,
+                "available_fonts": get_available_fonts(),
+            },
+            color_settings={
+                "title_text_color": (50, 50, 50, 255),
+                "subtitle_text_color": (80, 80, 80, 255),
+                "background_color": (248, 248, 248),
+                "checkerboard_color1": (255, 255, 255),
+                "checkerboard_color2": (200, 200, 200),
+            },
+            layout_settings={
+                "subtitle_text_top": "Seamless Borders Cliparts",
+                "subtitle_bottom_text": "transparent png  |  300 dpi  |  commercial use",
+                "subtitle_spacing": 35,
+                "checkerboard_size": 30,
+                "transparency_demo_scale": 0.7,
+            },
+            video_settings={
+                "fps": 30,
+                "duration_per_image": 2.5,
+                "target_size": [1080, 1080],
+                "create_video": True,
+            },
+            etsy_settings={
+                "category": "Digital",
+                "subcategory": "Border Clipart",
+                "shop_section": "BORDER CLIP ARTS",
+                "default_tags": [
+                    "border clipart",
+                    "seamless border",
+                    "digital border",
+                    "png",
+                    "transparent",
+                    "commercial use",
+                ],
+            },
+            ai_prompts={
+                "title": "Analyze this seamless border clipart and create a compelling Etsy listing title under 140 characters emphasizing the horizontal seamless nature.",
+                "description": "Create a detailed Etsy listing description for this seamless border clipart set including seamless tiling, style, uses, and technical details (300 DPI, transparent PNG).",
+                "tags": "Generate 13 relevant Etsy tags for this seamless border clipart focusing on borders, seamless patterns, digital design, and applications.",
+            },
+        )
+
         self.configs["pattern"] = pattern_config
         self.configs["clipart"] = clipart_config
+        self.configs["border_clipart"] = border_clipart_config
         self.configs["journal_papers"] = journal_papers_config
 
     def _load_yaml_configs(self):

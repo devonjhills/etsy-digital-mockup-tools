@@ -23,6 +23,7 @@ from src.utils.common import setup_logging
 # Import processors to register them
 from src.products.pattern.processor import PatternProcessor
 from src.products.clipart.processor import ClipartProcessor
+from src.products.border_clipart.processor import BorderClipartProcessor
 from src.products.journal_papers.processor import JournalPapersProcessor
 
 logger = setup_logging(__name__, gui_only=False)  # CLI should use console logging

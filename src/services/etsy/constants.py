@@ -25,7 +25,7 @@ Title (130–140 chars)
 Description  
 • Start with a 155-char hook: primary keyword, vivid benefit, and soft CTA.  
 • Employ sensory verbs, micro-stories, social proof, or scarcity—keep it skimmable.  
-• Use emoji-prefixed headings.
+• Use emoji-prefixed headings. Plain text only, do not use markdown.
 • Bullet lists prefixed with 🔘.  
 • Seamlessly integrate all 13 tag phrases.  
 • Maintain Flesch Reading Ease ≥70.  

@@ -276,3 +276,47 @@ def generate_content_with_ai(ai_provider: Any, prompt: str, image_path: str = No
     except Exception as e:
         logger.error(f"AI content generation failed: {e}")
         return ""
+
+
+def parse_etsy_listing_response(response: str) -> Dict[str, str]:
+    """
+    Parse the AI response from DEFAULT_ETSY_INSTRUCTIONS into title, description, and tags.
+    
+    Args:
+        response: The AI response containing Title:, Description:, and Tags: sections
+        
+    Returns:
+        Dictionary with 'title', 'description', and 'tags' keys
+    """
+    try:
+        # Initialize result dictionary
+        result = {
+            'title': '',
+            'description': '',
+            'tags': ''
+        }
+        
+        # Use regex to extract each section
+        title_match = re.search(r'Title:\s*(.+?)(?=\n|Description:|$)', response, re.DOTALL)
+        if title_match:
+            result['title'] = title_match.group(1).strip()
+        
+        description_match = re.search(r'Description:\s*(.+?)(?=Tags:|$)', response, re.DOTALL)
+        if description_match:
+            result['description'] = description_match.group(1).strip()
+        
+        tags_match = re.search(r'Tags:\s*(.+?)$', response, re.DOTALL)
+        if tags_match:
+            result['tags'] = tags_match.group(1).strip()
+        
+        logger.info(f"Parsed Etsy listing - Title: {len(result['title'])} chars, Description: {len(result['description'])} chars, Tags: {len(result['tags'])} chars")
+        
+        return result
+        
+    except Exception as e:
+        logger.error(f"Failed to parse Etsy listing response: {e}")
+        return {
+            'title': '',
+            'description': '',
+            'tags': ''
+        }

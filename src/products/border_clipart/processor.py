@@ -1,4 +1,4 @@
-"""Clipart processor implementation."""
+"""Border clipart processor implementation."""
 
 import os
 from typing import Dict, List, Any, Optional
@@ -11,38 +11,38 @@ from src.utils.file_operations import find_files_by_extension, ensure_directory
 from src.services.processing.video import VideoProcessor
 
 
-@register_processor("clipart")
-class ClipartProcessor(BaseProcessor):
-    """Processor for clipart/illustration processing."""
+@register_processor("border_clipart")
+class BorderClipartProcessor(BaseProcessor):
+    """Processor for horizontally seamless border clipart processing."""
     
     def get_default_workflow_steps(self) -> List[str]:
-        """Return default workflow steps for clipart."""
+        """Return default workflow steps for border clipart."""
         return ["resize", "mockup", "video", "zip"]
     
     def resize_images(self) -> Dict[str, Any]:
-        """Resize clipart images for processing."""
+        """Resize border clipart images for processing."""
         from src.utils.resize_utils import ImageResizer
         
         try:
             resizer = ImageResizer(max_size=1500, dpi=(300, 300))
             result = resizer.resize_clipart_style(self.config.input_dir)
             
-            self.logger.info(f"Resized {result.get('processed', 0)} clipart images")
+            self.logger.info(f"Resized {result.get('processed', 0)} border clipart images")
             return result
             
         except Exception as e:
-            self.logger.error(f"Clipart resize failed: {e}")
+            self.logger.error(f"Border clipart resize failed: {e}")
             return {"success": False, "error": str(e)}
     
     def create_mockups(self) -> Dict[str, Any]:
-        """Create clipart mockups."""
+        """Create border clipart mockups."""
         try:
             results = {}
             
-            # Create square mockup
-            results["square_mockup"] = self._create_square_mockup()
+            # Create horizontal seamless mockup (main mockup)
+            results["main_mockup"] = self._create_horizontal_seamless_mockup()
             
-            # Create grid mockup (2x2)
+            # Create grid mockup showing individual borders
             results["grid_mockup"] = self._create_grid_mockup()
             
             # Create transparency demo
@@ -55,14 +55,14 @@ class ClipartProcessor(BaseProcessor):
             self.logger.error(f"Mockup creation failed: {e}")
             return {"success": False, "error": str(e)}
     
-    def _create_square_mockup(self) -> Dict[str, Any]:
-        """Create square clipart mockup."""
-        from src.products.clipart.mockups import create_square_mockup
+    def _create_horizontal_seamless_mockup(self) -> Dict[str, Any]:
+        """Create the main horizontal seamless border mockup with 3 rows and text overlays."""
+        from src.products.border_clipart.mockups import create_horizontal_seamless_mockup
         from src.utils.file_operations import find_files_by_extension
         from PIL import Image
         import os
         
-        # Create mocks folder inside the input directory (like patterns)
+        # Create mocks folder inside the input directory
         mockup_dir = os.path.join(self.config.input_dir, "mocks")
         ensure_directory(mockup_dir)
         
@@ -78,27 +78,23 @@ class ClipartProcessor(BaseProcessor):
             folder_name = Path(self.config.input_dir).name
             title = folder_name.replace("_", " ").replace("-", " ").title()
             
-            # Create a background canvas
-            canvas_bg = Image.new("RGB", (3000, 2250), "white")
+            # Create subtitle with number of images
+            num_images = len(image_files)
+            subtitle_top = f"{num_images} Seamless Borders Cliparts"
             
-            # Generate subtitles
-            subtitle_top = f"{len(image_files)} clip arts • Commercial Use"
-            subtitle_bottom = "300 DPI • Transparent PNG"
-            
-            # Create mockup
-            result = create_square_mockup(
+            # Create mockup with specific text overlays
+            result = create_horizontal_seamless_mockup(
                 input_image_paths=image_files,
-                canvas_bg_image=canvas_bg,
                 title=title,
                 subtitle_top=subtitle_top,
-                subtitle_bottom=subtitle_bottom,
-                grid_size=(3000, 2250),
-                padding=30
+                subtitle_bottom="transparent png  |  300 dpi  |  commercial use",
+                canvas_size=(3000, 2250),
+                rows=4
             )
             
-            # Handle the return value (image, used_images tuple)
+            # Handle the return value
             if isinstance(result, tuple):
-                mockup_image, _ = result  # Don't need used_images
+                mockup_image, _ = result
             else:
                 mockup_image = result
             
@@ -112,12 +108,12 @@ class ClipartProcessor(BaseProcessor):
             return {"success": False, "error": str(e)}
     
     def _create_grid_mockup(self) -> Dict[str, Any]:
-        """Create multiple 2x2 grid mockups to show all images."""
+        """Create multiple 2x2 grid mockups to show individual borders."""
         from src.utils.grid_utils import GridCreator
         from src.utils.file_operations import find_files_by_extension
         import os
         
-        # Create mocks folder inside the input directory (like patterns)
+        # Create mocks folder inside the input directory
         mockup_dir = os.path.join(self.config.input_dir, "mocks")
         ensure_directory(mockup_dir)
         
@@ -126,22 +122,18 @@ class ClipartProcessor(BaseProcessor):
             all_files = find_files_by_extension(self.config.input_dir, ['.png', '.jpg', '.jpeg'])
             image_files = [f for f in all_files if '/mocks/' not in f and '\\mocks\\' not in f]
             
-            if len(image_files) < 4:
-                return {"success": False, "error": f"Need at least 4 images for grid, found {len(image_files)}"}
+            if len(image_files) < 1:
+                return {"success": False, "error": f"Need at least 1 image for grid, found {len(image_files)}"}
             
-            # Calculate how many 2x2 grids we need (4 images per grid)
-            images_per_grid = 4
-            num_grids = len(image_files) // images_per_grid  # Only complete grids
+            # Calculate how many row grids we need (3 images per grid, one per row)
+            images_per_grid = 3
+            num_grids = len(image_files) // images_per_grid
             remaining_images = len(image_files) % images_per_grid
             
-            # If there are remaining images, create one more grid
             if remaining_images > 0:
                 num_grids += 1
             
             self.logger.info(f"Total images: {len(image_files)}, will create {num_grids} grids")
-            
-            # Use the unified grid creator
-            grid_creator = GridCreator()
             
             created_files = []
             
@@ -150,7 +142,7 @@ class ClipartProcessor(BaseProcessor):
                 end_idx = min(start_idx + images_per_grid, len(image_files))
                 grid_images = image_files[start_idx:end_idx]
                 
-                # If last grid has fewer than 4 images, pad with the first images to make it look complete
+                # If last grid has fewer than 3 images, pad with the first images
                 if len(grid_images) < images_per_grid:
                     remaining_slots = images_per_grid - len(grid_images)
                     grid_images.extend(image_files[:remaining_slots])
@@ -161,13 +153,13 @@ class ClipartProcessor(BaseProcessor):
                 else:
                     output_path = os.path.join(mockup_dir, f"grid_{grid_num + 1}.png")
                 
-                # Create grid using unified creator
-                background = grid_creator.load_background("canvas.png", (2000, 2000))
-                grid_image = grid_creator.create_2x2_grid(
-                    image_paths=grid_images,
+                # Create horizontal rows using border-specific function
+                from src.products.border_clipart.mockups import create_border_horizontal_rows
+                grid_image = create_border_horizontal_rows(
+                    input_image_paths=grid_images,
                     grid_size=(2000, 2000),
-                    padding=30,
-                    background=background
+                    max_rows=3,
+                    padding=30
                 )
                 
                 # Save the grid
@@ -231,7 +223,7 @@ class ClipartProcessor(BaseProcessor):
         from src.utils.file_operations import find_files_by_extension
         import os
         
-        # Create mocks folder inside the input directory (like patterns)
+        # Create mocks folder inside the input directory
         mockup_dir = os.path.join(self.config.input_dir, "mocks")
         ensure_directory(mockup_dir)
         
@@ -266,7 +258,7 @@ class ClipartProcessor(BaseProcessor):
             return {"success": False, "error": str(e)}
     
     def _generate_content_for_type(self) -> Dict[str, Any]:
-        """Generate clipart-specific content for Etsy listings."""
+        """Generate border clipart-specific content for Etsy listings."""
         if not self.ai_provider:
             return {}
         
@@ -316,10 +308,11 @@ class ClipartProcessor(BaseProcessor):
                 "description": description,
                 "tags": tags,
                 "category": "Digital", 
-                "subcategory": "Clipart",
+                "subcategory": "Border Clipart",
                 "image_count": image_count,
                 "image_analyzed": representative_image,
-                "attributes": attributes
+                "attributes": attributes,
+                "shop_section": "BORDER CLIP ARTS"
             }
             
         except Exception as e:
@@ -327,13 +320,13 @@ class ClipartProcessor(BaseProcessor):
             return {"error": str(e)}
     
     def _generate_etsy_attributes(self, representative_image: str) -> Dict[str, Any]:
-        """Generate Etsy listing attributes for clipart."""
+        """Generate Etsy listing attributes for border clipart."""
         try:
             attributes = {
                 "materials": ["Digital"],
-                "orientation": "Mixed",
+                "orientation": "Horizontal",
                 "occasion": "Everyday",
-                "subject": ["Animals", "Nature", "Decorative"],
+                "subject": ["Border", "Decorative", "Pattern"],
                 "can_be_personalized": "No"
             }
             
@@ -342,7 +335,7 @@ class ClipartProcessor(BaseProcessor):
                 try:
                     # Analyze primary color
                     color_prompt = """
-                    Analyze this clipart/illustration image and identify the primary color.
+                    Analyze this border clipart image and identify the primary color.
                     Return only one of these exact color names:
                     Red, Orange, Yellow, Green, Blue, Purple, Pink, Black, White, Gray, Brown, Beige
                     Return only the color name, nothing else.
@@ -360,14 +353,14 @@ class ClipartProcessor(BaseProcessor):
                     if primary_color in allowed_colors:
                         attributes["primary_color"] = primary_color
                     else:
-                        attributes["primary_color"] = "Blue"  # Default
+                        attributes["primary_color"] = "Blue"
                     
-                    # Analyze subject matter
+                    # Analyze subject matter for borders
                     subject_prompt = """
-                    Analyze this clipart/illustration and identify up to 3 main subjects or themes.
+                    Analyze this border clipart and identify up to 3 main themes or styles.
                     Choose from these categories only:
-                    Animals, Nature, People, Food, Holiday, Wedding, Baby, Sports, Music, 
-                    Decorative, Floral, Geometric, Abstract, Vintage, Modern
+                    Floral, Geometric, Decorative, Vintage, Modern, Nature, Abstract, 
+                    Ornamental, Elegant, Casual, Festive, Simple
                     Return up to 3 categories separated by commas, nothing else.
                     """
                     
@@ -382,10 +375,10 @@ class ClipartProcessor(BaseProcessor):
                         attributes["subject"] = subjects
                         
                 except Exception as e:
-                    self.logger.warning(f"Could not analyze clipart attributes: {e}")
-                    attributes["primary_color"] = "Blue"  # Default
+                    self.logger.warning(f"Could not analyze border clipart attributes: {e}")
+                    attributes["primary_color"] = "Blue"
             else:
-                attributes["primary_color"] = "Blue"  # Default
+                attributes["primary_color"] = "Blue"
                 
             return attributes
             
@@ -397,27 +390,10 @@ class ClipartProcessor(BaseProcessor):
                 "can_be_personalized": "No"
             }
     
-    def extract_from_sheets(self) -> Dict[str, Any]:
-        """Extract individual clipart from sprite sheets - custom workflow step."""
-        try:
-            from src.products.clipart.utils import extract_clipart_from_sheets
-            
-            extracted_dir = os.path.join(self.config.output_dir, "extracted")
-            ensure_directory(extracted_dir)
-            
-            return extract_clipart_from_sheets(
-                input_folder=self.config.input_dir,
-                output_folder=extracted_dir
-            )
-            
-        except Exception as e:
-            self.logger.error(f"Clipart extraction failed: {e}")
-            return {"success": False, "error": str(e)}
-    
     def create_videos(self) -> Dict[str, Any]:
         """Create videos using unified video processor."""
         try:
-            video_processor = VideoProcessor("clipart")
+            video_processor = VideoProcessor("border_clipart")
             video_path = video_processor.create_product_showcase_video(self.config.input_dir)
             
             if video_path:
@@ -429,10 +405,3 @@ class ClipartProcessor(BaseProcessor):
         except Exception as e:
             self.logger.error(f"Video creation failed: {e}")
             return {"success": False, "error": str(e)}
-    
-    def process_custom_step(self, step: str) -> Dict[str, Any]:
-        """Process clipart-specific custom steps."""
-        if step == "extract":
-            return self.extract_from_sheets()
-        
-        return super().process_custom_step(step)

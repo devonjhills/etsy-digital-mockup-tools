@@ -34,6 +34,8 @@ class VideoProcessor:
         
         if self.product_type == "clipart":
             return self._create_clipart_showcase(input_folder, videos_folder)
+        elif self.product_type == "border_clipart":
+            return self._create_border_clipart_showcase(input_folder, videos_folder)
         elif self.product_type == "pattern":
             return self._create_pattern_showcase(input_folder, videos_folder)
         elif self.product_type == "journal_papers":
@@ -60,6 +62,31 @@ class VideoProcessor:
             return None
         
         output_path = os.path.join(videos_folder, "clipart_showcase.mp4")
+        success = self.video_creator.create_slideshow_video(sorted(grid_files), output_path)
+        return output_path if success else None
+    
+    def _create_border_clipart_showcase(self, input_folder: str, videos_folder: str) -> Optional[str]:
+        """Create a border clipart showcase video from grid mockups (same as clipart)."""
+        # Look for grid mockups in mocks folder
+        mocks_folder = os.path.join(input_folder, "mocks")
+        if not os.path.exists(mocks_folder):
+            logger.warning(f"Mocks folder not found: {mocks_folder}")
+            return None
+        
+        # Find grid mockups (exclude main mockup)
+        grid_files = []
+        for filename in os.listdir(mocks_folder):
+            if ("grid" in filename.lower() and 
+                not filename.lower().startswith("main") and
+                filename.lower().endswith(('.png', '.jpg', '.jpeg'))):
+                grid_files.append(os.path.join(mocks_folder, filename))
+        
+        if not grid_files:
+            logger.warning("No grid mockups found for border clipart showcase")
+            return None
+        
+        logger.info(f"Creating border clipart showcase video from {len(grid_files)} grid mockups")
+        output_path = os.path.join(videos_folder, "product_showcase.mp4")
         success = self.video_creator.create_slideshow_video(sorted(grid_files), output_path)
         return output_path if success else None
     

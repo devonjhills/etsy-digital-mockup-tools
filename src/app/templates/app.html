@@ -444,6 +444,84 @@
             border-color: var(--ctp-blue);
         }
 
+        .product-type-selector {
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            background: var(--muted);
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+        }
+
+        .product-type-selector h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: var(--card-foreground);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .product-option {
+            background: var(--card);
+            border: 2px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+            position: relative;
+        }
+
+        .product-option:hover {
+            border-color: var(--ctp-blue);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .product-option.selected {
+            border-color: var(--ctp-mauve);
+            background: var(--ctp-surface1);
+            box-shadow: 0 0 0 1px var(--ctp-mauve);
+        }
+
+        .product-option .product-icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
+        .product-option .product-name {
+            font-weight: 600;
+            color: var(--card-foreground);
+            margin-bottom: 0.25rem;
+        }
+
+        .product-option .product-desc {
+            font-size: 0.8rem;
+            color: var(--muted-foreground);
+        }
+
+        .workflow-section {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .workflow-section.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
         .log-container {
             background: var(--ctp-mantle);
             border-radius: var(--radius);
@@ -473,6 +551,402 @@
 
         .log-container::-webkit-scrollbar-thumb:hover {
             background: var(--ctp-surface2);
+        }
+
+        .log-message {
+            margin-bottom: 0.5rem;
+            padding: 0.5rem 0.75rem;
+            border-left: 3px solid transparent;
+            border-radius: 0 var(--radius) var(--radius) 0;
+            transition: all 0.2s ease;
+        }
+
+        .log-message:hover {
+            background-color: var(--ctp-surface0);
+        }
+
+        .log-error {
+            color: var(--ctp-red);
+            border-left-color: var(--ctp-red);
+            background-color: rgba(243, 139, 168, 0.1);
+        }
+
+        .log-success {
+            color: var(--ctp-green);
+            border-left-color: var(--ctp-green);
+            background-color: rgba(166, 227, 161, 0.1);
+        }
+
+        .log-warning {
+            color: var(--ctp-yellow);
+            border-left-color: var(--ctp-yellow);
+            background-color: rgba(249, 226, 175, 0.1);
+        }
+
+        .log-info {
+            color: var(--ctp-sky);
+            border-left-color: var(--ctp-sky);
+            background-color: rgba(137, 220, 235, 0.1);
+        }
+
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1.25rem;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            border: 1px solid var(--border);
+            background: var(--card);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .status-running {
+            background: var(--ctp-surface1);
+            color: var(--ctp-blue);
+            border-color: var(--ctp-blue);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .status-idle {
+            background: var(--muted);
+            color: var(--muted-foreground);
+            border-color: var(--border);
+        }
+
+        .status-success {
+            background: var(--ctp-surface1);
+            color: var(--ctp-green);
+            border-color: var(--ctp-green);
+        }
+
+        .info-box {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem;
+            background: var(--muted);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            color: var(--muted-foreground);
+            font-size: 0.875rem;
+        }
+
+        .loader {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--ctp-surface2);
+            border-top: 2px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Tab System */
+        .main-tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+            background: var(--muted);
+            border-radius: var(--radius);
+            padding: 0.25rem;
+            border: 1px solid var(--border);
+        }
+
+        .main-tab {
+            padding: 0.75rem 1.5rem;
+            background: transparent;
+            border: none;
+            color: var(--muted-foreground);
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 0.875rem;
+            border-radius: calc(var(--radius) - 2px);
+            transition: all 0.2s;
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .main-tab:hover:not(.active) {
+            color: var(--foreground);
+        }
+
+        .main-tab.active {
+            color: var(--foreground);
+            background: var(--background);
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        }
+
+        .main-tab-content {
+            display: none;
+        }
+
+        .main-tab-content.active {
+            display: block;
+        }
+
+        /* Etsy Integration Styles */
+        .etsy-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin: 1.5rem 0;
+        }
+
+        .etsy-card {
+            padding: 1.5rem;
+            border: 2px solid;
+            background: var(--card);
+            border-radius: var(--radius);
+        }
+
+        .etsy-card.primary {
+            border-color: var(--primary);
+        }
+
+        .etsy-card.accent {
+            border-color: var(--accent);
+        }
+
+        .etsy-card h4 {
+            margin-bottom: 0.75rem;
+            color: var(--card-foreground);
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .etsy-card p {
+            color: var(--muted-foreground);
+            font-size: 0.875rem;
+            margin-bottom: 1rem;
+            line-height: 1.5;
+        }
+
+        .etsy-note {
+            background: var(--muted);
+            padding: 0.75rem;
+            border-radius: var(--radius);
+            margin-bottom: 1.25rem;
+            font-size: 0.8rem;
+            border-left: 3px solid;
+        }
+
+        .etsy-note.primary {
+            border-left-color: var(--primary);
+        }
+
+        .etsy-note.accent {
+            border-left-color: var(--accent);
+        }
+
+        /* Prepared Listings Styles */
+        .listing-editor {
+            background: var(--ctp-surface1);
+            padding: 1.5rem;
+            margin: 1rem 0;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+        }
+
+        .listing-editor h4 {
+            margin: 0 0 1rem 0;
+            color: var(--card-foreground);
+            font-size: 1.1rem;
+            font-weight: 600;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .field-group {
+            margin-bottom: 1rem;
+        }
+
+        .field-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--card-foreground);
+        }
+
+        .field-group input[type="text"],
+        .field-group textarea {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            background: var(--ctp-surface0);
+            border: 1px solid var(--ctp-overlay0);
+            border-radius: var(--radius);
+            color: var(--foreground);
+            font-size: 0.875rem;
+            font-family: inherit;
+            resize: vertical;
+            transition: all 0.2s ease;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+        }
+
+        .field-group textarea {
+            min-height: 100px;
+            line-height: 1.4;
+        }
+
+        .field-group input[type="text"]:focus,
+        .field-group textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(137, 180, 250, 0.15), inset 0 1px 3px rgba(0, 0, 0, 0.2);
+            background: var(--ctp-surface1);
+        }
+
+        .field-group input[type="text"]:hover,
+        .field-group textarea:hover {
+            border-color: var(--ctp-overlay1);
+            background: var(--ctp-surface1);
+        }
+
+        .char-counter {
+            font-size: 0.75rem;
+            color: var(--muted-foreground);
+            margin-top: 0.25rem;
+        }
+
+        .char-counter.warning {
+            color: var(--warning);
+        }
+
+        .char-counter.error {
+            color: var(--destructive);
+        }
+
+        .tags-input {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            align-items: center;
+            min-height: 2.5rem;
+            padding: 0.75rem;
+            background: var(--ctp-surface0);
+            border: 1px solid var(--ctp-overlay0);
+            border-radius: var(--radius);
+            transition: all 0.2s ease;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+        }
+
+        .tags-input:focus-within {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(137, 180, 250, 0.15), inset 0 1px 3px rgba(0, 0, 0, 0.2);
+            background: var(--ctp-surface1);
+        }
+
+        .tags-input:hover {
+            border-color: var(--ctp-overlay1);
+            background: var(--ctp-surface1);
+        }
+
+        .tag-item {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.25rem 0.5rem;
+            background: var(--primary);
+            color: var(--primary-foreground);
+            border-radius: 4px;
+            font-size: 0.75rem;
+        }
+
+        .tag-item button {
+            background: none;
+            border: none;
+            color: var(--primary-foreground);
+            cursor: pointer;
+            padding: 0;
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .tag-input {
+            border: none;
+            background: none;
+            color: var(--foreground);
+            font-size: 0.875rem;
+            flex: 1;
+            min-width: 100px;
+        }
+
+        .tag-input:focus {
+            outline: none;
+        }
+
+        .tags-display {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+            min-height: 2rem;
+            padding: 0.75rem;
+            background: var(--ctp-surface0);
+            border: 1px solid var(--ctp-overlay0);
+            border-radius: var(--radius);
+            align-items: center;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+        }
+
+        .tag-chip {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.5rem;
+            background: var(--primary);
+            color: var(--primary-foreground);
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .tags-display:empty::before {
+            content: "No tags yet...";
+            color: var(--muted-foreground);
+            font-style: italic;
+            font-size: 0.875rem;
+        }
+
+        .tags-textarea {
+            min-height: 80px;
+            resize: vertical;
+            font-family: inherit;
+            line-height: 1.4;
+        }
+
+        .title-textarea {
+            min-height: 60px;
+            resize: vertical;
+            font-family: inherit;
+            line-height: 1.4;
+        }
+
+        .editor-actions {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: 1.5rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border);
         }
 
         /* Toast notification styles */
@@ -593,356 +1067,14 @@
             }
         }
 
-        .log-message {
-            margin-bottom: 0.5rem;
-            padding: 0.5rem 0.75rem;
-            border-left: 3px solid transparent;
-            border-radius: 0 var(--radius) var(--radius) 0;
-            transition: all 0.2s ease;
-        }
-
-        .log-message:hover {
-            background-color: var(--ctp-surface0);
-        }
-
-        .log-error {
-            color: var(--ctp-red);
-            border-left-color: var(--ctp-red);
-            background-color: rgba(243, 139, 168, 0.1);
-        }
-
-        .log-success {
-            color: var(--ctp-green);
-            border-left-color: var(--ctp-green);
-            background-color: rgba(166, 227, 161, 0.1);
-        }
-
-        .log-warning {
-            color: var(--ctp-yellow);
-            border-left-color: var(--ctp-yellow);
-            background-color: rgba(249, 226, 175, 0.1);
-        }
-
-        .log-info {
-            color: var(--ctp-sky);
-            border-left-color: var(--ctp-sky);
-            background-color: rgba(137, 220, 235, 0.1);
-        }
-
-        .status-indicator {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.75rem;
-            padding: 0.75rem 1.25rem;
-            border-radius: 9999px;
-            font-size: 0.875rem;
-            font-weight: 500;
-            border: 1px solid var(--border);
-            background: var(--card);
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-        }
-
-        .status-running {
-            background: var(--ctp-surface1);
-            color: var(--ctp-blue);
-            border-color: var(--ctp-blue);
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
-        }
-
-        .status-idle {
-            background: var(--muted);
-            color: var(--muted-foreground);
-            border-color: var(--border);
-        }
-
-        .status-success {
-            background: var(--ctp-surface1);
-            color: var(--ctp-green);
-            border-color: var(--ctp-green);
-        }
-
-        .checkbox-group {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            margin: 0.5rem 0;
-        }
-
-        .checkbox-group input[type="checkbox"] {
-            width: 18px;
-            height: 18px;
-        }
-
-        .info-box {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.75rem;
-            background: hsl(var(--muted));
-            border: 1px solid hsl(var(--border));
-            border-radius: var(--radius);
-            color: var(--muted-foreground);
-            font-size: 0.875rem;
-        }
-
-        .listing-editor {
-            background: var(--ctp-surface1);
-            padding: 1.5rem;
-            margin: 1rem 0;
-            border-radius: var(--radius);
-            border: 1px solid var(--border);
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
-        }
-
-        .listing-editor h4 {
-            margin: 0 0 1rem 0;
-            color: var(--card-foreground);
-            font-size: 1.1rem;
-            font-weight: 600;
-            padding-bottom: 0.5rem;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .field-group {
-            margin-bottom: 1rem;
-        }
-
-        .field-group label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-size: 0.875rem;
-            font-weight: 500;
-            color: var(--card-foreground);
-        }
-
-        .field-group input[type="text"],
-        .field-group textarea {
-            width: 100%;
-            padding: 0.75rem 1rem;
-            background: var(--ctp-surface0);
-            border: 1px solid var(--ctp-overlay0);
-            border-radius: var(--radius);
-            color: var(--foreground);
-            font-size: 0.875rem;
-            font-family: inherit;
-            resize: vertical;
-            transition: all 0.2s ease;
-            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
-        }
-
-        .field-group textarea {
-            min-height: 100px;
-            line-height: 1.4;
-        }
-
-        .field-group input[type="text"]:focus,
-        .field-group textarea:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(137, 180, 250, 0.15), inset 0 1px 3px rgba(0, 0, 0, 0.2);
-            background: var(--ctp-surface1);
-        }
-
-        .field-group input[type="text"]:hover,
-        .field-group textarea:hover {
-            border-color: var(--ctp-overlay1);
-            background: var(--ctp-surface1);
-        }
-
-        .char-counter {
-            font-size: 0.75rem;
-            color: var(--text-secondary);
-            margin-top: 0.25rem;
-        }
-
-        .char-counter.warning {
-            color: #f59e0b;
-        }
-
-        .char-counter.error {
-            color: var(--accent-danger);
-        }
-
-        .tags-input {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.5rem;
-            align-items: center;
-            min-height: 2.5rem;
-            padding: 0.75rem;
-            background: var(--ctp-surface0);
-            border: 1px solid var(--ctp-overlay0);
-            border-radius: var(--radius);
-            transition: all 0.2s ease;
-            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
-        }
-
-        .tags-input:focus-within {
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(137, 180, 250, 0.15), inset 0 1px 3px rgba(0, 0, 0, 0.2);
-            background: var(--ctp-surface1);
-        }
-
-        .tags-input:hover {
-            border-color: var(--ctp-overlay1);
-            background: var(--ctp-surface1);
-        }
-
-        .tag-item {
-            display: flex;
-            align-items: center;
-            gap: 0.25rem;
-            padding: 0.25rem 0.5rem;
-            background: var(--accent-primary);
-            color: white;
-            border-radius: 4px;
-            font-size: 0.75rem;
-        }
-
-        .tag-item button {
-            background: none;
-            border: none;
-            color: white;
-            cursor: pointer;
-            padding: 0;
-            width: 16px;
-            height: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .tag-input {
-            border: none;
-            background: none;
-            color: var(--foreground);
-            font-size: 0.875rem;
-            flex: 1;
-            min-width: 100px;
-        }
-
-        .tag-input:focus {
-            outline: none;
-        }
-
-        .tags-display {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.5rem;
-            margin-bottom: 0.5rem;
-            min-height: 2rem;
-            padding: 0.75rem;
-            background: var(--ctp-surface0);
-            border: 1px solid var(--ctp-overlay0);
-            border-radius: var(--radius);
-            align-items: center;
-            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
-        }
-
-        .tag-chip {
-            display: inline-flex;
-            align-items: center;
-            padding: 0.25rem 0.5rem;
-            background: var(--accent-primary);
-            color: white;
-            border-radius: 4px;
-            font-size: 0.75rem;
-            font-weight: 500;
-        }
-
-        .tags-display:empty::before {
-            content: "No tags yet...";
-            color: var(--text-secondary);
-            font-style: italic;
-            font-size: 0.875rem;
-        }
-
-        .tags-textarea {
-            min-height: 80px;
-            resize: vertical;
-            font-family: inherit;
-            line-height: 1.4;
-        }
-
-        .title-textarea {
-            min-height: 60px;
-            resize: vertical;
-            font-family: inherit;
-            line-height: 1.4;
-        }
-
-        .editor-actions {
-            display: flex;
-            gap: 0.75rem;
-            margin-top: 1.5rem;
-            padding-top: 1rem;
-            border-top: 1px solid var(--border);
-        }
-
-        .loader {
-            width: 20px;
-            height: 20px;
-            border: 2px solid var(--bg-tertiary);
-            border-top: 2px solid var(--accent-primary);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .tabs {
-            display: flex;
-            gap: 0.5rem;
-            margin-bottom: 1rem;
-            background: var(--muted);
-            border-radius: var(--radius);
-            padding: 0.25rem;
-            border: 1px solid var(--border);
-        }
-
-        .tab {
-            padding: 0.75rem 1rem;
-            background: transparent;
-            border: none;
-            color: var(--muted-foreground);
-            cursor: pointer;
-            font-weight: 500;
-            font-size: 0.875rem;
-            border-radius: calc(var(--radius) - 2px);
-            transition: all 0.2s;
-            flex: 1;
-        }
-
-        .tab:hover:not(.active) {
-            color: hsl(var(--foreground));
-        }
-
-        .tab.active {
-            color: hsl(var(--foreground));
-            background: hsl(var(--background));
-            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
-        }
-
-        .tab-content {
-            display: none;
-        }
-
-        .tab-content.active {
-            display: block;
-        }
-
         @media (max-width: 1024px) {
             .grid {
                 grid-template-columns: 1fr;
                 gap: 1.5rem;
+            }
+            
+            .etsy-grid {
+                grid-template-columns: 1fr;
             }
         }
 
@@ -959,9 +1091,8 @@
                 grid-template-columns: 1fr;
             }
             
-            .tabs {
-                flex-direction: column;
-                gap: 0.25rem;
+            .product-grid {
+                grid-template-columns: 1fr 1fr;
             }
         }
 
@@ -972,6 +1103,10 @@
             
             .header h1 {
                 font-size: 1.75rem;
+            }
+            
+            .product-grid {
+                grid-template-columns: 1fr;
             }
         }
     </style>
@@ -985,20 +1120,56 @@
 
         <div class="grid">
             <div class="card">
-                <h2>
-                    <span class="icon">🎨</span>
-                    Processing Workflows
-                </h2>
-
-                <div class="tabs">
-                    <button class="tab active" onclick="showTab('pattern')">Patterns</button>
-                    <button class="tab" onclick="showTab('clipart')">Clipart</button>
-                    <button class="tab" onclick="showTab('journal-papers')">Journal Papers</button>
-                    <button class="tab" onclick="showTab('ai-content')">Etsy Upload</button>
+                <!-- Main Tab Navigation -->
+                <div class="main-tabs">
+                    <button class="main-tab active" onclick="showMainTab('workflows')">
+                        <span class="icon">🎨</span>
+                        Image Processing
+                    </button>
+                    <button class="main-tab" onclick="showMainTab('etsy')">
+                        <span class="icon">🏪</span>
+                        Etsy Integration
+                    </button>
                 </div>
 
-                <!-- Pattern Tab -->
-                <div id="pattern-tab" class="tab-content active">
+                <!-- Image Processing Tab -->
+                <div id="workflows-tab" class="main-tab-content active">
+                    <h2 style="margin-bottom: 1.5rem; border-bottom: none; padding-bottom: 0;">
+                        <span class="icon">🎨</span>
+                        Image Processing Workflows
+                    </h2>
+
+                    <!-- Product Type Selection -->
+                    <div class="product-type-selector">
+                        <h3>
+                            <span class="icon">📦</span>
+                            Select Product Type
+                        </h3>
+                        <div class="product-grid">
+                            <div class="product-option selected" data-type="pattern">
+                                <div class="product-icon">🎨</div>
+                                <div class="product-name">Patterns</div>
+                                <div class="product-desc">Seamless patterns for design</div>
+                            </div>
+                            <div class="product-option" data-type="clipart">
+                                <div class="product-icon">✨</div>
+                                <div class="product-name">Clipart</div>
+                                <div class="product-desc">Digital illustrations & graphics</div>
+                            </div>
+                            <div class="product-option" data-type="border_clipart">
+                                <div class="product-icon">🎭</div>
+                                <div class="product-name">Border Clipart</div>
+                                <div class="product-desc">Seamless horizontal borders</div>
+                            </div>
+                            <div class="product-option" data-type="journal_papers">
+                                <div class="product-icon">📄</div>
+                                <div class="product-name">Journal Papers</div>
+                                <div class="product-desc">Printable journal pages</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Folder Information -->
                     <div class="form-group">
                         <label>Processing Mode</label>
                         <div class="info-box">
@@ -1007,120 +1178,111 @@
                         </div>
                     </div>
 
-                    <div class="workflow-options">
-                        <div class="workflow-card selected" data-workflow="full">
-                            <h3>Full Workflow</h3>
-                            <p>Resize, create mockups, generate video, and package</p>
-                            <div class="workflow-badge">Complete</div>
+                    <!-- Dynamic Workflow Sections -->
+                    <div id="workflow-pattern" class="workflow-section active">
+                        <div class="workflow-options">
+                            <div class="workflow-card selected" data-workflow="full">
+                                <h3>Full Workflow</h3>
+                                <p>Resize, create mockups, generate video, and package</p>
+                                <div class="workflow-badge">Complete</div>
+                            </div>
+                            <div class="workflow-card" data-workflow="mockups-only">
+                                <h3>Mockups + Video</h3>
+                                <p>Skip resizing, create mockups and video</p>
+                                <div class="workflow-badge">Quick</div>
+                            </div>
+                            <div class="workflow-card" data-workflow="resize-only">
+                                <h3>Resize Only</h3>
+                                <p>Just resize images for processing</p>
+                                <div class="workflow-badge">Basic</div>
+                            </div>
                         </div>
-                        <div class="workflow-card" data-workflow="mockups-only">
-                            <h3>Mockups + Video</h3>
-                            <p>Skip resizing, create mockups and video</p>
-                            <div class="workflow-badge">Quick</div>
-                        </div>
-                        <div class="workflow-card" data-workflow="resize-only">
-                            <h3>Resize Only</h3>
-                            <p>Just resize images for processing</p>
-                            <div class="workflow-badge">Basic</div>
-                        </div>
+                        <button class="btn" onclick="runWorkflow('pattern')">
+                            <span class="icon">▶️</span>
+                            Run Pattern Workflow
+                        </button>
                     </div>
 
-
-                    <button class="btn" onclick="runPatternWorkflow()">
-                        <span class="icon">▶️</span>
-                        Run Pattern Workflow (All Folders)
-                    </button>
-                </div>
-
-                <!-- Clipart Tab -->
-                <div id="clipart-tab" class="tab-content">
-                    <div class="form-group">
-                        <label>Processing Mode</label>
-                        <div class="info-box">
-                            <span class="icon">📁</span>
-                            <span id="clipart-folder-info">Will process all folders in input/ directory</span>
+                    <div id="workflow-clipart" class="workflow-section">
+                        <div class="workflow-options">
+                            <div class="workflow-card selected" data-workflow="full">
+                                <h3>Full Workflow</h3>
+                                <p>Resize, create mockups, transparency demo, video, and package</p>
+                                <div class="workflow-badge">Complete</div>
+                            </div>
+                            <div class="workflow-card" data-workflow="mockups-only">
+                                <h3>Mockups + Video</h3>
+                                <p>Skip resizing, create mockups and video</p>
+                                <div class="workflow-badge">Quick</div>
+                            </div>
+                            <div class="workflow-card" data-workflow="extract">
+                                <h3>Extract & Process</h3>
+                                <p>Extract from sprite sheets, create mockups, video, and package</p>
+                                <div class="workflow-badge">Advanced</div>
+                            </div>
                         </div>
+                        <button class="btn" onclick="runWorkflow('clipart')">
+                            <span class="icon">▶️</span>
+                            Run Clipart Workflow
+                        </button>
                     </div>
 
-                    <div class="workflow-options">
-                        <div class="workflow-card selected" data-workflow="full">
-                            <h3>Full Workflow</h3>
-                            <p>Resize, create mockups, transparency demo, video, and package</p>
-                            <div class="workflow-badge">Complete</div>
+                    <div id="workflow-border_clipart" class="workflow-section">
+                        <div class="workflow-options">
+                            <div class="workflow-card selected" data-workflow="full">
+                                <h3>Full Workflow</h3>
+                                <p>Resize, create horizontal seamless mockups, video, and package</p>
+                                <div class="workflow-badge">Complete</div>
+                            </div>
+                            <div class="workflow-card" data-workflow="mockups-only">
+                                <h3>Mockups + Video</h3>
+                                <p>Skip resizing, create seamless border mockups and video</p>
+                                <div class="workflow-badge">Quick</div>
+                            </div>
+                            <div class="workflow-card" data-workflow="resize-only">
+                                <h3>Resize Only</h3>
+                                <p>Just resize border images for processing</p>
+                                <div class="workflow-badge">Basic</div>
+                            </div>
                         </div>
-                        <div class="workflow-card" data-workflow="mockups-only">
-                            <h3>Mockups + Video</h3>
-                            <p>Skip resizing, create mockups and video</p>
-                            <div class="workflow-badge">Quick</div>
-                        </div>
-                        <div class="workflow-card" data-workflow="extract">
-                            <h3>Extract & Process</h3>
-                            <p>Extract from sprite sheets, create mockups, video, and package</p>
-                            <div class="workflow-badge">Advanced</div>
-                        </div>
+                        <button class="btn" onclick="runWorkflow('border_clipart')">
+                            <span class="icon">▶️</span>
+                            Run Border Clipart Workflow
+                        </button>
                     </div>
 
-
-                    <button class="btn" onclick="runClipartWorkflow()">
-                        <span class="icon">▶️</span>
-                        Run Clipart Workflow (All Folders)
-                    </button>
-                </div>
-
-                <!-- Journal Papers Tab -->
-                <div id="journal-papers-tab" class="tab-content">
-                    <div class="form-group">
-                        <label>Processing Mode</label>
-                        <div class="info-box">
-                            <span class="icon">📁</span>
-                            <span id="journal-papers-folder-info">Will process all folders in input/ directory</span>
+                    <div id="workflow-journal_papers" class="workflow-section">
+                        <div class="workflow-options">
+                            <div class="workflow-card selected" data-workflow="full">
+                                <h3>Full Workflow</h3>
+                                <p>Resize to 8.5×11 inches, create mockups, video, and package</p>
+                                <div class="workflow-badge">Complete</div>
+                            </div>
+                            <div class="workflow-card" data-workflow="mockups-only">
+                                <h3>Mockups + Video</h3>
+                                <p>Skip resizing, create main mockup and 2×2 grids</p>
+                                <div class="workflow-badge">Quick</div>
+                            </div>
+                            <div class="workflow-card" data-workflow="resize-only">
+                                <h3>Resize Only</h3>
+                                <p>Just resize to 8.5×11 inch format (2550×3300 pixels)</p>
+                                <div class="workflow-badge">Basic</div>
+                            </div>
                         </div>
+                        <button class="btn" onclick="runWorkflow('journal_papers')">
+                            <span class="icon">▶️</span>
+                            Run Journal Papers Workflow
+                        </button>
                     </div>
-
-                    <div class="workflow-options">
-                        <div class="workflow-card selected" data-workflow="full">
-                            <h3>Full Workflow</h3>
-                            <p>Resize to 8.5×11 inches, create mockups, video, and package</p>
-                            <div class="workflow-badge">Complete</div>
-                        </div>
-                        <div class="workflow-card" data-workflow="mockups-only">
-                            <h3>Mockups + Video</h3>
-                            <p>Skip resizing, create main mockup and 2×2 grids</p>
-                            <div class="workflow-badge">Quick</div>
-                        </div>
-                        <div class="workflow-card" data-workflow="resize-only">
-                            <h3>Resize Only</h3>
-                            <p>Just resize to 8.5×11 inch format (2550×3300 pixels)</p>
-                            <div class="workflow-badge">Basic</div>
-                        </div>
-                    </div>
-
-
-                    <button class="btn" onclick="runJournalPapersWorkflow()">
-                        <span class="icon">▶️</span>
-                        Run Journal Papers Workflow (All Folders)
-                    </button>
                 </div>
 
                 <!-- Etsy Integration Tab -->
-                <div id="ai-content-tab" class="tab-content">
-                    <div class="form-group">
-                        <label>Etsy Integration Workflows</label>
-                        <div class="info-box">
-                            <span class="icon">🏪</span>
-                            <span>Choose between full processing or AI content generation only</span>
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="etsy-product-type">Product Type</label>
-                        <select id="etsy-product-type" class="form-control">
-                            <option value="pattern">Pattern</option>
-                            <option value="clipart">Clipart</option>
-                            <option value="journal_papers">Journal Papers</option>
-                        </select>
-                    </div>
-
+                <div id="etsy-tab" class="main-tab-content">
+                    <h2 style="margin-bottom: 1.5rem; border-bottom: none; padding-bottom: 0;">
+                        <span class="icon">🏪</span>
+                        Etsy Integration & Upload
+                    </h2>
+                    
                     <div class="form-group">
                         <label for="etsy-ai-provider">AI Provider</label>
                         <select id="etsy-ai-provider" class="form-control">
@@ -1129,39 +1291,42 @@
                         </select>
                     </div>
 
-                    <!-- Workflow Options -->
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin: 1.5rem 0;">
-                        <!-- Full Processing Workflow -->
-                        <div class="workflow-card" style="padding: 1.5rem; border: 2px solid var(--primary); background: var(--card);">
-                            <h3 style="margin-bottom: 0.75rem; color: var(--primary); font-size: 1.1rem;">
+                    <div class="form-group">
+                        <label for="etsy-product-type">Product Type for AI Content</label>
+                        <select id="etsy-product-type" class="form-control">
+                            <option value="pattern">Pattern</option>
+                            <option value="clipart">Clipart</option>
+                            <option value="border_clipart">Border Clipart</option>
+                            <option value="journal_papers">Journal Papers</option>
+                        </select>
+                    </div>
+
+                    <div class="etsy-grid">
+                        <div class="etsy-card primary">
+                            <h4>
                                 <span class="icon">⚡</span>
                                 Full Processing
-                            </h3>
-                            <p style="color: var(--muted-foreground); font-size: 0.875rem; margin-bottom: 1rem; line-height: 1.5;">
-                                Complete workflow: Resize images → Create mockups → Generate zip files → Create AI content → Ready for upload
-                            </p>
-                            <div style="background: var(--muted); padding: 0.75rem; border-radius: var(--radius); margin-bottom: 1.25rem; font-size: 0.8rem; border-left: 3px solid var(--primary);">
-                                <strong style="color: var(--card-foreground);">Use when:</strong> <span style="color: var(--muted-foreground);">Starting with raw images that need full processing</span>
+                            </h4>
+                            <p>Complete workflow: Resize → Mockups → Zip → AI Content → Ready for upload</p>
+                            <div class="etsy-note primary">
+                                <strong>Use when:</strong> Starting with raw images that need full processing
                             </div>
-                            <button class="btn" onclick="fullBulkProcessing()" style="width: 100%; padding: 0.875rem; font-size: 0.875rem;">
+                            <button class="btn" onclick="fullBulkProcessing()" style="width: 100%;">
                                 <span class="icon">🔄</span>
-                                Process All + Generate AI Content
+                                Process + Generate AI Content
                             </button>
                         </div>
 
-                        <!-- AI Content Only Workflow -->
-                        <div class="workflow-card" style="padding: 1.5rem; border: 2px solid var(--accent); background: var(--card);">
-                            <h3 style="margin-bottom: 0.75rem; color: var(--accent); font-size: 1.1rem;">
+                        <div class="etsy-card accent">
+                            <h4>
                                 <span class="icon">🤖</span>
                                 AI Content Only
-                            </h3>
-                            <p style="color: var(--muted-foreground); font-size: 0.875rem; margin-bottom: 1rem; line-height: 1.5;">
-                                Generate AI content only: Analyzes existing mockups to create titles, descriptions, and tags
-                            </p>
-                            <div style="background: var(--muted); padding: 0.75rem; border-radius: var(--radius); margin-bottom: 1.25rem; font-size: 0.8rem; border-left: 3px solid var(--accent);">
-                                <strong style="color: var(--card-foreground);">Use when:</strong> <span style="color: var(--muted-foreground);">Products already processed, just need AI content</span>
+                            </h4>
+                            <p>Generate AI content only: Analyzes existing mockups to create titles, descriptions, and tags</p>
+                            <div class="etsy-note accent">
+                                <strong>Use when:</strong> Products already processed, just need AI content
                             </div>
-                            <button class="btn" onclick="prepareEtsyListings()" style="width: 100%; padding: 0.875rem; font-size: 0.875rem;">
+                            <button class="btn" onclick="prepareEtsyListings()" style="width: 100%;">
                                 <span class="icon">🤖</span>
                                 Generate AI Content Only
                             </button>
@@ -1177,55 +1342,29 @@
                         <div id="prepared-listings-list"></div>
                     </div>
 
-                    <!-- Step 2: Upload to Etsy -->
-                    <div class="workflow-card" style="margin: 1.5rem 0; padding: 1.5rem; border: 2px solid var(--border);">
-                        <h3 style="margin-bottom: 0.75rem; font-size: 1.1rem; color: var(--card-foreground);">
+                    <!-- Upload Section -->
+                    <div style="margin-top: 1.5rem; padding: 1.5rem; border: 2px solid var(--border); border-radius: var(--radius);">
+                        <h4 style="margin-bottom: 0.75rem; color: var(--card-foreground); display: flex; align-items: center; gap: 0.5rem;">
                             <span class="icon">🏪</span>
-                            Step 2: Upload to Etsy
-                        </h3>
-                        <p style="color: var(--muted-foreground); font-size: 0.875rem; margin-bottom: 1.5rem; line-height: 1.5;">
+                            Upload to Etsy
+                        </h4>
+                        <p style="color: var(--muted-foreground); font-size: 0.875rem; margin-bottom: 1.5rem;">
                             Upload prepared listings with generated content to your Etsy shop. Requires Etsy API credentials.
                         </p>
                         
-                        <!-- Primary Upload Button -->
-                        <div style="margin-bottom: 1rem;">
-                            <button class="btn" onclick="uploadPreparedListings()" style="width: 100%; padding: 1rem; font-size: 0.9rem;">
+                        <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 0.75rem;">
+                            <button class="btn" onclick="uploadPreparedListings()">
                                 <span class="icon">🏪</span>
-                                Upload Prepared Listings to Etsy
+                                Upload to Etsy
                             </button>
-                        </div>
-
-                        <!-- Secondary Actions -->
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
-                            <button class="btn btn-secondary" onclick="refreshPreparedListings()" style="justify-content: center;">
+                            <button class="btn btn-secondary" onclick="refreshPreparedListings()">
                                 <span class="icon">🔄</span>
-                                Refresh Listings
+                                Refresh
                             </button>
-                            <button class="btn btn-danger" onclick="deletePreparedListings()" style="justify-content: center;">
+                            <button class="btn btn-danger" onclick="deletePreparedListings()">
                                 <span class="icon">🗑️</span>
                                 Delete All
                             </button>
-                        </div>
-                    </div>
-
-                    <!-- Information Box -->
-                    <div style="margin-top: 1.5rem; padding: 1.25rem; background: var(--muted); border-radius: var(--radius); border: 1px solid var(--border); border-left: 4px solid var(--warning);">
-                        <div style="display: flex; align-items: flex-start; gap: 0.75rem;">
-                            <span class="icon" style="font-size: 1.2rem; margin-top: 0.1rem;">⚠️</span>
-                            <div style="flex: 1; font-size: 0.875rem; line-height: 1.6;">
-                                <div style="margin-bottom: 0.75rem;">
-                                    <strong style="color: var(--card-foreground);">Full Processing:</strong> 
-                                    <span style="color: var(--muted-foreground);">Processes raw images from scratch (resize → mockups → zips → AI content)</span>
-                                </div>
-                                <div style="margin-bottom: 0.75rem;">
-                                    <strong style="color: var(--card-foreground);">AI Content Only:</strong> 
-                                    <span style="color: var(--muted-foreground);">Requires products already processed (existing mockups and zips needed)</span>
-                                </div>
-                                <div>
-                                    <strong style="color: var(--card-foreground);">Upload:</strong> 
-                                    <span style="color: var(--muted-foreground);">Requires AI API key for content generation and Etsy API credentials for upload</span>
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -1261,6 +1400,7 @@
 
     <script>
         // Global state
+        let currentProductType = 'pattern';
         let currentWorkflow = 'full';
         let isProcessing = false;
 
@@ -1268,18 +1408,19 @@
         document.addEventListener('DOMContentLoaded', function() {
             updateFolderInfo();
             startLogPolling();
+            setupProductTypeSelection();
             setupWorkflowCards();
             refreshPreparedListings();
         });
 
-        function showTab(tabName) {
+        function showMainTab(tabName) {
             // Hide all tab contents
-            document.querySelectorAll('.tab-content').forEach(content => {
+            document.querySelectorAll('.main-tab-content').forEach(content => {
                 content.classList.remove('active');
             });
             
             // Remove active class from all tabs
-            document.querySelectorAll('.tab').forEach(tab => {
+            document.querySelectorAll('.main-tab').forEach(tab => {
                 tab.classList.remove('active');
             });
             
@@ -1288,6 +1429,46 @@
             
             // Add active class to clicked tab
             event.target.classList.add('active');
+        }
+
+        function setupProductTypeSelection() {
+            document.querySelectorAll('.product-option').forEach(option => {
+                option.addEventListener('click', function() {
+                    // Remove selected from all options
+                    document.querySelectorAll('.product-option').forEach(opt => {
+                        opt.classList.remove('selected');
+                    });
+                    
+                    // Add selected to clicked option
+                    this.classList.add('selected');
+                    
+                    // Update current product type
+                    currentProductType = this.dataset.type;
+                    
+                    // Show/hide workflow sections
+                    document.querySelectorAll('.workflow-section').forEach(section => {
+                        section.classList.remove('active');
+                    });
+                    
+                    const targetSection = document.getElementById(`workflow-${currentProductType}`);
+                    if (targetSection) {
+                        targetSection.classList.add('active');
+                    }
+                    
+                    // Reset workflow to 'full' when switching product types
+                    currentWorkflow = 'full';
+                    
+                    // Update selected workflow card in new section
+                    targetSection.querySelectorAll('.workflow-card').forEach(card => {
+                        card.classList.remove('selected');
+                        if (card.dataset.workflow === 'full') {
+                            card.classList.add('selected');
+                        }
+                    });
+                    
+                    addLogMessage(`Selected product type: ${this.querySelector('.product-name').textContent}`, 'info');
+                });
+            });
         }
 
         function setupWorkflowCards() {
@@ -1314,64 +1495,26 @@
                 const folderCount = data.subfolders.length;
                 const folderNames = data.subfolders.join(', ');
                 
-                // Update info displays
                 const infoText = folderCount > 0 
                     ? `Found ${folderCount} folder(s): ${folderNames}`
                     : 'No folders found in input/ directory';
                 
                 document.getElementById('folder-info').textContent = infoText;
-                document.getElementById('clipart-folder-info').textContent = infoText;
                 
             } catch (error) {
                 addLogMessage('Error loading folder info: ' + error.message, 'error');
                 document.getElementById('folder-info').textContent = 'Error loading folder information';
-                document.getElementById('clipart-folder-info').textContent = 'Error loading folder information';
             }
         }
 
-        async function runPatternWorkflow() {
-            addLogMessage(`Starting pattern workflow with currentWorkflow: ${currentWorkflow}`, 'info');
-            const workflowSteps = getWorkflowSteps('pattern', currentWorkflow, true);
-            addLogMessage(`Pattern workflow steps: ${workflowSteps.join(', ')}`, 'info');
-
-            await runWorkflow('pattern', workflowSteps);
-        }
-
-        async function runClipartWorkflow() {
-            addLogMessage(`Starting clipart workflow with currentWorkflow: ${currentWorkflow}`, 'info');
-            const workflowSteps = getWorkflowSteps('clipart', currentWorkflow, true);
-            addLogMessage(`Clipart workflow steps: ${workflowSteps.join(', ')}`, 'info');
-
-            await runWorkflow('clipart', workflowSteps);
-        }
-
-        async function runJournalPapersWorkflow() {
-            addLogMessage(`Starting journal papers workflow with currentWorkflow: ${currentWorkflow}`, 'info');
-            const workflowSteps = getWorkflowSteps('journal_papers', currentWorkflow, true);
-            addLogMessage(`Journal papers workflow steps: ${workflowSteps.join(', ')}`, 'info');
-
-            await runWorkflow('journal_papers', workflowSteps);
-        }
-
-        function getWorkflowSteps(type, workflow, createVideo) {
-            if (workflow === 'resize-only') {
-                return ['resize'];
-            } else if (workflow === 'mockups-only') {
-                return ['mockup', 'video', 'zip'];
-            } else if (workflow === 'extract' && type === 'clipart') {
-                return ['extract', 'resize', 'mockup', 'video', 'zip'];
-            } else {
-                // Full workflow - always include video
-                return ['resize', 'mockup', 'video', 'zip'];
-            }
-        }
-
-        async function runWorkflow(processorType, workflowSteps) {
+        async function runWorkflow(processorType) {
             if (isProcessing) {
                 alert('A workflow is already running. Please wait for it to complete.');
                 return;
             }
 
+            const workflowSteps = getWorkflowSteps(processorType, currentWorkflow);
+            
             try {
                 setProcessingStatus(true, `Running ${processorType} batch workflow`);
                 addLogMessage(`Starting ${processorType} workflow with steps: ${workflowSteps.join(', ')}`, 'info');
@@ -1398,6 +1541,18 @@
             } catch (error) {
                 addLogMessage('Error starting workflow: ' + error.message, 'error');
                 setProcessingStatus(false, 'Error');
+            }
+        }
+
+        function getWorkflowSteps(type, workflow) {
+            if (workflow === 'resize-only') {
+                return ['resize'];
+            } else if (workflow === 'mockups-only') {
+                return ['mockup', 'video', 'zip'];
+            } else if (workflow === 'extract' && type === 'clipart') {
+                return ['extract', 'resize', 'mockup', 'video', 'zip'];
+            } else {
+                return ['resize', 'mockup', 'video', 'zip'];
             }
         }
 
@@ -1485,8 +1640,6 @@
                 if (response.ok) {
                     addLogMessage('Full bulk processing started successfully', 'success');
                     addLogMessage(data.message, 'info');
-                    addLogMessage('This will resize images, create mockups, generate zips, and create AI content', 'info');
-                    
                     // Refresh prepared listings display after a longer delay (full processing takes more time)
                     setTimeout(() => {
                         refreshPreparedListings();
@@ -1540,49 +1693,6 @@
             }
         }
 
-        async function deletePreparedListings() {
-            if (isProcessing) {
-                alert('A workflow is already running. Please wait for it to complete.');
-                return;
-            }
-
-            // Confirm deletion
-            if (!confirm('Are you sure you want to delete all prepared listings? This action cannot be undone. (A backup will be created)')) {
-                return;
-            }
-
-            try {
-                addLogMessage('Deleting prepared listings...', 'info');
-
-                const response = await fetch('/delete-prepared-listings', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    }
-                });
-
-                const data = await response.json();
-                
-                if (response.ok) {
-                    if (data.success) {
-                        addLogMessage(data.message, 'success');
-                        if (data.backup_created) {
-                            addLogMessage('Backup saved as prepared_listings_backup.json', 'info');
-                        }
-                        // Refresh the prepared listings display
-                        refreshPreparedListings();
-                    } else {
-                        addLogMessage(data.message, 'info');
-                    }
-                } else {
-                    addLogMessage('Failed to delete prepared listings: ' + data.error, 'error');
-                }
-
-            } catch (error) {
-                addLogMessage('Error deleting prepared listings: ' + error.message, 'error');
-            }
-        }
-
         async function refreshPreparedListings() {
             try {
                 const response = await fetch('/get-prepared-listings');
@@ -1595,7 +1705,7 @@
                     section.style.display = 'block';
                     
                     listContainer.innerHTML = `
-                        <div style="margin-bottom: 1rem; color: var(--text-secondary);">
+                        <div style="margin-bottom: 1rem; color: var(--muted-foreground);">
                             Found ${data.count} prepared listing(s). Click to edit:
                         </div>
                         ${data.listings.map(listing => createListingEditor(listing)).join('')}
@@ -1884,10 +1994,51 @@
             }
         }
 
+        async function deletePreparedListings() {
+            if (isProcessing) {
+                alert('A workflow is already running. Please wait for it to complete.');
+                return;
+            }
+
+            if (!confirm('Are you sure you want to delete all prepared listings? This action cannot be undone. (A backup will be created)')) {
+                return;
+            }
+
+            try {
+                addLogMessage('Deleting prepared listings...', 'info');
+
+                const response = await fetch('/delete-prepared-listings', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    if (data.success) {
+                        addLogMessage(data.message, 'success');
+                        if (data.backup_created) {
+                            addLogMessage('Backup saved as prepared_listings_backup.json', 'info');
+                        }
+                        // Refresh the prepared listings display
+                        refreshPreparedListings();
+                    } else {
+                        addLogMessage(data.message, 'info');
+                    }
+                } else {
+                    addLogMessage('Failed to delete prepared listings: ' + data.error, 'error');
+                }
+
+            } catch (error) {
+                addLogMessage('Error deleting prepared listings: ' + error.message, 'error');
+            }
+        }
+
         function setProcessingStatus(processing, statusText) {
             isProcessing = processing;
             const indicator = document.getElementById('status-indicator');
-            const text = document.getElementById('status-text');
             
             if (processing) {
                 indicator.className = 'status-indicator status-running';
@@ -1924,9 +2075,6 @@
             `;
             
             toastContainer.appendChild(toast);
-            
-            // Don't auto-remove - let user manually close during bulk processing
-            // This ensures all listing notifications remain visible until manually dismissed
         }
 
         function removeToast(toastId) {
@@ -1945,7 +2093,6 @@
             const logContainer = document.getElementById('log-container');
             const messageElement = document.createElement('div');
             
-            // Handle both old string format and new object format
             let message, level;
             if (typeof messageData === 'object' && messageData.message) {
                 message = messageData.message;
@@ -1955,7 +2102,6 @@
                 level = type;
             }
             
-            // Apply CSS classes based on level
             messageElement.className = `log-message log-${level}`;
             
             // Check if this is a successful upload message with listing ID
