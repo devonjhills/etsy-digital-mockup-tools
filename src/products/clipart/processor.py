@@ -205,6 +205,7 @@ class ClipartProcessor(BaseProcessor):
         """Create transparency demonstration mockup."""
         from src.products.clipart.transparency import create_transparency_demo
         from src.utils.file_operations import find_files_by_extension
+        from src.utils.common import apply_watermark
         import os
         
         # Create mocks folder inside the input directory (like patterns)
@@ -232,9 +233,12 @@ class ClipartProcessor(BaseProcessor):
             if demo_image is None:
                 return {"success": False, "error": "Failed to create transparency demo"}
             
+            # Apply watermark to transparency demo
+            watermarked_demo = apply_watermark(demo_image)
+            
             # Save the demo
             output_path = os.path.join(mockup_dir, "transparency.png")
-            demo_image.save(output_path)
+            watermarked_demo.save(output_path)
             
             return {"success": True, "file": output_path, "output_folder": mockup_dir}
             

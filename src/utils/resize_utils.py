@@ -47,7 +47,11 @@ def trim_image(image: Image.Image) -> Image.Image:
         The trimmed image
     """
     try:
-        image = image.convert("RGBA")
+        # Ensure we have an RGBA image for proper transparency handling
+        if image.mode != "RGBA":
+            image = image.convert("RGBA")
+        
+        # Get bounding box of non-transparent pixels
         bbox = image.getbbox()
         if bbox:
             return image.crop(bbox)
@@ -284,7 +288,17 @@ class ImageResizer:
                 logger.info(f"Processing {original_filename} -> {target_name}")
                 
                 with Image.open(image_path) as img:
-                    img = img.convert("RGBA")
+                    # Ensure proper transparency handling
+                    if img.mode not in ("RGBA", "LA"):
+                        if img.mode == "P" and "transparency" in img.info:
+                            # Convert palette images with transparency to RGBA
+                            img = img.convert("RGBA")
+                        elif img.mode in ("RGB", "L"):
+                            # Convert RGB/L to RGBA to support transparency
+                            img = img.convert("RGBA")
+                        else:
+                            img = img.convert("RGBA")
+                    
                     img = trim_image(img)
                     
                     if img.size == (0, 0):
@@ -297,8 +311,8 @@ class ImageResizer:
                         logger.info(f"Resizing from {img.size} to {new_size}")
                         img = img.resize(new_size, get_resampling_filter())
                     
-                    img.info["dpi"] = self.dpi
-                    img.save(target_path, format="PNG", dpi=self.dpi)
+                    # Save with proper transparency preservation
+                    img.save(target_path, format="PNG", dpi=self.dpi, optimize=True)
                     
                     # Remove original if different from target
                     if os.path.abspath(target_path) != os.path.abspath(image_path):

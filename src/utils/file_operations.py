@@ -269,12 +269,9 @@ def create_smart_zip_files(source_dir: str, output_dir: str, max_size_mb: float 
                     file_name = os.path.basename(file_path)
                     zipf.write(file_path, file_name)
             
-            # Verify size
+            # Log creation without size validation
             zip_size_mb = os.path.getsize(zip_path) / (1024 * 1024)
             logger.info(f"Created {zip_filename}: {zip_size_mb:.2f} MB")
-            
-            if zip_size_mb > max_size_mb:
-                logger.warning(f"Warning: {zip_filename} exceeds {max_size_mb} MB limit")
             
             zip_files_created.append(zip_path)
         

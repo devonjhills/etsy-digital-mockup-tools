@@ -193,6 +193,37 @@ class BorderClipartProcessor(BaseProcessor):
         from src.utils.grid_utils import apply_watermark_to_grid
         return apply_watermark_to_grid(grid_path, self.logger)
     
+    
+    def _apply_watermark_to_transparency_demo(self, demo_path: str) -> Optional[str]:
+        """Apply watermark to the transparency demo mockup."""
+        from src.utils.common import apply_watermark
+        from PIL import Image
+        
+        try:
+            # Load the demo image
+            demo_image = Image.open(demo_path)
+            
+            # Apply watermark with settings appropriate for transparency demo
+            watermarked_image = apply_watermark(
+                image=demo_image,
+                text="digital veil",
+                font_name="Clattering",
+                font_size=60,  # Larger font for better visibility
+                text_color=(80, 80, 80),  # Darker color for better contrast
+                opacity=120,   # Higher opacity for more visibility
+                diagonal_spacing=350  # Closer spacing for better coverage
+            )
+            
+            # Save watermarked version (overwrite original)
+            watermarked_image.convert("RGB").save(demo_path, "PNG", quality=95, optimize=True)
+            
+            self.logger.info(f"Applied watermark to transparency demo: {demo_path}")
+            return demo_path
+            
+        except Exception as e:
+            self.logger.error(f"Failed to apply watermark to transparency demo {demo_path}: {e}")
+            return None
+    
     def _create_transparency_demo(self) -> Dict[str, Any]:
         """Create transparency demonstration mockup."""
         from src.products.clipart.transparency import create_transparency_demo
@@ -228,7 +259,11 @@ class BorderClipartProcessor(BaseProcessor):
             output_path = os.path.join(mockup_dir, "transparency.png")
             demo_image.save(output_path)
             
-            return {"success": True, "file": output_path, "output_folder": mockup_dir}
+            # Apply watermark to the transparency demo
+            watermarked_path = self._apply_watermark_to_transparency_demo(output_path)
+            final_path = watermarked_path if watermarked_path else output_path
+            
+            return {"success": True, "file": final_path, "output_folder": mockup_dir}
             
         except Exception as e:
             return {"success": False, "error": str(e)}

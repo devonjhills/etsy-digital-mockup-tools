@@ -72,8 +72,8 @@ def create_grid(
     Returns:
         PIL Image with the grid
     """
-    # Create a blank canvas
-    canvas = Image.new("RGB", (canvas_width, canvas_height), background_color)
+    # Create a blank canvas with alpha support for transparency
+    canvas = Image.new("RGBA", (canvas_width, canvas_height), background_color + (255,))
     
     # Calculate the size of each cell in the grid
     cell_width = (canvas_width - (padding * (grid_width + 1))) // grid_width
@@ -100,8 +100,12 @@ def create_grid(
             
             # Open and resize the image
             with Image.open(img_path) as img:
-                # Convert to RGB if needed
-                if img.mode != "RGB":
+                # Preserve transparency for PNG images
+                if img.mode in ("RGBA", "LA") or (img.mode == "P" and "transparency" in img.info):
+                    # Keep transparency
+                    img = img.convert("RGBA")
+                else:
+                    # Convert to RGB for non-transparent images
                     img = img.convert("RGB")
                 
                 # Resize to fit the cell while maintaining aspect ratio
@@ -133,13 +137,20 @@ def create_grid(
                         width=border_width,
                     )
                 
-                # Paste the image onto the canvas
-                canvas.paste(img_resized, (img_x, img_y))
+                # Paste the image onto the canvas with proper alpha handling
+                if img_resized.mode == "RGBA":
+                    canvas.paste(img_resized, (img_x, img_y), img_resized)
+                else:
+                    canvas.paste(img_resized, (img_x, img_y))
         
         except Exception as e:
             logger.error(f"Error processing image {img_path}: {e}")
     
-    return canvas
+    # Convert back to RGB if background is opaque, otherwise keep RGBA
+    if background_color == (255, 255, 255):  # White background
+        return canvas.convert("RGB")
+    else:
+        return canvas
 
 
 def apply_shadow(

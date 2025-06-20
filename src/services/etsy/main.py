@@ -355,29 +355,11 @@ class EtsyIntegration:
                     else:
                         logger.error(f"✗ Failed to upload digital file: {zip_path}")
 
-                # Verify digital files were uploaded successfully
+                # Log upload completion
                 if uploaded_files:
-                    logger.info("Verifying digital files were uploaded successfully...")
-                    verification_success = self.listings.verify_digital_files(
-                        listing_id=listing_id, expected_filenames=uploaded_files
-                    )
-                    if verification_success:
-                        logger.info(f"✓ All digital files verified successfully for listing {listing_id}")
-                        
-                        # Wait and verify again to check if files become visible on website
-                        logger.info("Waiting 10 seconds and re-verifying files are accessible...")
-                        time.sleep(10)
-                        recheck_success = self.listings.verify_digital_files(
-                            listing_id=listing_id, expected_filenames=uploaded_files
-                        )
-                        if recheck_success:
-                            logger.info(f"✓ Files still verified after delay for listing {listing_id}")
-                        else:
-                            logger.warning(f"⚠️ Files no longer found after delay for listing {listing_id}")
-                    else:
-                        logger.error(f"✗ Digital file verification failed for listing {listing_id}")
+                    logger.info(f"✓ Digital file upload completed for listing {listing_id}")
                 else:
-                    logger.warning("No digital files were uploaded, skipping verification")
+                    logger.warning("No digital files were uploaded")
             else:
                 logger.warning(f"No zipped folder found at {zipped_folder}")
 
@@ -925,7 +907,7 @@ class EtsyIntegration:
 
         Args:
             folder_path: Path to the product folder
-            product_type: Product type (pattern or clipart)
+            product_type: Product type (pattern, clipart, border_clipart, journal_papers, etc.)
         """
         try:
             # Get product name from folder name
@@ -940,104 +922,41 @@ class EtsyIntegration:
             mocks_dir = os.path.join(folder_path, "mocks")
             os.makedirs(mocks_dir, exist_ok=True)
 
-            if product_type == "pattern" or product_type == "patterns":
-                # Import pattern processor and use it directly
-                from src.core.processor_factory import ProcessorFactory
-                from src.core.base_processor import ProcessingConfig
-                
-                logger.info(f"Creating pattern mockups for {product_name}...")
-                
-                # Create configuration for the pattern processor
-                config = ProcessingConfig(
-                    product_type="pattern",
-                    input_dir=folder_path,
-                    output_dir=folder_path
-                )
-                
-                # Create processor and run mockup creation
+            # Use the unified processor architecture for all product types
+            from src.core.processor_factory import ProcessorFactory
+            from src.core.base_processor import ProcessingConfig
+            
+            logger.info(f"Creating {product_type} mockups for {product_name}...")
+            
+            # Create configuration for the processor
+            config = ProcessingConfig(
+                product_type=product_type,
+                input_dir=folder_path,
+                output_dir=folder_path
+            )
+            
+            # Create processor and run mockup creation
+            try:
                 processor = ProcessorFactory.create_processor(config)
-                
-                # Create mockups
-                mockup_result = processor.create_mockups()
-                if mockup_result.get("success", True):
-                    logger.info(f"Successfully created pattern mockups for {product_name}")
-                else:
-                    logger.error(f"Failed to create pattern mockups: {mockup_result.get('error', 'Unknown error')}")
-                
-                # Create videos
-                logger.info(f"Creating pattern video for {product_name}...")
-                video_result = processor.create_videos()
-                if video_result.get("success", True):
-                    logger.info(f"Successfully created pattern video for {product_name}")
-                else:
-                    logger.error(f"Failed to create pattern video: {video_result.get('error', 'Unknown error')}")
-
-            elif product_type == "clipart":
-                # Import clipart processor and use it directly
-                from src.core.processor_factory import ProcessorFactory
-                from src.core.base_processor import ProcessingConfig
-                
-                logger.info(f"Creating clipart mockups for {product_name}...")
-                
-                # Create configuration for the clipart processor
-                config = ProcessingConfig(
-                    product_type="clipart",
-                    input_dir=folder_path,
-                    output_dir=folder_path
-                )
-                
-                # Create processor and run mockup creation
-                processor = ProcessorFactory.create_processor(config)
-                
-                # Create mockups
-                mockup_result = processor.create_mockups()
-                if mockup_result.get("success", True):
-                    logger.info(f"Successfully created clipart mockups for {product_name}")
-                else:
-                    logger.error(f"Failed to create clipart mockups: {mockup_result.get('error', 'Unknown error')}")
-                
-                # Create videos
-                logger.info(f"Creating clipart video for {product_name}...")
-                video_result = processor.create_videos()
-                if video_result.get("success", True):
-                    logger.info(f"Successfully created clipart video for {product_name}")
-                else:
-                    logger.error(f"Failed to create clipart video: {video_result.get('error', 'Unknown error')}")
-
-            elif product_type == "journal_papers":
-                # Import journal papers processor and use it directly
-                from src.core.processor_factory import ProcessorFactory
-                from src.core.base_processor import ProcessingConfig
-                
-                logger.info(f"Creating journal papers mockups for {product_name}...")
-                
-                # Create configuration for the journal papers processor
-                config = ProcessingConfig(
-                    product_type="journal_papers",
-                    input_dir=folder_path,
-                    output_dir=folder_path
-                )
-                
-                # Create processor and run mockup creation
-                processor = ProcessorFactory.create_processor(config)
-                
-                # Create mockups
-                mockup_result = processor.create_mockups()
-                if mockup_result.get("success", True):
-                    logger.info(f"Successfully created journal papers mockups for {product_name}")
-                else:
-                    logger.error(f"Failed to create journal papers mockups: {mockup_result.get('error', 'Unknown error')}")
-                
-                # Create videos
-                logger.info(f"Creating journal papers video for {product_name}...")
-                video_result = processor.create_videos()
-                if video_result.get("success", True):
-                    logger.info(f"Successfully created journal papers video for {product_name}")
-                else:
-                    logger.error(f"Failed to create journal papers video: {video_result.get('error', 'Unknown error')}")
-
+            except ValueError as e:
+                logger.error(f"Unsupported product type for mockup generation: {product_type}")
+                logger.error(f"Error details: {e}")
+                return
+            
+            # Create mockups
+            mockup_result = processor.create_mockups()
+            if mockup_result.get("success", True):
+                logger.info(f"Successfully created {product_type} mockups for {product_name}")
             else:
-                logger.warning(f"Unsupported product type for mockup generation: {product_type}")
+                logger.error(f"Failed to create {product_type} mockups: {mockup_result.get('error', 'Unknown error')}")
+            
+            # Create videos
+            logger.info(f"Creating {product_type} video for {product_name}...")
+            video_result = processor.create_videos()
+            if video_result.get("success", True):
+                logger.info(f"Successfully created {product_type} video for {product_name}")
+            else:
+                logger.error(f"Failed to create {product_type} video: {video_result.get('error', 'Unknown error')}")
 
             logger.info(f"Mockups generated successfully for {product_name}")
 
@@ -1154,14 +1073,9 @@ class EtsyIntegration:
                         zipf.write(file_path, file_name)
                         logger.info(f"  Added {file_name} to {zip_filename}")
 
-                # Verify the zip size is under the limit
+                # Log creation
                 zip_size_mb = os.path.getsize(zip_path) / (1024 * 1024)
                 logger.info(f"  Created {zip_filename}: {zip_size_mb:.2f} MB")
-
-                if zip_size_mb > max_size_mb:
-                    logger.warning(
-                        f"  Warning: {zip_filename} is {zip_size_mb:.2f} MB, which exceeds the {max_size_mb} MB limit"
-                    )
 
                 zip_files_created.append(zip_path)
                 logger.info(f"Created zip file: {zip_path}")
@@ -1290,7 +1204,7 @@ class EtsyIntegration:
         
         Args:
             folder_path: Path to the product folder
-            product_type: Type of product (pattern, clipart, journal_papers)
+            product_type: Type of product (pattern, clipart, border_clipart, journal_papers)
             
         Returns:
             Generated content with title, description, and tags
@@ -1299,6 +1213,7 @@ class EtsyIntegration:
             # Import processors to register them
             from src.products.pattern.processor import PatternProcessor
             from src.products.clipart.processor import ClipartProcessor  
+            from src.products.border_clipart.processor import BorderClipartProcessor
             from src.products.journal_papers.processor import JournalPapersProcessor
             
             from src.core.processor_factory import ProcessorFactory

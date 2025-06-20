@@ -366,10 +366,10 @@ def apply_watermark_to_grid(grid_path: str, logger=None) -> Optional[str]:
             image=grid_image,
             text="digital veil",
             font_name="Clattering",
-            font_size=30,
-            text_color=(120, 120, 120),
-            opacity=60,
-            diagonal_spacing=500
+            font_size=50,  # Larger font for better visibility
+            text_color=(80, 80, 80),  # Darker color for better contrast
+            opacity=110,   # Higher opacity for more visibility
+            diagonal_spacing=400  # Closer spacing for better coverage
         )
         
         # Save watermarked version (overwrite original)
