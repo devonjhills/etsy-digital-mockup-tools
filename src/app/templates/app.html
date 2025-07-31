@@ -1,1663 +1,1515 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Mockup Tools - Streamlined GUI</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
     <style>
-        :root {
-            --bg: #1a1a1a;
-            --surface: #2a2a2a;
-            --border: #404040;
-            --text: #e0e0e0;
-            --text-muted: #a0a0a0;
-            --primary: #4a9eff;
-            --success: #4ade80;
-            --danger: #ef4444;
-        }
+      :root {
+        --bg-dark: #111111;
+        --bg: #1a1a1a;
+        --surface: #242424;
+        --border: #333333;
+        --text: #e0e0e0;
+        --text-muted: #a0a0a0;
+        --primary: #007aff;
+        --primary-hover: #0056b3;
+        --success: #34c759;
+        --danger: #ff3b30;
+        --warning: #ff9500;
+        --shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        --radius-sm: 4px;
+        --radius-md: 8px;
+        --radius-lg: 12px;
+        --transition: all 0.2s ease-in-out;
+      }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
 
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            line-height: 1.5;
-            min-height: 100vh;
-            font-size: 14px;
-        }
+      ::-webkit-scrollbar {
+        width: 8px;
+      }
 
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 1rem;
-        }
+      ::-webkit-scrollbar-track {
+        background: var(--bg);
+      }
 
-        .header {
-            margin-bottom: 1.5rem;
-            padding-bottom: 0.75rem;
-            border-bottom: 1px solid var(--border);
-        }
+      ::-webkit-scrollbar-thumb {
+        background: var(--border);
+        border-radius: var(--radius-sm);
+      }
 
-        .header h1 {
-            font-size: 1.5rem;
-            font-weight: 600;
-            margin: 0;
-            color: var(--text);
-        }
+      ::-webkit-scrollbar-thumb:hover {
+        background: #444;
+      }
 
-        .card {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            padding: 1.5rem;
-            margin-bottom: 1rem;
-        }
+      body {
+        font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
+          Roboto, sans-serif;
+        background: var(--bg-dark);
+        color: var(--text);
+        line-height: 1.6;
+        min-height: 100vh;
+        font-size: 14px;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
 
+      .container {
+        max-width: 1300px;
+        margin: 0 auto;
+        padding: 2rem;
+      }
+
+      .header {
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .header h1 {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: white;
+      }
+
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: var(--shadow);
+      }
+
+      .main-grid {
+        display: grid;
+        grid-template-columns: 1fr 480px;
+        gap: 2rem;
+        align-items: start;
+      }
+
+      @media (max-width: 1024px) {
         .main-grid {
-            display: grid;
-            grid-template-columns: 1fr 450px;
-            gap: 1.5rem;
-            align-items: start;
+          grid-template-columns: 1fr;
         }
+      }
 
-        @media (max-width: 1024px) {
-            .main-grid {
-                grid-template-columns: 1fr;
-            }
+      .card h2 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin: -1.5rem -1.5rem 1.5rem -1.5rem;
+        padding: 1rem 1.5rem;
+        color: white;
+        border-bottom: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.03);
+      }
+
+      .card h3 {
+        font-size: 1rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        color: var(--text);
+        border-bottom: 1px solid var(--border);
+        padding-bottom: 0.75rem;
+      }
+
+      .form-group {
+        margin-bottom: 1.25rem;
+      }
+
+      .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+        color: var(--text);
+        font-size: 0.9rem;
+      }
+
+      .form-control {
+        width: 100%;
+        padding: 0.75rem;
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        color: var(--text);
+        font-size: 0.9rem;
+        transition: var(--transition);
+      }
+
+      .form-control:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.25);
+      }
+
+      select.form-control {
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236B7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+        background-position: right 0.5rem center;
+        background-repeat: no-repeat;
+        background-size: 1.5em 1.5em;
+        padding-right: 2.5rem;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1.25rem;
+        background: var(--primary);
+        color: white;
+        border: none;
+        border-radius: var(--radius-md);
+        font-weight: 600;
+        font-size: 0.9rem;
+        cursor: pointer;
+        text-decoration: none;
+        transition: var(--transition);
+      }
+
+      .btn:hover:not(:disabled) {
+        background: var(--primary-hover);
+        transform: translateY(-1px);
+      }
+
+      .btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .btn-secondary {
+        background: var(--border);
+        color: var(--text);
+      }
+      .btn-secondary:hover:not(:disabled) {
+        background: #444;
+      }
+
+      .btn-small {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.8rem;
+        gap: 0.4rem;
+      }
+
+      .btn-danger {
+        background: var(--danger);
+      }
+      .btn-danger:hover:not(:disabled) {
+        background: #d00;
+      }
+
+      .tabs {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 2rem;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .tab {
+        padding: 0.75rem 0.25rem;
+        background: transparent;
+        color: var(--text-muted);
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 1rem;
+        border-bottom: 2px solid transparent;
+        margin-bottom: -1px;
+        transition: var(--transition);
+      }
+
+      .tab:hover {
+        color: var(--text);
+      }
+
+      .tab.active {
+        color: var(--primary);
+        border-bottom-color: var(--primary);
+      }
+
+      .tab-content {
+        display: none;
+      }
+
+      .tab-content.active {
+        display: block;
+      }
+
+      .info-box {
+        padding: 1rem;
+        background: var(--bg);
+        border-left: 3px solid var(--primary);
+        border-radius: var(--radius-sm);
+        color: var(--text-muted);
+        font-size: 0.9rem;
+        margin-bottom: 1.5rem;
+      }
+
+      .log-container {
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        padding: 1rem;
+        height: 450px;
+        overflow-y: auto;
+        font-family: "SF Mono", "Menlo", monospace;
+        font-size: 0.8rem;
+        line-height: 1.5;
+        margin-top: 1rem;
+      }
+
+      .log-message:not(:last-child) {
+        margin-bottom: 0.5rem;
+      }
+
+      .log-error {
+        color: var(--danger);
+      }
+      .log-success {
+        color: var(--success);
+      }
+      .log-info {
+        color: var(--primary);
+      }
+      .log-warning {
+        color: var(--warning);
+      }
+
+      .status {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.75rem 1.25rem;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        font-size: 0.9rem;
+        margin-bottom: 1rem;
+        transition: var(--transition);
+      }
+
+      .status .icon {
+        font-size: 1.1rem;
+      }
+
+      .status.running {
+        border-color: var(--primary);
+        color: var(--primary);
+        background: rgba(0, 122, 255, 0.1);
+      }
+
+      .status.ready .icon {
+        color: var(--success);
+      }
+      .status.error .icon {
+        color: var(--danger);
+      }
+
+      .spinner {
+        width: 16px;
+        height: 16px;
+        border: 2px solid var(--border);
+        border-top: 2px solid var(--primary);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
         }
+      }
 
-        .card h2 {
-            font-size: 1.1rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
-            color: var(--text);
-            border-bottom: 1px solid var(--border);
-            padding-bottom: 0.5rem;
+      .icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 1em;
+        height: 1em;
+      }
+
+      .listing-editor {
+        background: var(--bg);
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+      }
+
+      #prepared-listings-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      .listing-editor h4 {
+        margin: 0 0 1rem 0;
+        color: white;
+        font-size: 1.1rem;
+        font-weight: 600;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .field-group {
+        margin-bottom: 1rem;
+      }
+
+      .field-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-size: 0.9rem;
+        font-weight: 500;
+        color: var(--text);
+      }
+
+      .field-group textarea {
+        width: 100%;
+        padding: 0.75rem;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        color: var(--text);
+        font-size: 0.9rem;
+        font-family: inherit;
+        resize: vertical;
+        transition: var(--transition);
+      }
+
+      .field-group textarea:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.25);
+      }
+
+      .field-group textarea {
+        min-height: 80px;
+      }
+
+      .char-counter {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        margin-top: 0.5rem;
+        text-align: right;
+      }
+
+      .char-counter.warning {
+        color: var(--warning);
+      }
+      .char-counter.error {
+        color: var(--danger);
+      }
+
+      .tags-display {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 0.5rem;
+        min-height: 40px;
+        padding: 0.5rem;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        align-items: center;
+      }
+
+      .tag-chip {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.25rem 0.75rem;
+        background: var(--primary);
+        color: white;
+        border-radius: var(--radius-sm);
+        font-size: 0.8rem;
+        font-weight: 500;
+      }
+
+      .tags-display:empty::before {
+        content: "No tags generated";
+        color: var(--text-muted);
+        font-style: italic;
+        font-size: 0.9rem;
+      }
+
+      .editor-actions {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 1.5rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid var(--border);
+      }
+
+      .toast-container {
+        position: fixed;
+        bottom: 2rem;
+        right: 2rem;
+        z-index: 1000;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        max-width: 400px;
+      }
+
+      .toast {
+        background: var(--surface);
+        color: var(--text);
+        padding: 1rem;
+        border: 1px solid var(--border);
+        border-left: 4px solid var(--success);
+        border-radius: var(--radius-md);
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        min-height: 60px;
+        animation: slideIn 0.3s ease-out;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+      }
+
+      .toast-icon {
+        font-size: 1.5rem;
+        color: var(--success);
+      }
+
+      .toast-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+      }
+
+      .toast-title {
+        font-weight: 600;
+        font-size: 1rem;
+        color: white;
+      }
+
+      .toast-message {
+        font-size: 0.9rem;
+        color: var(--text-muted);
+      }
+
+      .toast-actions {
+        display: flex;
+        gap: 0.75rem;
+        margin-top: 0.75rem;
+      }
+
+      .toast-link {
+        background: var(--primary);
+        color: white;
+        text-decoration: none;
+        padding: 0.5rem 1rem;
+        border-radius: var(--radius-md);
+        font-size: 0.85rem;
+        font-weight: 500;
+        border: none;
+        cursor: pointer;
+        transition: var(--transition);
+      }
+
+      .toast-link:hover {
+        opacity: 0.8;
+      }
+
+      .toast-close {
+        background: transparent;
+        border: none;
+        color: var(--text-muted);
+        cursor: pointer;
+        font-size: 1.5rem;
+        line-height: 1;
+        transition: var(--transition);
+      }
+
+      .toast-close:hover {
+        color: white;
+      }
+
+      @keyframes slideIn {
+        from {
+          transform: translateX(calc(100% + 2rem));
+          opacity: 0;
         }
-
-        .form-group {
-            margin-bottom: 1rem;
+        to {
+          transform: translateX(0);
+          opacity: 1;
         }
+      }
 
-        .form-group label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: 500;
-            color: var(--text);
-            font-size: 0.9rem;
+      @keyframes slideOut {
+        from {
+          transform: translateX(0);
+          opacity: 1;
         }
-
-        .form-control {
-            width: 100%;
-            padding: 0.5rem;
-            background: var(--bg);
-            border: 1px solid var(--border);
-            border-radius: 4px;
-            color: var(--text);
-            font-size: 0.9rem;
+        to {
+          transform: translateX(calc(100% + 2rem));
+          opacity: 0;
         }
-
-        .form-control:focus {
-            outline: none;
-            border-color: var(--primary);
-        }
-
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-            padding: 0.6rem 1rem;
-            background: var(--primary);
-            color: white;
-            border: 1px solid var(--primary);
-            border-radius: 4px;
-            font-weight: 500;
-            font-size: 0.9rem;
-            cursor: pointer;
-            text-decoration: none;
-        }
-
-        .btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        .btn-secondary {
-            background: var(--surface);
-            color: var(--text);
-            border-color: var(--border);
-        }
-
-        .btn-small {
-            padding: 0.4rem 0.6rem;
-            font-size: 0.8rem;
-        }
-
-        .btn-danger {
-            background: var(--danger);
-            border-color: var(--danger);
-        }
-
-        .btn-success {
-            background: var(--success);
-            border-color: var(--success);
-        }
-
-        .tabs {
-            display: flex;
-            gap: 1px;
-            margin-bottom: 1rem;
-            background: var(--border);
-            border-radius: 4px;
-        }
-
-        .tab {
-            padding: 0.75rem 1rem;
-            background: var(--surface);
-            color: var(--text-muted);
-            cursor: pointer;
-            font-weight: 500;
-            font-size: 0.9rem;
-            flex: 1;
-            text-align: center;
-        }
-
-        .tab.active {
-            background: var(--primary);
-            color: white;
-        }
-
-        .tab-content {
-            display: none;
-        }
-
-        .tab-content.active {
-            display: block;
-        }
-
-        .radio-group {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 0.5rem;
-            margin-bottom: 1rem;
-        }
-
-        .radio-option {
-            display: flex;
-            align-items: center;
-            padding: 0.75rem;
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 2px;
-            cursor: pointer;
-        }
-
-        .radio-option input[type="radio"] {
-            margin-right: 0.5rem;
-        }
-
-        .radio-option.selected {
-            border-color: var(--primary);
-            background: rgba(74, 158, 255, 0.1);
-        }
-
-        .info-box {
-            padding: 0.75rem;
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 2px;
-            color: var(--text-muted);
-            font-size: 0.9rem;
-            margin-bottom: 1rem;
-        }
-
-        .log-container {
-            background: var(--bg);
-            border: 1px solid var(--border);
-            border-radius: 4px;
-            padding: 1rem;
-            max-height: 500px;
-            min-height: 350px;
-            overflow-y: auto;
-            font-family: 'Monaco', 'Menlo', monospace;
-            font-size: 0.8rem;
-            line-height: 1.4;
-            margin-top: 1rem;
-        }
-
-        .log-message {
-            margin-bottom: 0.25rem;
-            padding: 0.25rem;
-        }
-
-        .log-error { color: var(--danger); }
-        .log-success { color: var(--success); }
-        .log-info { color: var(--primary); }
-        .log-warning { color: #ffa500; }
-
-        .status {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-            padding: 0.5rem 1rem;
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 4px;
-            font-size: 0.9rem;
-            margin-bottom: 1rem;
-        }
-
-        .status.running {
-            border-color: var(--primary);
-            color: var(--primary);
-        }
-
-        .spinner {
-            width: 16px;
-            height: 16px;
-            border: 2px solid var(--border);
-            border-top: 2px solid var(--primary);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        .listing-editor {
-            background: var(--bg);
-            padding: 1rem;
-            margin: 0.5rem 0;
-            border: 1px solid var(--border);
-            border-radius: 2px;
-        }
-
-        .listing-editor h4 {
-            margin: 0 0 1rem 0;
-            color: var(--text);
-            font-size: 1rem;
-            font-weight: 600;
-            padding-bottom: 0.5rem;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .field-group {
-            margin-bottom: 1rem;
-        }
-
-        .field-group label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-size: 0.9rem;
-            font-weight: 500;
-            color: var(--text);
-        }
-
-        .field-group input[type="text"],
-        .field-group textarea {
-            width: 100%;
-            padding: 0.5rem;
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 2px;
-            color: var(--text);
-            font-size: 0.9rem;
-            font-family: inherit;
-            resize: vertical;
-        }
-
-        .field-group input[type="text"]:focus,
-        .field-group textarea:focus {
-            outline: none;
-            border-color: var(--primary);
-        }
-
-        .field-group textarea {
-            min-height: 80px;
-        }
-
-        .char-counter {
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            margin-top: 0.25rem;
-        }
-
-        .char-counter.warning {
-            color: #ffa500;
-        }
-
-        .char-counter.error {
-            color: var(--danger);
-        }
-
-        .tags-display {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.5rem;
-            margin-bottom: 0.5rem;
-            min-height: 2rem;
-            padding: 0.5rem;
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 2px;
-            align-items: center;
-        }
-
-        .tag-chip {
-            display: inline-flex;
-            align-items: center;
-            padding: 0.25rem 0.5rem;
-            background: var(--primary);
-            color: white;
-            border-radius: 2px;
-            font-size: 0.8rem;
-            font-weight: 500;
-        }
-
-        .tags-display:empty::before {
-            content: "No tags yet...";
-            color: var(--text-muted);
-            font-style: italic;
-            font-size: 0.9rem;
-        }
-
-        .editor-actions {
-            display: flex;
-            gap: 0.5rem;
-            margin-top: 1rem;
-            padding-top: 1rem;
-            border-top: 1px solid var(--border);
-        }
-
-        .toast-container {
-            position: fixed;
-            top: 2rem;
-            right: 2rem;
-            z-index: 1000;
-            display: flex;
-            flex-direction: column;
-            gap: 0.75rem;
-            max-width: 400px;
-        }
-
-        .toast {
-            background: var(--surface);
-            color: var(--text);
-            padding: 1rem;
-            border: 1px solid var(--border);
-            border-radius: 4px;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            min-height: 60px;
-            animation: slideIn 0.3s ease-out;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-        }
-
-        .toast.success {
-            border-color: var(--success);
-        }
-
-        .toast-icon {
-            font-size: 1.2rem;
-            color: var(--success);
-        }
-
-        .toast-content {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            gap: 0.25rem;
-        }
-
-        .toast-title {
-            font-weight: 600;
-            font-size: 0.9rem;
-            color: var(--text);
-        }
-
-        .toast-message {
-            font-size: 0.8rem;
-            color: var(--text-muted);
-        }
-
-        .toast-actions {
-            display: flex;
-            gap: 0.5rem;
-            margin-top: 0.5rem;
-        }
-
-        .toast-link {
-            background: var(--primary);
-            color: white;
-            text-decoration: none;
-            padding: 0.4rem 0.8rem;
-            border-radius: 2px;
-            font-size: 0.8rem;
-            font-weight: 500;
-            border: none;
-            cursor: pointer;
-        }
-
-        .toast-link:hover {
-            opacity: 0.8;
-        }
-
-        .toast-close {
-            background: transparent;
-            border: none;
-            color: var(--text-muted);
-            cursor: pointer;
-            padding: 0.25rem;
-            border-radius: 2px;
-            font-size: 1rem;
-            line-height: 1;
-        }
-
-        .toast-close:hover {
-            color: var(--text);
-            background: var(--border);
-        }
-
-        @keyframes slideIn {
-            from {
-                transform: translateX(100%);
-                opacity: 0;
-            }
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
-        }
-
-        @keyframes slideOut {
-            from {
-                transform: translateX(0);
-                opacity: 1;
-            }
-            to {
-                transform: translateX(100%);
-                opacity: 0;
-            }
-        }
+      }
     </style>
-</head>
-<body class="dark">
+  </head>
+  <body>
     <div class="container">
-        <div class="header">
-            <h1>Mockup Tools</h1>
+      <header class="header">
+        <h1>Mockup & Etsy Automation</h1>
+      </header>
+
+      <div class="tabs">
+        <div class="tab active" onclick="showTab('processing')">
+          Image Processing
         </div>
+        <div class="tab" onclick="showTab('etsy')">Etsy Integration</div>
+      </div>
 
-        <!-- Main Tab Navigation -->
-        <div class="tabs">
-            <div class="tab active" onclick="showTab('processing')">Image Processing</div>
-            <div class="tab" onclick="showTab('etsy')">Etsy Integration</div>
-        </div>
-
-        <div class="main-grid">
-            <div>
-                <!-- Image Processing Tab -->
-                <div id="processing-tab" class="tab-content active card">
-                    <h2>Image Processing</h2>
-                    
-                    <div class="form-group">
-                        <label for="product-type">Product Type</label>
-                        <select id="product-type" class="form-control" onchange="updateProductType()">
-                            <option value="pattern">Patterns</option>
-                            <option value="clipart">Clipart</option>
-                            <option value="border_clipart">Border Clipart</option>
-                            <option value="journal_papers">Journal Papers</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="workflow-type">Workflow</label>
-                        <select id="workflow-type" class="form-control">
-                            <option value="full">Full Workflow (Resize → Mockups → Video → Zip)</option>
-                            <option value="mockups-only">Mockups + Video (Skip resize)</option>
-                            <option value="resize-only">Resize Only</option>
-                            <option value="extract" id="extract-option" style="display:none;">Extract & Process (Clipart only)</option>
-                        </select>
-                    </div>
-
-                    <div class="info-box" id="folder-info">
-                        Will process all folders in input/ directory
-                    </div>
-
-                    <button class="btn" onclick="runWorkflow()" style="width: 100%;">
-                        Run Workflow
-                    </button>
-                </div>
-
-                <!-- Etsy Integration Tab -->
-                <div id="etsy-tab" class="tab-content card">
-                    <h2>Etsy Integration</h2>
-                    
-                    <div class="form-group">
-                        <label for="etsy-ai-provider">AI Provider</label>
-                        <select id="etsy-ai-provider" class="form-control">
-                            <option value="gemini">Google Gemini</option>
-                            <option value="openai">OpenAI</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="etsy-product-type">Product Type</label>
-                        <select id="etsy-product-type" class="form-control">
-                            <option value="pattern">Pattern</option>
-                            <option value="clipart">Clipart</option>
-                            <option value="border_clipart">Border Clipart</option>
-                            <option value="journal_papers">Journal Papers</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <button class="btn" onclick="fullBulkProcessing()" style="width: 100%; margin-bottom: 0.5rem;">
-                            Full Processing + AI Content
-                        </button>
-                        <button class="btn btn-secondary" onclick="prepareEtsyListings()" style="width: 100%; margin-bottom: 0.5rem;">
-                            Generate AI Content Only
-                        </button>
-                        <button class="btn btn-secondary" onclick="refreshPreparedListings()" style="width: 100%;">
-                            Load Prepared Listings
-                        </button>
-                    </div>
-
-                    <!-- Prepared Listings Display -->
-                    <div id="prepared-listings-section" style="display: none;">
-                        <h3>Prepared Listings</h3>
-                        <div id="prepared-listings-list"></div>
-                        
-                        <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
-                            <button id="upload-to-etsy-btn" class="btn" onclick="uploadPreparedListings()">Upload to Etsy</button>
-                            <button class="btn btn-secondary" onclick="refreshPreparedListings()">Refresh</button>
-                            <button class="btn btn-danger" onclick="deletePreparedListings()">Delete All</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-
-            <!-- Status & Logs -->
+      <main class="main-grid">
+        <section>
+          <!-- Image Processing Tab -->
+          <div id="processing-tab" class="tab-content active">
             <div class="card">
-                <h2>Status & Logs</h2>
+              <h2>Image Processing Workflow</h2>
 
-                <div id="status-indicator" class="status">
-                    <span id="status-text">Ready</span>
-                </div>
+              <div class="form-group">
+                <label for="product-type">Product Type</label>
+                <select
+                  id="product-type"
+                  class="form-control"
+                  onchange="updateProductType()"
+                >
+                  <option value="pattern">Patterns</option>
+                  <option value="clipart">Clipart</option>
+                  <option value="border_clipart">Border Clipart</option>
+                  <option value="journal_papers">Journal Papers</option>
+                </select>
+              </div>
 
-                <div class="log-container" id="log-container">
-                    <div class="log-message">Ready to process your digital products...</div>
-                </div>
+              <div class="form-group">
+                <label for="workflow-type">Workflow</label>
+                <select id="workflow-type" class="form-control">
+                  <option value="full">
+                    Full Workflow (Resize → Mockups → Video → Zip)
+                  </option>
+                  <option value="mockups-only">
+                    Mockups + Video (Skip resize)
+                  </option>
+                  <option value="resize-only">Resize Only</option>
+                  <option
+                    value="extract"
+                    id="extract-option"
+                    style="display: none"
+                  >
+                    Extract & Process (Clipart only)
+                  </option>
+                </select>
+              </div>
 
-                <div style="margin-top: 1rem; display: flex; gap: 0.5rem;">
-                    <button class="btn btn-small" onclick="clearLog()">Clear Log</button>
-                    <button class="btn btn-small" onclick="refreshStatus()">Refresh</button>
-                </div>
+              <div class="info-box" id="folder-info">
+                Will process all folders in input/ directory
+              </div>
+
+              <button class="btn" onclick="runWorkflow()" style="width: 100%">
+                <span class="icon">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    fill="currentColor"
+                    viewBox="0 0 16 16"
+                  >
+                    <path
+                      d="M10.804 8 5 4.633v6.734L10.804 8zm.792-.696a.802.802 0 0 1 0 1.392l-6.363 3.692C4.713 12.69 4 12.345 4 11.692V4.308c0-.653.713-.998 1.233-.696l6.363 3.692z"
+                    />
+                  </svg>
+                </span>
+                Run Workflow
+              </button>
             </div>
-        </div>
+          </div>
+
+          <!-- Etsy Integration Tab -->
+          <div id="etsy-tab" class="tab-content">
+            <div class="card">
+              <h2>Etsy Listing Generation</h2>
+
+              <div class="form-group">
+                <label for="etsy-ai-provider">AI Provider</label>
+                <select id="etsy-ai-provider" class="form-control">
+                  <option value="gemini">Google Gemini</option>
+                  <option value="openai">OpenAI</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="etsy-product-type">Product Type</label>
+                <select id="etsy-product-type" class="form-control">
+                  <option value="pattern">Pattern</option>
+                  <option value="clipart">Clipart</option>
+                  <option value="border_clipart">Border Clipart</option>
+                  <option value="journal_papers">Journal Papers</option>
+                </select>
+              </div>
+
+              <div
+                class="form-group"
+                style="display: flex; flex-direction: column; gap: 0.75rem"
+              >
+                <button
+                  class="btn"
+                  onclick="fullBulkProcessing()"
+                  style="width: 100%"
+                >
+                  <span class="icon">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16"
+                      height="16"
+                      fill="currentColor"
+                      viewBox="0 0 16 16"
+                    >
+                      <path
+                        d="M11.534 7h3.932a.25.25 0 0 1 .192.41l-1.966 2.36a.25.25 0 0 1-.384 0l-1.966-2.36a.25.25 0 0 1 .192-.41zm-11 2h3.932a.25.25 0 0 0 .192-.41L2.692 6.23a.25.25 0 0 0-.384 0L.342 8.59A.25.25 0 0 0 .534 9z"
+                      />
+                      <path
+                        fill-rule="evenodd"
+                        d="M8 3c-1.552 0-2.94.707-3.857 1.818a.5.5 0 1 1-.771-.636A6.002 6.002 0 0 1 13.917 7H12.5A4.5 4.5 0 0 0 8 3zM3.143 8.182a.5.5 0 1 1 .771.636A6.002 6.002 0 0 1 2.083 9H3.5A4.5 4.5 0 0 0 8 13c1.552 0 2.94-.707 3.857-1.818a.5.5 0 1 1 .771.636A6.002 6.002 0 0 1 2.083 9z"
+                      />
+                    </svg>
+                  </span>
+                  Full Processing + AI Content
+                </button>
+                <button
+                  class="btn btn-secondary"
+                  onclick="prepareEtsyListings()"
+                  style="width: 100%"
+                >
+                  <span class="icon">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16"
+                      height="16"
+                      fill="currentColor"
+                      viewBox="0 0 16 16"
+                    >
+                      <path
+                        d="M13.405 7.425a.5.5 0 0 1 .488.663l-2.5 5a.5.5 0 0 1-.976-.174l1.29-2.58a.5.5 0 0 0-.256-.615l-3.32-1.66a.5.5 0 0 1-.176-.976l5-2.5a.5.5 0 0 1 .663.488zM4.5 2a.5.5 0 0 0-.5.5v1.25a.5.5 0 0 0 1 0V3h.5a.5.5 0 0 0 0-1h-1z"
+                      />
+                      <path
+                        d="M5.5 3a.5.5 0 0 0 0 1h.5a.5.5 0 0 0 0-1h-.5zM3 10.5a.5.5 0 0 1 .5-.5h1.25a.5.5 0 0 1 0 1H4v.5a.5.5 0 0 1-1 0v-1z"
+                      />
+                      <path
+                        d="M3.5 11a.5.5 0 0 0 0 1h.5a.5.5 0 0 0 0-1h-.5zm-2-4.5a.5.5 0 0 1 .5-.5h1.25a.5.5 0 0 1 0 1H2v.5a.5.5 0 0 1-1 0v-1z"
+                      />
+                      <path d="M1.5 7a.5.5 0 0 0 0 1h.5a.5.5 0 0 0 0-1h-.5z" />
+                    </svg>
+                  </span>
+                  Generate AI Content Only
+                </button>
+                <button
+                  class="btn btn-secondary"
+                  onclick="refreshPreparedListings()"
+                  style="width: 100%"
+                >
+                  <span class="icon">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16"
+                      height="16"
+                      fill="currentColor"
+                      viewBox="0 0 16 16"
+                    >
+                      <path
+                        fill-rule="evenodd"
+                        d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"
+                      />
+                      <path
+                        d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"
+                      />
+                    </svg>
+                  </span>
+                  Load Prepared Listings
+                </button>
+              </div>
+            </div>
+
+            <div
+              id="prepared-listings-section"
+              style="display: none"
+              class="card"
+            >
+              <h3>Prepared Listings for Upload</h3>
+              <div id="prepared-listings-list"></div>
+
+              <div
+                style="
+                  display: flex;
+                  gap: 0.75rem;
+                  margin-top: 1.5rem;
+                  border-top: 1px solid var(--border);
+                  padding-top: 1.5rem;
+                "
+              >
+                <button
+                  id="upload-to-etsy-btn"
+                  class="btn"
+                  onclick="uploadPreparedListings()"
+                ></button>
+                <button
+                  class="btn btn-secondary"
+                  onclick="refreshPreparedListings()"
+                >
+                  <span class="icon"
+                    ><svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16"
+                      height="16"
+                      fill="currentColor"
+                      viewBox="0 0 16 16"
+                    >
+                      <path
+                        fill-rule="evenodd"
+                        d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"
+                      />
+                      <path
+                        d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"
+                      /></svg
+                  ></span>
+                  Refresh
+                </button>
+                <button
+                  class="btn btn-danger"
+                  onclick="deletePreparedListings()"
+                  style="margin-left: auto"
+                >
+                  <span class="icon"
+                    ><svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16"
+                      height="16"
+                      fill="currentColor"
+                      viewBox="0 0 16 16"
+                    >
+                      <path
+                        d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"
+                      />
+                      <path
+                        fill-rule="evenodd"
+                        d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"
+                      /></svg
+                  ></span>
+                  Delete All
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <aside>
+          <!-- Status & Logs -->
+          <div class="card">
+            <h2>Status & Logs</h2>
+
+            <div id="status-indicator" class="status">
+              <span id="status-text">Ready</span>
+            </div>
+
+            <div class="log-container" id="log-container">
+              <div class="log-message">
+                Ready to process your digital products...
+              </div>
+            </div>
+
+            <div style="margin-top: 1rem; display: flex; gap: 0.5rem">
+              <button class="btn btn-secondary btn-small" onclick="clearLog()">
+                Clear Log
+              </button>
+              <button
+                class="btn btn-secondary btn-small"
+                onclick="refreshStatus()"
+              >
+                Refresh Status
+              </button>
+            </div>
+          </div>
+        </aside>
+      </main>
     </div>
 
     <!-- Toast Container -->
     <div class="toast-container" id="toast-container"></div>
 
     <script>
-        // Global state
-        let isProcessing = false;
+      // Global state
+      let isProcessing = false;
 
-        // Initialize the app
-        document.addEventListener('DOMContentLoaded', function() {
-            updateFolderInfo();
-            startLogPolling();
-            refreshPreparedListings();
-            updateProductType();
-        });
+      // --- ICONS ---
+      const ICONS = {
+        upload: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M10.114 6.03a.5.5 0 0 0-.514.853A4.002 4.002 0 0 1 12.5 10a.5.5 0 0 0 .5.5h.5a.5.5 0 0 0 .5-.5 5.002 5.002 0 0 0-4.368-4.97zM8.5 4.002a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v3.415a.5.5 0 0 0 .223.416l2 1.5a.5.5 0 0 0 .554-.832L9 8.185V4.002z"/><path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm7-8A7 7 0 1 1 1 8a7 7 0 0 1 14 0z"/></svg>`,
+        noListings: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M13 14H3a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h1.414A1.99 1.99 0 0 1 6 1.414L7.414 0H9.586L8.172 1.414A1.99 1.99 0 0 1 6.586 2H10a2 2 0 0 1 2 2v1.5a.5.5 0 0 1-1 0V4a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V9.5a.5.5 0 0 1 1 0V12a2 2 0 0 1-2 2zM5 4h5a.5.5 0 0 1 0 1H5a.5.5 0 0 1 0-1z"/></svg>`,
+        etsyUpload: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M10.895 4.542c-.524.248-1.07.39-1.634.496C8.822 4.832 8.4 4.642 8.13 4.25h.003c-.27-.392-.69-.582-1.122-.776a4.34 4.34 0 0 0-1.635-.496c.264.48.375.984.38 1.488-.008.536-.168 1.05-.41 1.51-.532 1.016-1.424 1.555-2.56 1.625.27.392.69.582 1.122.776 1.072.495 2.227.478 3.225-.052.622.568 1.398.912 2.254.957.518.026 1.036-.026 1.546-.132.27-.392.69-.582 1.122-.776.5-.23.93-.39 1.28-.512.21-.072.416-.18.62-.272-.264-.48-.375-.984-.38-1.488.008-.536.168-1.05.41-1.51.532-1.016 1.424-1.555 2.56-1.625a4.18 4.18 0 0 0-1.122-.776c-1.072-.495-2.227-.478-3.225.052a4.53 4.53 0 0 0-2.254-.957 4.53 4.53 0 0 0-1.546.132z"/></svg>`,
+        save: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M2 1a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H9.5a1 1 0 0 0-1 1v4.5h2a.5.5 0 0 1 .354.854l-2.5 2.5a.5.5 0 0 1-.708 0l-2.5-2.5A.5.5 0 0 1 5.5 6.5h2V2a2 2 0 0 1 2-2H14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h2.5a.5.5 0 0 1 0 1H2z"/></svg>`,
+        reset: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8 3a.5.5 0 0 0-1 0v2.5H4.5a.5.5 0 0 0 0 1H7v1.5a.5.5 0 0 0 1 0V6h1.5a.5.5 0 0 0 0-1H8V3z"/><path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm7-8A7 7 0 1 1 1 8a7 7 0 0 1 14 0z"/></svg>`,
+        delete: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/><path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/></svg>`,
+        toastSuccess: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16"><path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/></svg>`,
+      };
 
-        function showTab(tabName) {
-            // Hide all tab contents
-            document.querySelectorAll('.tab-content').forEach(content => {
-                content.classList.remove('active');
-            });
-            
-            // Remove active class from all tabs
-            document.querySelectorAll('.tab').forEach(tab => {
-                tab.classList.remove('active');
-            });
-            
-            // Show selected tab content
-            document.getElementById(tabName + '-tab').classList.add('active');
-            
-            // Add active class to clicked tab
-            event.target.classList.add('active');
+      // --- CORE SCRIPT (UNCHANGED LOGIC) ---
+
+      document.addEventListener("DOMContentLoaded", function () {
+        updateFolderInfo();
+        startLogPolling();
+        refreshPreparedListings();
+        updateProductType();
+        updateUploadButtonState();
+      });
+
+      function showTab(tabName) {
+        document
+          .querySelectorAll(".tab-content")
+          .forEach((content) => content.classList.remove("active"));
+        document
+          .querySelectorAll(".tab")
+          .forEach((tab) => tab.classList.remove("active"));
+        document.getElementById(tabName + "-tab").classList.add("active");
+        event.currentTarget.classList.add("active");
+      }
+
+      function updateProductType() {
+        const productType = document.getElementById("product-type").value;
+        const extractOption = document.getElementById("extract-option");
+
+        if (productType === "clipart") {
+          extractOption.style.display = "block";
+        } else {
+          extractOption.style.display = "none";
+          if (document.getElementById("workflow-type").value === "extract") {
+            document.getElementById("workflow-type").value = "full";
+          }
+        }
+      }
+
+      async function updateFolderInfo() {
+        try {
+          const response = await fetch("/get-subfolders");
+          const data = await response.json();
+          const folderCount = data.subfolders.length;
+          const folderNames = data.subfolders.join(", ");
+          const infoText =
+            folderCount > 0
+              ? `Found ${folderCount} folder(s) to process: ${folderNames}`
+              : "No folders found in the input/ directory.";
+          document.getElementById("folder-info").textContent = infoText;
+        } catch (error) {
+          addLogMessage("Error loading folder info: " + error.message, "error");
+          document.getElementById("folder-info").textContent =
+            "Error loading folder information";
+        }
+      }
+
+      async function runWorkflow() {
+        if (isProcessing) {
+          alert(
+            "A workflow is already running. Please wait for it to complete."
+          );
+          return;
         }
 
-        function updateProductType() {
-            const productType = document.getElementById('product-type').value;
-            const extractOption = document.getElementById('extract-option');
-            
-            // Show/hide extract option based on product type
-            if (productType === 'clipart') {
-                extractOption.style.display = 'block';
-            } else {
-                extractOption.style.display = 'none';
-                // Reset to full if extract was selected
-                if (document.getElementById('workflow-type').value === 'extract') {
-                    document.getElementById('workflow-type').value = 'full';
-                }
-            }
+        const processorType = document.getElementById("product-type").value;
+        const workflowType = document.getElementById("workflow-type").value;
+        const workflowSteps = getWorkflowSteps(processorType, workflowType);
+
+        try {
+          setProcessingStatus(true, `Running ${processorType} batch workflow`);
+          addLogMessage(
+            `Starting ${processorType} workflow with steps: ${workflowSteps.join(
+              ", "
+            )}`,
+            "info"
+          );
+
+          const response = await fetch("/run-workflow", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              processor_type: processorType,
+              workflow_steps: workflowSteps,
+            }),
+          });
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+          }
+          const data = await response.json();
+          addLogMessage(
+            `Successfully started ${processorType} batch workflow for all folders`,
+            "success"
+          );
+        } catch (error) {
+          addLogMessage("Error starting workflow: " + error.message, "error");
+          setProcessingStatus(false, "Error");
         }
+      }
 
-        async function updateFolderInfo() {
-            try {
-                const response = await fetch('/get-subfolders');
-                const data = await response.json();
-                
-                const folderCount = data.subfolders.length;
-                const folderNames = data.subfolders.join(', ');
-                
-                const infoText = folderCount > 0 
-                    ? `Found ${folderCount} folder(s): ${folderNames}`
-                    : 'No folders found in input/ directory';
-                
-                document.getElementById('folder-info').textContent = infoText;
-                
-            } catch (error) {
-                addLogMessage('Error loading folder info: ' + error.message, 'error');
-                document.getElementById('folder-info').textContent = 'Error loading folder information';
-            }
+      function getWorkflowSteps(type, workflow) {
+        if (workflow === "resize-only") return ["resize"];
+        if (workflow === "mockups-only") return ["mockup", "video", "zip"];
+        if (workflow === "extract" && type === "clipart") return ["extract"];
+        return ["resize", "mockup", "video", "zip"];
+      }
+
+      async function prepareEtsyListings() {
+        if (isProcessing) {
+          alert("A workflow is already running. Please wait.");
+          return;
         }
-
-        async function runWorkflow() {
-            if (isProcessing) {
-                alert('A workflow is already running. Please wait for it to complete.');
-                return;
-            }
-
-            const processorType = document.getElementById('product-type').value;
-            const workflowType = document.getElementById('workflow-type').value;
-            const workflowSteps = getWorkflowSteps(processorType, workflowType);
-            
-            try {
-                setProcessingStatus(true, `Running ${processorType} batch workflow`);
-                addLogMessage(`Starting ${processorType} workflow with steps: ${workflowSteps.join(', ')}`, 'info');
-                
-                const response = await fetch('/run-workflow', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        processor_type: processorType,
-                        workflow_steps: workflowSteps
-                    })
-                });
-
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(`HTTP ${response.status}: ${errorText}`);
-                }
-
-                const data = await response.json();
-                addLogMessage(`Successfully started ${processorType} batch workflow for all folders`, 'success');
-                
-            } catch (error) {
-                addLogMessage('Error starting workflow: ' + error.message, 'error');
-                setProcessingStatus(false, 'Error');
-            }
-        }
-
-        function getWorkflowSteps(type, workflow) {
-            if (workflow === 'resize-only') {
-                return ['resize'];
-            } else if (workflow === 'mockups-only') {
-                return ['mockup', 'video', 'zip'];
-            } else if (workflow === 'extract' && type === 'clipart') {
-                return ['extract'];
-            } else {
-                return ['resize', 'mockup', 'video', 'zip'];
-            }
-        }
-
-        async function prepareEtsyListings() {
-            if (isProcessing) {
-                alert('A workflow is already running. Please wait for it to complete.');
-                return;
-            }
-
-            const productType = document.getElementById('etsy-product-type').value;
-            const aiProvider = document.getElementById('etsy-ai-provider').value;
-
-            try {
-                setProcessingStatus(true, 'Preparing Etsy listings with AI');
-                addLogMessage(`Starting AI content generation for ${productType} products using ${aiProvider}`, 'info');
-
-                const response = await fetch('/prepare-etsy-listings', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        processor_type: productType,
-                        ai_provider: aiProvider
-                    })
-                });
-
-                const data = await response.json();
-                
-                if (response.ok) {
-                    addLogMessage('Listing preparation started successfully', 'success');
-                    addLogMessage(data.message, 'info');
-                    // Refresh prepared listings display after a short delay
-                    setTimeout(() => {
-                        refreshPreparedListings();
-                                }, 3000);
-                } else {
-                    addLogMessage('Listing preparation failed: ' + data.error, 'error');
-                    setProcessingStatus(false, 'Ready');
-                }
-
-            } catch (error) {
-                addLogMessage('Error starting listing preparation: ' + error.message, 'error');
-                setProcessingStatus(false, 'Ready');
-            }
-        }
-
-        async function fullBulkProcessing() {
-            if (isProcessing) {
-                alert('A workflow is already running. Please wait for it to complete.');
-                return;
-            }
-
-            const productType = document.getElementById('etsy-product-type').value;
-            const aiProvider = document.getElementById('etsy-ai-provider').value;
-
-            const confirmed = confirm(
-                `This will run the complete processing workflow for ${productType} products:\n\n` +
-                `1. Resize images\n` +
-                `2. Create mockups\n` +
-                `3. Generate zip files\n` +
-                `4. Generate AI content\n\n` +
-                `This may take several minutes. Continue?`
+        const productType = document.getElementById("etsy-product-type").value;
+        const aiProvider = document.getElementById("etsy-ai-provider").value;
+        try {
+          setProcessingStatus(true, "Preparing Etsy listings with AI");
+          addLogMessage(
+            `Starting AI content generation for ${productType} products using ${aiProvider}`,
+            "info"
+          );
+          const response = await fetch("/prepare-etsy-listings", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              processor_type: productType,
+              ai_provider: aiProvider,
+            }),
+          });
+          const data = await response.json();
+          if (response.ok) {
+            addLogMessage(
+              "Listing preparation started successfully",
+              "success"
             );
-
-            if (!confirmed) return;
-
-            try {
-                setProcessingStatus(true, 'Full bulk processing - this may take several minutes');
-                addLogMessage(`Starting full bulk processing for ${productType} products using ${aiProvider}`, 'info');
-
-                const response = await fetch('/full-bulk-processing', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        processor_type: productType,
-                        ai_provider: aiProvider
-                    })
-                });
-
-                const data = await response.json();
-                
-                if (response.ok) {
-                    addLogMessage('Full bulk processing started successfully', 'success');
-                    addLogMessage(data.message, 'info');
-                    // Refresh prepared listings display after a longer delay (full processing takes more time)
-                    setTimeout(() => {
-                        refreshPreparedListings();
-                                }, 10000);
-                } else {
-                    addLogMessage('Full bulk processing failed: ' + data.error, 'error');
-                    setProcessingStatus(false, 'Ready');
-                }
-
-            } catch (error) {
-                addLogMessage('Error starting full bulk processing: ' + error.message, 'error');
-                setProcessingStatus(false, 'Ready');
-            }
+            addLogMessage(data.message, "info");
+            setTimeout(() => refreshPreparedListings(), 3000);
+          } else {
+            addLogMessage("Listing preparation failed: " + data.error, "error");
+            setProcessingStatus(false, "Ready");
+          }
+        } catch (error) {
+          addLogMessage(
+            "Error starting listing preparation: " + error.message,
+            "error"
+          );
+          setProcessingStatus(false, "Ready");
         }
+      }
 
-        async function uploadPreparedListings() {
-            if (isProcessing) {
-                alert('A workflow is already running. Please wait for it to complete.');
-                return;
-            }
-
-            const isDraft = true; // Always create as draft
-
-            try {
-                // Auto-scroll to top to view log status
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-                
-                setProcessingStatus(true, 'Uploading to Etsy');
-                updateUploadButtonState(); // Update button state when upload starts
-                addLogMessage(`Starting upload of prepared listings to Etsy (${isDraft ? 'draft' : 'active'} mode)`, 'info');
-
-                const response = await fetch('/upload-prepared-listings', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        is_draft: isDraft
-                    })
-                });
-
-                const data = await response.json();
-                
-                if (response.ok) {
-                    addLogMessage('Etsy upload started successfully', 'success');
-                    addLogMessage(data.message, 'info');
-                } else {
-                    addLogMessage('Etsy upload failed: ' + data.error, 'error');
-                    setProcessingStatus(false, 'Ready');
-                    updateUploadButtonState(); // Update button state on failure
-                }
-
-            } catch (error) {
-                addLogMessage('Error starting Etsy upload: ' + error.message, 'error');
-                setProcessingStatus(false, 'Ready');
-                updateUploadButtonState(); // Update button state on error
-            }
+      async function fullBulkProcessing() {
+        if (isProcessing) {
+          alert("A workflow is already running. Please wait.");
+          return;
         }
-
-        function createListingEditor(listing) {
-            const folderId = listing.folder_name.replace(/[^a-zA-Z0-9]/g, '_');
-            
-            return `
-                <div class="listing-editor" id="listing-${folderId}">
-                    <h4>${listing.folder_name || 'Unknown Listing'}</h4>
-                    
-                    <div class="field-group">
-                        <label for="title-${folderId}">Title (max 140 characters):</label>
-                        <textarea id="title-${folderId}" 
-                                  oninput="updateCharCounter('title-${folderId}', 140)" 
-                                  maxlength="140"
-                                  class="form-control"
-                                  rows="2">${(listing.title || '').replace(/"/g, '&quot;')}</textarea>
-                        <div class="char-counter" id="title-${folderId}-counter"></div>
-                    </div>
-                    
-                    <div class="field-group">
-                        <label for="description-${folderId}">Description:</label>
-                        <textarea id="description-${folderId}" oninput="updateCharCounter('description-${folderId}', 0)">${(listing.description || '').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</textarea>
-                        <div class="char-counter" id="description-${folderId}-counter"></div>
-                    </div>
-                    
-                    <div class="field-group">
-                        <label>Tags (max 13 tags, 20 characters each):</label>
-                        <div class="tags-display" id="tags-display-${folderId}">
-                            ${(listing.tags || []).map(tag => `
-                                <span class="tag-chip">${tag}</span>
-                            `).join('')}
-                        </div>
-                        <textarea id="tags-input-${folderId}" 
-                                  placeholder="Enter tags separated by commas..."
-                                  oninput="updateTagsFromInput('${folderId}')"
-                                  class="form-control"
-                                  rows="3">${(listing.tags || []).join(', ')}</textarea>
-                        <div class="char-counter" id="tags-${folderId}-counter"></div>
-                    </div>
-                    
-                    <div class="editor-actions">
-                        <button class="btn btn-small" onclick="saveListing('${listing.folder_name}')">
-                            Save Changes
-                        </button>
-                        <button class="btn btn-small" onclick="resetListing('${folderId}', ${JSON.stringify(listing).replace(/"/g, '&quot;')})">
-                            Reset
-                        </button>
-                        <button class="btn btn-small btn-danger" onclick="deleteSingleListing('${listing.folder_name}')" style="margin-left: auto;">
-                            Delete
-                        </button>
-                    </div>
-                </div>
-            `;
+        const productType = document.getElementById("etsy-product-type").value;
+        const aiProvider = document.getElementById("etsy-ai-provider").value;
+        const confirmed = confirm(
+          `This will run the complete processing workflow for ${productType} products:\n\n` +
+            `1. Resize images\n2. Create mockups\n3. Generate zip files\n4. Generate AI content\n\n` +
+            `This may take several minutes. Continue?`
+        );
+        if (!confirmed) return;
+        try {
+          setProcessingStatus(
+            true,
+            "Full bulk processing - this may take several minutes"
+          );
+          addLogMessage(
+            `Starting full bulk processing for ${productType} products using ${aiProvider}`,
+            "info"
+          );
+          const response = await fetch("/full-bulk-processing", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              processor_type: productType,
+              ai_provider: aiProvider,
+            }),
+          });
+          const data = await response.json();
+          if (response.ok) {
+            addLogMessage(
+              "Full bulk processing started successfully",
+              "success"
+            );
+            addLogMessage(data.message, "info");
+            setTimeout(() => refreshPreparedListings(), 10000);
+          } else {
+            addLogMessage(
+              "Full bulk processing failed: " + data.error,
+              "error"
+            );
+            setProcessingStatus(false, "Ready");
+          }
+        } catch (error) {
+          addLogMessage(
+            "Error starting full bulk processing: " + error.message,
+            "error"
+          );
+          setProcessingStatus(false, "Ready");
         }
+      }
 
-        function updateCharCounter(inputId, maxLength) {
-            const input = document.getElementById(inputId);
-            const counter = document.getElementById(inputId + '-counter');
-            const currentLength = input.value.length;
-            
-            if (maxLength > 0) {
-                counter.textContent = `${currentLength}/${maxLength} characters`;
-                
-                if (currentLength > maxLength * 0.9) {
-                    counter.className = 'char-counter warning';
-                } else if (currentLength > maxLength) {
-                    counter.className = 'char-counter error';
-                } else {
-                    counter.className = 'char-counter';
-                }
-            } else {
-                counter.textContent = `${currentLength} characters`;
-                counter.className = 'char-counter';
-            }
+      async function uploadPreparedListings() {
+        if (isProcessing) {
+          alert("A workflow is already running. Please wait.");
+          return;
         }
-
-        function updateTagsFromInput(folderId) {
-            const tagsInput = document.getElementById(`tags-input-${folderId}`);
-            const tagsDisplay = document.getElementById(`tags-display-${folderId}`);
-            
-            // Parse tags from comma-separated input
-            const tagText = tagsInput.value;
-            const tags = tagText.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0);
-            
-            // Remove duplicates while preserving order
-            const uniqueTags = [];
-            const seen = new Set();
-            for (const tag of tags) {
-                if (!seen.has(tag.toLowerCase())) {
-                    uniqueTags.push(tag);
-                    seen.add(tag.toLowerCase());
-                }
-            }
-            
-            // Update visual display
-            tagsDisplay.innerHTML = uniqueTags.map(tag => `
-                <span class="tag-chip">${tag}</span>
-            `).join('');
-            
-            // Update counter
-            updateTagsCounter(folderId, uniqueTags);
-        }
-
-        function updateTagsCounter(folderId, tags = null) {
-            const counter = document.getElementById(`tags-${folderId}-counter`);
-            
-            let tagCount;
-            let errors = [];
-            
-            if (tags) {
-                // Use provided tags array
-                tagCount = tags.length;
-                
-                // Check for validation errors
-                if (tagCount > 13) {
-                    errors.push(`Too many tags (${tagCount}/13)`);
-                }
-                
-                for (const tag of tags) {
-                    if (tag.length > 20) {
-                        errors.push(`"${tag}" is too long (${tag.length}/20 chars)`);
-                    }
-                }
-            } else {
-                // Fallback: count from input
-                const tagsInput = document.getElementById(`tags-input-${folderId}`);
-                const inputTags = tagsInput.value.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0);
-                tagCount = inputTags.length;
-            }
-            
-            if (errors.length > 0) {
-                counter.textContent = errors[0]; // Show first error
-                counter.className = 'char-counter error';
-            } else {
-                counter.textContent = `${tagCount}/13 tags`;
-                
-                if (tagCount > 10) {
-                    counter.className = 'char-counter warning';
-                } else if (tagCount > 13) {
-                    counter.className = 'char-counter error';
-                } else {
-                    counter.className = 'char-counter';
-                }
-            }
-        }
-
-        async function saveListing(folderName) {
-            const folderId = folderName.replace(/[^a-zA-Z0-9]/g, '_');
-            
-            // Collect data
-            const title = document.getElementById(`title-${folderId}`).value.trim();
-            const description = document.getElementById(`description-${folderId}`).value.trim();
-            
-            const tagsInput = document.getElementById(`tags-input-${folderId}`);
-            const tags = tagsInput.value.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0);
-            
-            // Remove duplicates
-            const uniqueTags = [];
-            const seen = new Set();
-            for (const tag of tags) {
-                if (!seen.has(tag.toLowerCase())) {
-                    uniqueTags.push(tag);
-                    seen.add(tag.toLowerCase());
-                }
-            }
-            
-            // Validation
-            if (title.length > 140) {
-                alert(`Title is too long (${title.length} characters). Maximum 140 characters allowed.`);
-                return;
-            }
-            
-            if (uniqueTags.length > 13) {
-                alert(`Too many tags (${uniqueTags.length}). Maximum 13 tags allowed.`);
-                return;
-            }
-            
-            for (const tag of uniqueTags) {
-                if (tag.length > 20) {
-                    alert(`Tag "${tag}" is too long (${tag.length} characters). Maximum 20 characters allowed.`);
-                    return;
-                }
-            }
-            
-            try {
-                const response = await fetch('/update-prepared-listing', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        folder_name: folderName,
-                        title: title,
-                        description: description,
-                        tags: uniqueTags
-                    })
-                });
-                
-                const data = await response.json();
-                
-                if (response.ok) {
-                    addLogMessage(`Successfully updated listing for ${folderName}`, 'success');
-                } else {
-                    addLogMessage(`Failed to update listing: ${data.error}`, 'error');
-                    alert(data.error);
-                }
-                
-            } catch (error) {
-                addLogMessage(`Error updating listing: ${error.message}`, 'error');
-                alert(`Error updating listing: ${error.message}`);
-            }
-        }
-
-        function resetListing(folderId, originalListing) {
-            const listing = JSON.parse(originalListing.replace(/&quot;/g, '"'));
-            
-            document.getElementById(`title-${folderId}`).value = listing.title || '';
-            document.getElementById(`description-${folderId}`).value = listing.description || '';
-            
-            // Reset tags input
-            const tagsInput = document.getElementById(`tags-input-${folderId}`);
-            tagsInput.value = (listing.tags || []).join(', ');
-            
-            // Update visual display and counter
-            updateTagsFromInput(folderId);
-            
-            // Update counters
-            updateCharCounter(`title-${folderId}`, 140);
-            updateCharCounter(`description-${folderId}`, 0);
-        }
-
-        async function deleteSingleListing(folderName) {
-            if (!confirm(`Are you sure you want to delete the prepared listing for "${folderName}"?\n\nThis action cannot be undone.`)) {
-                return;
-            }
-            
-            try {
-                const response = await fetch('/delete-single-prepared-listing', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        folder_name: folderName
-                    })
-                });
-                
-                const data = await response.json();
-                
-                if (response.ok) {
-                    addLogMessage(`Successfully deleted prepared listing for ${folderName}`, 'success');
-                    // Refresh the prepared listings display
-                    refreshPreparedListings();
-                } else {
-                    addLogMessage(`Failed to delete listing: ${data.error}`, 'error');
-                    alert(data.error);
-                }
-                
-            } catch (error) {
-                addLogMessage(`Error deleting listing: ${error.message}`, 'error');
-                alert(`Error deleting listing: ${error.message}`);
-            }
-        }
-
-        async function refreshPreparedListings() {
-            try {
-                const response = await fetch('/get-prepared-listings');
-                const data = await response.json();
-                
-                const section = document.getElementById('prepared-listings-section');
-                const listContainer = document.getElementById('prepared-listings-list');
-                
-                if (data.success && data.count > 0) {
-                    section.style.display = 'block';
-                    
-                    listContainer.innerHTML = `
-                        <div style="margin-bottom: 1rem; color: var(--muted-foreground);">
-                            Found ${data.count} prepared listing(s). Click to edit:
-                        </div>
-                        ${data.listings.map(listing => createListingEditor(listing)).join('')}
-                    `;
-                    
-                    // Initialize character counters for all listings
-                    data.listings.forEach(listing => {
-                        const folderId = listing.folder_name.replace(/[^a-zA-Z0-9]/g, '_');
-                        setTimeout(() => {
-                            updateCharCounter(`title-${folderId}`, 140);
-                            updateCharCounter(`description-${folderId}`, 0);
-                            updateTagsCounter(folderId, listing.tags || []);
-                        }, 100);
-                    });
-                } else {
-                    section.style.display = 'none';
-                }
-                
-                // Update upload button state based on available listings
-                updateUploadButtonState();
-                
-            } catch (error) {
-                console.error('Error refreshing prepared listings:', error);
-            }
-        }
-
-        function updateUploadButtonState() {
-            const uploadBtn = document.getElementById('upload-to-etsy-btn');
-            const preparedSection = document.getElementById('prepared-listings-section');
-            
-            if (!uploadBtn) return;
-            
-            // Check if there are prepared listings
-            const hasPreparedListings = preparedSection && preparedSection.style.display !== 'none';
-            
-            // Disable if no listings or if processing
-            const shouldDisable = !hasPreparedListings || isProcessing;
-            
-            uploadBtn.disabled = shouldDisable;
-            
-            if (shouldDisable) {
-                uploadBtn.style.opacity = '0.5';
-                uploadBtn.style.cursor = 'not-allowed';
-                
-                if (isProcessing) {
-                    uploadBtn.innerHTML = '<span class="icon">⏳</span>Uploading...';
-                } else {
-                    uploadBtn.innerHTML = '<span class="icon">🏪</span>No Listings to Upload';
-                }
-            } else {
-                uploadBtn.style.opacity = '1';
-                uploadBtn.style.cursor = 'pointer';
-                uploadBtn.innerHTML = '<span class="icon">🏪</span>Upload to Etsy';
-            }
-        }
-
-        function createListingEditor(listing) {
-            const folderId = listing.folder_name.replace(/[^a-zA-Z0-9]/g, '_');
-            
-            return `
-                <div class="listing-editor" id="listing-${folderId}">
-                    <h4>${listing.folder_name || 'Unknown Listing'}</h4>
-                    
-                    <div class="field-group">
-                        <label for="title-${folderId}">Title (max 140 characters):</label>
-                        <textarea id="title-${folderId}" 
-                                  oninput="updateCharCounter('title-${folderId}', 140)" 
-                                  maxlength="140"
-                                  class="form-control title-textarea"
-                                  rows="2">${(listing.title || '').replace(/"/g, '&quot;')}</textarea>
-                        <div class="char-counter" id="title-${folderId}-counter"></div>
-                    </div>
-                    
-                    <div class="field-group">
-                        <label for="description-${folderId}">Description:</label>
-                        <textarea id="description-${folderId}" oninput="updateCharCounter('description-${folderId}', 0)">${(listing.description || '').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</textarea>
-                        <div class="char-counter" id="description-${folderId}-counter"></div>
-                    </div>
-                    
-                    <div class="field-group">
-                        <label>Tags (max 13 tags, 20 characters each):</label>
-                        <div class="tags-display" id="tags-display-${folderId}">
-                            ${(listing.tags || []).map(tag => `
-                                <span class="tag-chip">${tag}</span>
-                            `).join('')}
-                        </div>
-                        <textarea id="tags-input-${folderId}" 
-                                  placeholder="Enter tags separated by commas..."
-                                  oninput="updateTagsFromInput('${folderId}')"
-                                  class="form-control tags-textarea"
-                                  rows="3">${(listing.tags || []).join(', ')}</textarea>
-                        <div class="char-counter" id="tags-${folderId}-counter"></div>
-                    </div>
-                    
-                    <div class="editor-actions">
-                        <button class="btn btn-small" onclick="saveListing('${listing.folder_name}')">
-                            <span class="icon">💾</span>
-                            Save Changes
-                        </button>
-                        <button class="btn btn-small" onclick="resetListing('${folderId}', ${JSON.stringify(listing).replace(/"/g, '&quot;')})">
-                            <span class="icon">↺</span>
-                            Reset
-                        </button>
-                        <button class="btn btn-small btn-danger" onclick="deleteSingleListing('${listing.folder_name}')" style="margin-left: auto;">
-                            <span class="icon">🗑️</span>
-                            Delete
-                        </button>
-                    </div>
-                </div>
-            `;
-        }
-
-        function updateCharCounter(inputId, maxLength) {
-            const input = document.getElementById(inputId);
-            const counter = document.getElementById(inputId + '-counter');
-            const currentLength = input.value.length;
-            
-            if (maxLength > 0) {
-                counter.textContent = `${currentLength}/${maxLength} characters`;
-                
-                if (currentLength > maxLength * 0.9) {
-                    counter.className = 'char-counter warning';
-                } else if (currentLength > maxLength) {
-                    counter.className = 'char-counter error';
-                } else {
-                    counter.className = 'char-counter';
-                }
-            } else {
-                counter.textContent = `${currentLength} characters`;
-                counter.className = 'char-counter';
-            }
-        }
-
-        function updateTagsFromInput(folderId) {
-            const tagsInput = document.getElementById(`tags-input-${folderId}`);
-            const tagsDisplay = document.getElementById(`tags-display-${folderId}`);
-            
-            // Parse tags from comma-separated input
-            const tagText = tagsInput.value;
-            const tags = tagText.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0);
-            
-            // Remove duplicates while preserving order
-            const uniqueTags = [];
-            const seen = new Set();
-            for (const tag of tags) {
-                if (!seen.has(tag.toLowerCase())) {
-                    uniqueTags.push(tag);
-                    seen.add(tag.toLowerCase());
-                }
-            }
-            
-            // Update visual display
-            tagsDisplay.innerHTML = uniqueTags.map(tag => `
-                <span class="tag-chip">${tag}</span>
-            `).join('');
-            
-            // Update counter
-            updateTagsCounter(folderId, uniqueTags);
-        }
-
-        function updateTagsCounter(folderId, tags = null) {
-            const counter = document.getElementById(`tags-${folderId}-counter`);
-            
-            let tagCount;
-            let errors = [];
-            
-            if (tags) {
-                // Use provided tags array
-                tagCount = tags.length;
-                
-                // Check for validation errors
-                if (tagCount > 13) {
-                    errors.push(`Too many tags (${tagCount}/13)`);
-                }
-                
-                for (const tag of tags) {
-                    if (tag.length > 20) {
-                        errors.push(`"${tag}" is too long (${tag.length}/20 chars)`);
-                    }
-                }
-            } else {
-                // Fallback: count from input
-                const tagsInput = document.getElementById(`tags-input-${folderId}`);
-                const inputTags = tagsInput.value.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0);
-                tagCount = inputTags.length;
-            }
-            
-            if (errors.length > 0) {
-                counter.textContent = errors[0]; // Show first error
-                counter.className = 'char-counter error';
-            } else {
-                counter.textContent = `${tagCount}/13 tags`;
-                
-                if (tagCount > 10) {
-                    counter.className = 'char-counter warning';
-                } else if (tagCount > 13) {
-                    counter.className = 'char-counter error';
-                } else {
-                    counter.className = 'char-counter';
-                }
-            }
-        }
-
-        async function saveListing(folderName) {
-            const folderId = folderName.replace(/[^a-zA-Z0-9]/g, '_');
-            
-            // Collect data
-            const title = document.getElementById(`title-${folderId}`).value.trim();
-            const description = document.getElementById(`description-${folderId}`).value.trim();
-            
-            const tagsInput = document.getElementById(`tags-input-${folderId}`);
-            const tags = tagsInput.value.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0);
-            
-            // Remove duplicates
-            const uniqueTags = [];
-            const seen = new Set();
-            for (const tag of tags) {
-                if (!seen.has(tag.toLowerCase())) {
-                    uniqueTags.push(tag);
-                    seen.add(tag.toLowerCase());
-                }
-            }
-            
-            // Validation
-            if (title.length > 140) {
-                alert(`Title is too long (${title.length} characters). Maximum 140 characters allowed.`);
-                return;
-            }
-            
-            if (uniqueTags.length > 13) {
-                alert(`Too many tags (${uniqueTags.length}). Maximum 13 tags allowed.`);
-                return;
-            }
-            
-            for (const tag of uniqueTags) {
-                if (tag.length > 20) {
-                    alert(`Tag "${tag}" is too long (${tag.length} characters). Maximum 20 characters allowed.`);
-                    return;
-                }
-            }
-            
-            try {
-                const response = await fetch('/update-prepared-listing', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        folder_name: folderName,
-                        title: title,
-                        description: description,
-                        tags: uniqueTags
-                    })
-                });
-                
-                const data = await response.json();
-                
-                if (response.ok) {
-                    addLogMessage(`Successfully updated listing for ${folderName}`, 'success');
-                } else {
-                    addLogMessage(`Failed to update listing: ${data.error}`, 'error');
-                    alert(data.error);
-                }
-                
-            } catch (error) {
-                addLogMessage(`Error updating listing: ${error.message}`, 'error');
-                alert(`Error updating listing: ${error.message}`);
-            }
-        }
-
-        function resetListing(folderId, originalListing) {
-            const listing = JSON.parse(originalListing.replace(/&quot;/g, '"'));
-            
-            document.getElementById(`title-${folderId}`).value = listing.title || '';
-            document.getElementById(`description-${folderId}`).value = listing.description || '';
-            
-            // Reset tags input
-            const tagsInput = document.getElementById(`tags-input-${folderId}`);
-            tagsInput.value = (listing.tags || []).join(', ');
-            
-            // Update visual display and counter
-            updateTagsFromInput(folderId);
-            
-            // Update counters
-            updateCharCounter(`title-${folderId}`, 140);
-            updateCharCounter(`description-${folderId}`, 0);
-        }
-
-        async function deleteSingleListing(folderName) {
-            if (!confirm(`Are you sure you want to delete the prepared listing for "${folderName}"?\n\nThis action cannot be undone.`)) {
-                return;
-            }
-            
-            try {
-                const response = await fetch('/delete-single-prepared-listing', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        folder_name: folderName
-                    })
-                });
-                
-                const data = await response.json();
-                
-                if (response.ok) {
-                    addLogMessage(`Successfully deleted prepared listing for ${folderName}`, 'success');
-                    // Refresh the prepared listings display
-                    refreshPreparedListings();
-                } else {
-                    addLogMessage(`Failed to delete listing: ${data.error}`, 'error');
-                    alert(data.error);
-                }
-                
-            } catch (error) {
-                addLogMessage(`Error deleting listing: ${error.message}`, 'error');
-                alert(`Error deleting listing: ${error.message}`);
-            }
-        }
-
-        async function deletePreparedListings() {
-            if (isProcessing) {
-                alert('A workflow is already running. Please wait for it to complete.');
-                return;
-            }
-
-            if (!confirm('Are you sure you want to delete all prepared listings? This action cannot be undone. (A backup will be created)')) {
-                return;
-            }
-
-            try {
-                addLogMessage('Deleting prepared listings...', 'info');
-
-                const response = await fetch('/delete-prepared-listings', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    }
-                });
-
-                const data = await response.json();
-                
-                if (response.ok) {
-                    if (data.success) {
-                        addLogMessage(data.message, 'success');
-                        if (data.backup_created) {
-                            addLogMessage('Backup saved as prepared_listings_backup.json', 'info');
-                        }
-                        // Refresh the prepared listings display
-                        refreshPreparedListings();
-                    } else {
-                        addLogMessage(data.message, 'info');
-                    }
-                } else {
-                    addLogMessage('Failed to delete prepared listings: ' + data.error, 'error');
-                }
-
-            } catch (error) {
-                addLogMessage('Error deleting prepared listings: ' + error.message, 'error');
-            }
-        }
-
-        function setProcessingStatus(processing, statusText) {
-            isProcessing = processing;
-            const indicator = document.getElementById('status-indicator');
-            const statusTextEl = document.getElementById('status-text');
-            
-            if (processing) {
-                indicator.className = 'status running';
-                indicator.innerHTML = '<div class="spinner"></div><span>' + statusText + '</span>';
-            } else {
-                indicator.className = 'status';
-                indicator.innerHTML = '<span>' + statusText + '</span>';
-            }
-            
-            // Update upload button state when processing status changes
+        const isDraft = true;
+        try {
+          window.scrollTo({ top: 0, behavior: "smooth" });
+          setProcessingStatus(true, "Uploading to Etsy");
+          updateUploadButtonState();
+          addLogMessage(
+            `Starting upload of prepared listings to Etsy (${
+              isDraft ? "draft" : "active"
+            } mode)`,
+            "info"
+          );
+          const response = await fetch("/upload-prepared-listings", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ is_draft: isDraft }),
+          });
+          const data = await response.json();
+          if (response.ok) {
+            addLogMessage("Etsy upload started successfully", "success");
+            addLogMessage(data.message, "info");
+          } else {
+            addLogMessage("Etsy upload failed: " + data.error, "error");
+            setProcessingStatus(false, "Ready");
             updateUploadButtonState();
+          }
+        } catch (error) {
+          addLogMessage(
+            "Error starting Etsy upload: " + error.message,
+            "error"
+          );
+          setProcessingStatus(false, "Ready");
+          updateUploadButtonState();
+        }
+      }
+
+      async function refreshPreparedListings() {
+        try {
+          const response = await fetch("/get-prepared-listings");
+          const data = await response.json();
+          const section = document.getElementById("prepared-listings-section");
+          const listContainer = document.getElementById(
+            "prepared-listings-list"
+          );
+
+          if (data.success && data.count > 0) {
+            section.style.display = "block";
+            listContainer.innerHTML = data.listings
+              .map(createListingEditor)
+              .join("");
+            data.listings.forEach((listing) => {
+              const folderId = listing.folder_name.replace(
+                /[^a-zA-Z0-9]/g,
+                "_"
+              );
+              setTimeout(() => {
+                updateCharCounter(`title-${folderId}`, 140);
+                updateCharCounter(`description-${folderId}`, 0);
+                updateTagsCounter(folderId, listing.tags || []);
+              }, 100);
+            });
+          } else {
+            listContainer.innerHTML = "";
+            section.style.display = "none";
+          }
+          updateUploadButtonState();
+        } catch (error) {
+          console.error("Error refreshing prepared listings:", error);
+        }
+      }
+
+      function createListingEditor(listing) {
+        const folderId = listing.folder_name.replace(/[^a-zA-Z0-9]/g, "_");
+        return `
+                <div class="listing-editor" id="listing-${folderId}">
+                    <h4>${listing.folder_name || "Unknown Listing"}</h4>
+                    <div class="field-group">
+                        <label for="title-${folderId}">Title (max 140)</label>
+                        <textarea id="title-${folderId}" oninput="updateCharCounter('title-${folderId}', 140)" maxlength="140" rows="2">${(
+          listing.title || ""
+        ).replace(/"/g, '"')}</textarea>
+                        <div class="char-counter" id="title-${folderId}-counter"></div>
+                    </div>
+                    <div class="field-group">
+                        <label for="description-${folderId}">Description</label>
+                        <textarea id="description-${folderId}" oninput="updateCharCounter('description-${folderId}', 0)" rows="5">${(
+          listing.description || ""
+        )
+          .replace(/</g, "<")
+          .replace(/>/g, ">")}</textarea>
+                        <div class="char-counter" id="description-${folderId}-counter"></div>
+                    </div>
+                    <div class="field-group">
+                        <label>Tags (max 13 tags, 20 chars each)</label>
+                        <div class="tags-display" id="tags-display-${folderId}">${(
+          listing.tags || []
+        )
+          .map((tag) => `<span class="tag-chip">${tag}</span>`)
+          .join("")}</div>
+                        <textarea id="tags-input-${folderId}" placeholder="Enter tags separated by commas..." oninput="updateTagsFromInput('${folderId}')" rows="3">${(
+          listing.tags || []
+        ).join(", ")}</textarea>
+                        <div class="char-counter" id="tags-${folderId}-counter"></div>
+                    </div>
+                    <div class="editor-actions">
+                        <button class="btn btn-small" onclick="saveListing('${
+                          listing.folder_name
+                        }')"><span class="icon">${
+          ICONS.save
+        }</span> Save Changes</button>
+                        <button class="btn btn-secondary btn-small" onclick="resetListing('${folderId}', ${JSON.stringify(
+          listing
+        ).replace(/"/g, '"')})"><span class="icon">${
+          ICONS.reset
+        }</span> Reset</button>
+                        <button class="btn btn-danger btn-small" onclick="deleteSingleListing('${
+                          listing.folder_name
+                        }')" style="margin-left: auto;"><span class="icon">${
+          ICONS.delete
+        }</span> Delete</button>
+                    </div>
+                </div>`;
+      }
+
+      function updateUploadButtonState() {
+        const uploadBtn = document.getElementById("upload-to-etsy-btn");
+        if (!uploadBtn) return;
+
+        const hasPreparedListings =
+          document.getElementById("prepared-listings-list").children.length > 0;
+        const shouldDisable = !hasPreparedListings || isProcessing;
+
+        uploadBtn.disabled = shouldDisable;
+
+        if (isProcessing) {
+          uploadBtn.innerHTML = `<span class="icon">${ICONS.upload}</span> Uploading...`;
+        } else if (!hasPreparedListings) {
+          uploadBtn.innerHTML = `<span class="icon">${ICONS.noListings}</span> No Listings to Upload`;
+        } else {
+          uploadBtn.innerHTML = `<span class="icon">${ICONS.etsyUpload}</span> Upload to Etsy`;
+        }
+      }
+
+      function updateCharCounter(inputId, maxLength) {
+        const input = document.getElementById(inputId);
+        const counter = document.getElementById(inputId + "-counter");
+        const currentLength = input.value.length;
+
+        counter.className = "char-counter";
+        if (maxLength > 0) {
+          counter.textContent = `${currentLength}/${maxLength}`;
+          if (currentLength > maxLength) counter.classList.add("error");
+          else if (currentLength > maxLength * 0.9)
+            counter.classList.add("warning");
+        } else {
+          counter.textContent = `${currentLength} chars`;
+        }
+      }
+
+      function updateTagsFromInput(folderId) {
+        const tagsInput = document.getElementById(`tags-input-${folderId}`);
+        const tagsDisplay = document.getElementById(`tags-display-${folderId}`);
+        const tags = Array.from(
+          new Set(
+            tagsInput.value
+              .split(",")
+              .map((tag) => tag.trim())
+              .filter(Boolean)
+          )
+        );
+
+        tagsDisplay.innerHTML = tags
+          .map((tag) => `<span class="tag-chip">${tag}</span>`)
+          .join("");
+        updateTagsCounter(folderId, tags);
+      }
+
+      function updateTagsCounter(folderId, tags = []) {
+        const counter = document.getElementById(`tags-${folderId}-counter`);
+        let errors = [];
+        if (tags.length > 13) errors.push(`Too many tags (${tags.length}/13)`);
+        const longTag = tags.find((tag) => tag.length > 20);
+        if (longTag)
+          errors.push(`"${longTag}" is too long (${longTag.length}/20)`);
+
+        if (errors.length > 0) {
+          counter.textContent = errors[0];
+          counter.className = "char-counter error";
+        } else {
+          counter.textContent = `${tags.length}/13 tags`;
+          counter.className = "char-counter";
+          if (tags.length > 10) counter.classList.add("warning");
+        }
+      }
+
+      async function saveListing(folderName) {
+        const folderId = folderName.replace(/[^a-zA-Z0-9]/g, "_");
+        const title = document.getElementById(`title-${folderId}`).value.trim();
+        const description = document
+          .getElementById(`description-${folderId}`)
+          .value.trim();
+        const tags = Array.from(
+          new Set(
+            document
+              .getElementById(`tags-input-${folderId}`)
+              .value.split(",")
+              .map((tag) => tag.trim())
+              .filter(Boolean)
+          )
+        );
+
+        if (title.length > 140) return alert(`Title is too long.`);
+        if (tags.length > 13) return alert(`Too many tags.`);
+        if (tags.some((t) => t.length > 20))
+          return alert(`One or more tags are too long.`);
+
+        try {
+          const response = await fetch("/update-prepared-listing", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              folder_name: folderName,
+              title,
+              description,
+              tags,
+            }),
+          });
+          const data = await response.json();
+          if (response.ok) {
+            addLogMessage(
+              `Successfully updated listing for ${folderName}`,
+              "success"
+            );
+          } else {
+            addLogMessage(`Failed to update listing: ${data.error}`, "error");
+            alert(data.error);
+          }
+        } catch (error) {
+          addLogMessage(`Error updating listing: ${error.message}`, "error");
+          alert(`Error updating listing: ${error.message}`);
+        }
+      }
+
+      function resetListing(folderId, originalListing) {
+        const listing = JSON.parse(originalListing.replace(/"/g, '"'));
+        document.getElementById(`title-${folderId}`).value =
+          listing.title || "";
+        document.getElementById(`description-${folderId}`).value =
+          listing.description || "";
+        const tagsInput = document.getElementById(`tags-input-${folderId}`);
+        tagsInput.value = (listing.tags || []).join(", ");
+        updateTagsFromInput(folderId);
+        updateCharCounter(`title-${folderId}`, 140);
+        updateCharCounter(`description-${folderId}`, 0);
+      }
+
+      async function deleteSingleListing(folderName) {
+        if (!confirm(`Delete prepared listing for "${folderName}"?`)) return;
+        try {
+          const response = await fetch("/delete-single-prepared-listing", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ folder_name: folderName }),
+          });
+          const data = await response.json();
+          if (response.ok) {
+            addLogMessage(
+              `Successfully deleted prepared listing for ${folderName}`,
+              "success"
+            );
+            refreshPreparedListings();
+          } else {
+            addLogMessage(`Failed to delete listing: ${data.error}`, "error");
+            alert(data.error);
+          }
+        } catch (error) {
+          addLogMessage(`Error deleting listing: ${error.message}`, "error");
+          alert(`Error deleting listing: ${error.message}`);
+        }
+      }
+
+      async function deletePreparedListings() {
+        if (isProcessing) return alert("A workflow is already running.");
+        if (
+          !confirm("Delete all prepared listings? (A backup will be created)")
+        )
+          return;
+        try {
+          addLogMessage("Deleting prepared listings...", "info");
+          const response = await fetch("/delete-prepared-listings", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+          });
+          const data = await response.json();
+          if (response.ok && data.success) {
+            addLogMessage(data.message, "success");
+            if (data.backup_created)
+              addLogMessage(
+                "Backup saved to prepared_listings_backup.json",
+                "info"
+              );
+            refreshPreparedListings();
+          } else {
+            addLogMessage(
+              data.message ||
+                "Failed to delete prepared listings: " + data.error,
+              "error"
+            );
+          }
+        } catch (error) {
+          addLogMessage(
+            "Error deleting prepared listings: " + error.message,
+            "error"
+          );
+        }
+      }
+
+      function setProcessingStatus(processing, statusText) {
+        isProcessing = processing;
+        const indicator = document.getElementById("status-indicator");
+        let statusClass = "status";
+        let statusIcon = `<span class="icon">✅</span>`;
+
+        if (processing) {
+          statusClass = "status running";
+          statusIcon = '<div class="spinner"></div>';
+        } else if (statusText.toLowerCase().includes("error")) {
+          statusClass = "status error";
+          statusIcon = `<span class="icon">❌</span>`;
+        } else {
+          statusClass = "status ready";
         }
 
-        // Toast notification functions
-        function showEtsyEditToast(listingId, folderName) {
-            const toastContainer = document.getElementById('toast-container');
-            const toastId = `toast-${Date.now()}`;
-            
-            const toast = document.createElement('div');
-            toast.className = 'toast success';
-            toast.id = toastId;
-            
-            toast.innerHTML = `
-                <div class="toast-icon">🎉</div>
+        indicator.className = statusClass;
+        indicator.innerHTML = `${statusIcon}<span>${statusText}</span>`;
+        updateUploadButtonState();
+      }
+
+      function showEtsyEditToast(listingId, folderName) {
+        const toastContainer = document.getElementById("toast-container");
+        const toastId = `toast-${Date.now()}`;
+        const toast = document.createElement("div");
+        toast.className = "toast";
+        toast.id = toastId;
+
+        toast.innerHTML = `
+                <div class="toast-icon">${ICONS.toastSuccess}</div>
                 <div class="toast-content">
-                    <div class="toast-title">Listing Created Successfully!</div>
-                    <div class="toast-message">${folderName} uploaded to Etsy (ID: ${listingId})</div>
+                    <div class="toast-title">Listing Created!</div>
+                    <div class="toast-message">${folderName} is now a draft on Etsy.</div>
                     <div class="toast-actions">
-                        <a href="https://www.etsy.com/your/shops/me/listing-editor/edit/${listingId}" 
-                           target="_blank" 
-                           class="toast-link"
-                           onclick="removeToast('${toastId}')">
-                            Edit on Etsy
-                        </a>
+                        <a href="https://www.etsy.com/your/shops/me/listing-editor/edit/${listingId}" target="_blank" class="toast-link" onclick="removeToast('${toastId}')">Edit on Etsy</a>
                     </div>
                 </div>
-                <button class="toast-close" onclick="removeToast('${toastId}')" title="Close">×</button>
-            `;
-            
-            toastContainer.appendChild(toast);
-            
-            // Toast will only be removed when "Edit on Etsy" is clicked or manually closed
+                <button class="toast-close" onclick="removeToast('${toastId}')" title="Close">×</button>`;
+
+        toastContainer.appendChild(toast);
+      }
+
+      function removeToast(toastId) {
+        const toast = document.getElementById(toastId);
+        if (toast) {
+          toast.style.animation = "slideOut 0.3s ease-in forwards";
+          setTimeout(() => toast.remove(), 300);
+        }
+      }
+
+      function addLogMessage(messageData, type = "info") {
+        const logContainer = document.getElementById("log-container");
+        const messageElement = document.createElement("div");
+
+        let message =
+          typeof messageData === "object" && messageData.message
+            ? messageData.message
+            : messageData;
+        let level =
+          typeof messageData === "object" && messageData.level
+            ? messageData.level
+            : type;
+
+        messageElement.className = `log-message log-${level}`;
+        const uploadMatch = message.match(
+          /✓ Successfully uploaded: (.+) \(ID: (\d+)\)/
+        );
+
+        if (uploadMatch) {
+          const [, folderName, listingId] = uploadMatch;
+          messageElement.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+          showEtsyEditToast(listingId, folderName);
+        } else {
+          messageElement.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
         }
 
-        function removeToast(toastId) {
-            const toast = document.getElementById(toastId);
-            if (toast) {
-                toast.style.animation = 'slideOut 0.3s ease-in';
-                setTimeout(() => {
-                    if (toast.parentNode) {
-                        toast.parentNode.removeChild(toast);
-                    }
-                }, 300);
-            }
-        }
+        logContainer.appendChild(messageElement);
+        logContainer.scrollTop = logContainer.scrollHeight;
+      }
 
-        function addLogMessage(messageData, type = 'info') {
-            const logContainer = document.getElementById('log-container');
-            const messageElement = document.createElement('div');
-            
-            let message, level;
-            if (typeof messageData === 'object' && messageData.message) {
-                message = messageData.message;
-                level = messageData.level || type;
-            } else {
-                message = messageData;
-                level = type;
-            }
-            
-            messageElement.className = `log-message log-${level}`;
-            
-            // Check if this is a successful upload message with listing ID
-            const uploadMatch = message.match(/✓ Successfully uploaded: (.+) \(ID: (\d+)\)/);
-            if (uploadMatch) {
-                const folderName = uploadMatch[1];
-                const listingId = uploadMatch[2];
-                const timestamp = `[${new Date().toLocaleTimeString()}] `;
-                
-                // Show regular log message
-                messageElement.textContent = `${timestamp}${message}`;
-                
-                // Show toast notification with edit link
-                showEtsyEditToast(listingId, folderName);
-            } else {
-                messageElement.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
-            }
-            
-            logContainer.appendChild(messageElement);
-            logContainer.scrollTop = logContainer.scrollHeight;
-        }
+      function clearLog() {
+        document.getElementById("log-container").innerHTML = "";
+        addLogMessage("Log cleared");
+      }
 
-        function clearLog() {
-            document.getElementById('log-container').innerHTML = '';
-            addLogMessage('Log cleared');
+      async function refreshStatus() {
+        try {
+          const response = await fetch("/status");
+          const data = await response.json();
+          if (data.is_running) {
+            setProcessingStatus(true, data.current_task || "Processing...");
+          } else if (!isProcessing) {
+            setProcessingStatus(false, "Ready");
+          }
+        } catch (error) {
+          addLogMessage("Error refreshing status: " + error.message, "error");
         }
+      }
 
-        async function refreshStatus() {
-            try {
-                const response = await fetch('/status');
-                const data = await response.json();
-                
-                if (data.is_running) {
-                    setProcessingStatus(true, data.current_task || 'Processing');
-                } else {
-                    setProcessingStatus(false, 'Ready');
-                }
-            } catch (error) {
-                addLogMessage('Error refreshing status: ' + error.message, 'error');
-            }
-        }
+      function startLogPolling() {
+        setInterval(async () => {
+          try {
+            const response = await fetch("/log");
+            const data = await response.json();
 
-        function startLogPolling() {
-            setInterval(async () => {
-                try {
-                    const response = await fetch('/log');
-                    const data = await response.json();
-                    
-                    data.messages.forEach(message => {
-                        addLogMessage(message);
-                        
-                        // Extract message text from object format
-                        const messageText = (typeof message === 'object' && message.message) ? message.message : message;
-                        
-                        // If message indicates successful preparation, refresh listings
-                        if (messageText.includes('Successfully prepared') && messageText.includes('Etsy listings')) {
-                            setTimeout(() => {
-                                refreshPreparedListings();
-                                                }, 1000);
-                        }
-                        
-                        // If message indicates upload completion or prepared list update, refresh listings
-                        if (messageText.includes('Upload complete') || 
-                            messageText.includes('uploaded listings from prepared list') ||
-                            messageText.includes('All prepared listings uploaded')) {
-                            setTimeout(() => refreshPreparedListings(), 1000);
-                        }
-                    });
-                    
-                    // Also refresh status
-                    await refreshStatus();
-                } catch (error) {
-                    // Silently fail log polling to avoid spam
-                }
-            }, 2000);
-        }
+            data.messages.forEach((msg) => {
+              addLogMessage(msg);
+              const msgText =
+                typeof msg === "object" && msg.message ? msg.message : msg;
+              if (
+                msgText.includes("Successfully prepared") ||
+                msgText.includes("Upload complete") ||
+                msgText.includes("uploaded listings from prepared list")
+              ) {
+                setTimeout(refreshPreparedListings, 1000);
+              }
+            });
 
+            await refreshStatus();
+          } catch (error) {
+            // Silently ignore polling errors to prevent log spam
+          }
+        }, 2000);
+      }
     </script>
-</body>
+  </body>
 </html>
