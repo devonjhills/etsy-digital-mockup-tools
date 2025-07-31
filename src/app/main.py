@@ -9,7 +9,10 @@ import sys
 import threading
 import webbrowser
 from pathlib import Path
+from typing import Dict, Any, Optional, List
 from flask import Flask, render_template, request, jsonify
+from functools import wraps
+from dataclasses import dataclass
 
 # Add project root to path
 project_root = Path(__file__).parent.parent.parent
@@ -30,8 +33,131 @@ from src.products.border_clipart.processor import BorderClipartProcessor
 from src.products.journal_papers.processor import JournalPapersProcessor
 
 # Global variables for logging
-log_messages = []
-processing_status = {"current_task": None, "is_running": False}
+log_messages: List[Dict[str, Any]] = []
+processing_status: Dict[str, Any] = {"current_task": None, "is_running": False}
+
+
+class ValidationError(Exception):
+    """Exception raised for input validation errors."""
+    pass
+
+
+class ProcessingError(Exception):
+    """Exception raised for processing errors."""
+    pass
+
+
+@dataclass
+class RequestData:
+    """Base class for request data validation."""
+    
+    @classmethod
+    def from_json(cls, data: Dict[str, Any]):
+        """Create instance from JSON data with validation."""
+        if not isinstance(data, dict):
+            raise ValidationError("Request data must be a JSON object")
+        return cls(**data)
+
+
+def validate_json_request(f):
+    """Decorator to validate JSON request data."""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not request.is_json:
+            return jsonify({"error": "Request must be JSON"}), 400
+        
+        try:
+            data = request.get_json()
+            if data is None:
+                return jsonify({"error": "Invalid JSON data"}), 400
+            return f(data, *args, **kwargs)
+        except ValidationError as e:
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            add_log(f"Request validation error: {e}", "error")
+            return jsonify({"error": "Invalid request format"}), 400
+    
+    return decorated_function
+
+
+def validate_processor_type(processor_type: str) -> str:
+    """Validate processor type parameter.
+    
+    Args:
+        processor_type: The processor type to validate
+        
+    Returns:
+        Validated processor type
+        
+    Raises:
+        ValidationError: If processor type is invalid
+    """
+    if not processor_type or not isinstance(processor_type, str):
+        raise ValidationError("processor_type must be a non-empty string")
+        
+    processor_type = processor_type.strip().lower()
+    
+    if not ProcessorFactory.supports_type(processor_type):
+        available_types = ProcessorFactory.get_available_types()
+        raise ValidationError(
+            f"Unsupported processor type: {processor_type}. "
+            f"Available types: {', '.join(available_types)}"
+        )
+    
+    return processor_type
+
+
+def validate_workflow_steps(workflow_steps: Any) -> Optional[List[str]]:
+    """Validate workflow steps parameter.
+    
+    Args:
+        workflow_steps: The workflow steps to validate
+        
+    Returns:
+        Validated workflow steps or None
+        
+    Raises:
+        ValidationError: If workflow steps are invalid
+    """
+    if workflow_steps is None:
+        return None
+        
+    if not isinstance(workflow_steps, list):
+        raise ValidationError("workflow_steps must be a list or null")
+        
+    validated_steps = []
+    for step in workflow_steps:
+        if not isinstance(step, str):
+            raise ValidationError(f"Each workflow step must be a string, got: {type(step)}")
+        step = step.strip().lower()
+        if not step:
+            raise ValidationError("Workflow steps cannot be empty strings")
+        validated_steps.append(step)
+    
+    return validated_steps if validated_steps else None
+
+
+def validate_ai_provider(ai_provider: str) -> str:
+    """Validate AI provider parameter.
+    
+    Args:
+        ai_provider: The AI provider to validate
+        
+    Returns:
+        Validated AI provider
+        
+    Raises:
+        ValidationError: If AI provider is invalid
+    """
+    if not ai_provider or not isinstance(ai_provider, str):
+        raise ValidationError("ai_provider must be a non-empty string")
+        
+    ai_provider = ai_provider.strip().lower()
+    
+    if ai_provider not in ["gemini", "openai"]:
+        raise ValidationError(f"Unsupported AI provider: {ai_provider}. Must be 'gemini' or 'openai'")
+    
+    return ai_provider
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -41,7 +167,7 @@ ensure_dir_exists("input")
 ensure_dir_exists("templates")
 
 
-def add_log(message: str, level: str = "info"):
+def add_log(message: str, level: str = "info") -> None:
     """Add a message to the log with color coding."""
     global log_messages
 
@@ -273,29 +399,19 @@ def run_all_subfolders_workflow(
 
 
 @app.route("/run-workflow", methods=["POST"])
-def run_workflow():
+@validate_json_request
+def run_workflow(data: Dict[str, Any]):
     """Run a processing workflow on all subfolders in input directory."""
     try:
-        data = request.json
         add_log(f"Received workflow request: {data}")
 
-        # Extract parameters
-        processor_type = data.get("processor_type")
-        workflow_steps = data.get("workflow_steps")
+        # Validate and extract parameters
+        processor_type = validate_processor_type(data.get("processor_type"))
+        workflow_steps = validate_workflow_steps(data.get("workflow_steps"))
         custom_settings = data.get("custom_settings", {})
-
-        # Validate required parameters
-        if not processor_type:
-            add_log("Error: processor_type is required", "error")
-            return jsonify({"error": "processor_type is required"}), 400
-
-        # Check if processor type is supported
-        if not ProcessorFactory.supports_type(processor_type):
-            add_log(f"Error: Unsupported processor type: {processor_type}", "error")
-            return (
-                jsonify({"error": f"Unsupported processor type: {processor_type}"}),
-                400,
-            )
+        
+        if not isinstance(custom_settings, dict):
+            raise ValidationError("custom_settings must be an object")
 
         add_log(f"Starting {processor_type} workflow with steps: {workflow_steps}")
 
@@ -345,16 +461,23 @@ def run_workflow():
 
 
 @app.route("/generate-etsy-content", methods=["POST"])
-def generate_etsy_content():
+@validate_json_request
+def generate_etsy_content(data: Dict[str, Any]):
     """Generate Etsy listing content using AI."""
     try:
-        data = request.json
-        processor_type = data.get("processor_type", "pattern")
+        processor_type = validate_processor_type(data.get("processor_type", "pattern"))
         input_dir = data.get("input_dir")
-        ai_provider = data.get("ai_provider", "gemini")
+        ai_provider = validate_ai_provider(data.get("ai_provider", "gemini"))
 
+        if not input_dir or not isinstance(input_dir, str):
+            raise ValidationError("input_dir is required and must be a string")
+            
+        input_dir = input_dir.strip()
         if not input_dir:
-            return jsonify({"error": "input_dir is required"}), 400
+            raise ValidationError("input_dir cannot be empty")
+            
+        if not os.path.exists(input_dir):
+            raise ValidationError(f"Input directory does not exist: {input_dir}")
 
         # Create configuration
         config = ProcessingConfig(
@@ -377,12 +500,12 @@ def generate_etsy_content():
 
 
 @app.route("/prepare-etsy-listings", methods=["POST"])
-def prepare_etsy_listings():
+@validate_json_request
+def prepare_etsy_listings(data: Dict[str, Any]):
     """Prepare Etsy listings with AI-generated content from mockup images."""
     try:
-        data = request.json
-        processor_type = data.get("processor_type", "pattern")
-        ai_provider = data.get("ai_provider", "gemini")
+        processor_type = validate_processor_type(data.get("processor_type", "pattern"))
+        ai_provider = validate_ai_provider(data.get("ai_provider", "gemini"))
 
         add_log(f"Starting Etsy listing preparation for {processor_type} products")
 
@@ -479,12 +602,12 @@ def prepare_etsy_listings():
 
 
 @app.route("/full-bulk-processing", methods=["POST"])
-def full_bulk_processing():
+@validate_json_request
+def full_bulk_processing(data: Dict[str, Any]):
     """Run complete bulk processing workflow: resize, mockups, zips, then AI content generation."""
     try:
-        data = request.json
-        processor_type = data.get("processor_type", "pattern")
-        ai_provider = data.get("ai_provider", "gemini")
+        processor_type = validate_processor_type(data.get("processor_type", "pattern"))
+        ai_provider = validate_ai_provider(data.get("ai_provider", "gemini"))
 
         add_log(f"Starting full bulk processing for {processor_type} products")
 
@@ -616,21 +739,28 @@ def get_prepared_listings():
 
 
 @app.route("/update-prepared-listing", methods=["POST"])
-def update_prepared_listing():
+@validate_json_request
+def update_prepared_listing(data: Dict[str, Any]):
     """Update a specific prepared listing."""
     try:
         import json
         import os
 
-        data = request.json
         folder_name = data.get("folder_name")
-        title = data.get("title", "").strip()
-        description = data.get("description", "").strip()
+        title = data.get("title", "").strip() if data.get("title") else ""
+        description = data.get("description", "").strip() if data.get("description") else ""
         tags = data.get("tags", [])
 
         # Validation
+        if not folder_name or not isinstance(folder_name, str):
+            raise ValidationError("folder_name is required and must be a string")
+            
+        folder_name = folder_name.strip()
         if not folder_name:
-            return jsonify({"error": "folder_name is required"}), 400
+            raise ValidationError("folder_name cannot be empty")
+            
+        if not isinstance(tags, list):
+            raise ValidationError("tags must be a list")
 
         # Title validation (140 characters max)
         if len(title) > 140:
@@ -746,17 +876,21 @@ def delete_prepared_listings():
 
 
 @app.route("/delete-single-prepared-listing", methods=["POST"])
-def delete_single_prepared_listing():
+@validate_json_request
+def delete_single_prepared_listing(data: Dict[str, Any]):
     """Delete a single prepared listing."""
     try:
         import json
         import os
 
-        data = request.json
         folder_name = data.get("folder_name")
 
+        if not folder_name or not isinstance(folder_name, str):
+            raise ValidationError("folder_name is required and must be a string")
+            
+        folder_name = folder_name.strip()
         if not folder_name:
-            return jsonify({"error": "folder_name is required"}), 400
+            raise ValidationError("folder_name cannot be empty")
 
         # Load existing prepared listings
         prepared_file = "prepared_listings.json"
@@ -799,11 +933,14 @@ def delete_single_prepared_listing():
 
 
 @app.route("/upload-prepared-listings", methods=["POST"])
-def upload_prepared_listings():
+@validate_json_request
+def upload_prepared_listings(data: Dict[str, Any]):
     """Upload previously prepared listings to Etsy."""
     try:
-        data = request.json
         is_draft = data.get("is_draft", True)
+        
+        if not isinstance(is_draft, bool):
+            raise ValidationError("is_draft must be a boolean value")
 
         add_log("Starting upload of prepared listings to Etsy")
 
