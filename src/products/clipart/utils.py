@@ -211,16 +211,106 @@ def extract_clipart_from_sheets(input_folder: str, output_folder: str) -> Dict[s
     Returns:
         Results dictionary
     """
-    print(f"Extracting clipart from sheets in {input_folder} to {output_folder}")
+    print(f"🔍 Extracting clipart from sheets in {input_folder} to {output_folder}")
     
-    # This is a placeholder implementation
-    # In a real implementation, you would use computer vision techniques
-    # to detect and extract individual sprites from sprite sheets
+    if not os.path.exists(input_folder):
+        print(f"❌ Input folder does not exist: {input_folder}")
+        return {
+            "success": False,
+            "message": f"Input folder does not exist: {input_folder}",
+            "extracted_count": 0
+        }
     
     os.makedirs(output_folder, exist_ok=True)
+    print(f"📁 Output folder created/verified: {output_folder}")
+    extracted_count = 0
+    processed_files = []
+    
+    # Get all image files in the input folder
+    image_extensions = ('.png', '.jpg', '.jpeg', '.bmp', '.tiff', '.webp')
+    image_files = []
+    
+    for file in os.listdir(input_folder):
+        if file.lower().endswith(image_extensions):
+            image_files.append(os.path.join(input_folder, file))
+    
+    print(f"📊 Found {len(image_files)} image files to process")
+    
+    if not image_files:
+        print(f"❌ No image files found in {input_folder}")
+        return {
+            "success": False,
+            "message": f"No image files found in {input_folder}",
+            "extracted_count": 0
+        }
+    
+    for image_path in image_files:
+        try:
+            print(f"Processing: {os.path.basename(image_path)}")
+            
+            # Load image with PIL for transparency support
+            pil_image = safe_load_image(image_path, "RGBA")
+            if pil_image is None:
+                continue
+                
+            # Convert to OpenCV format for contour detection
+            image_array = np.array(pil_image)
+            
+            # Create mask from alpha channel if available
+            if image_array.shape[2] == 4:  # RGBA
+                alpha = image_array[:, :, 3]
+                mask = alpha > 0  # Non-transparent pixels
+            else:
+                # For RGB images, create mask from non-white pixels
+                gray = cv2.cvtColor(image_array[:, :, :3], cv2.COLOR_RGB2GRAY)
+                mask = gray < 240  # Non-white pixels
+            
+            # Find connected components
+            mask_uint8 = mask.astype(np.uint8) * 255
+            contours, _ = cv2.findContours(mask_uint8, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            
+            base_name = os.path.splitext(os.path.basename(image_path))[0]
+            file_extracted_count = 0
+            
+            # Extract each contour as separate clipart
+            for i, contour in enumerate(contours):
+                # Filter out tiny contours (noise)
+                area = cv2.contourArea(contour)
+                if area < 100:  # Skip very small areas
+                    continue
+                
+                # Get bounding box
+                x, y, w, h = cv2.boundingRect(contour)
+                
+                # Add some padding
+                padding = 10
+                x1 = max(0, x - padding)
+                y1 = max(0, y - padding)
+                x2 = min(pil_image.width, x + w + padding)
+                y2 = min(pil_image.height, y + h + padding)
+                
+                # Extract the region
+                extracted = pil_image.crop((x1, y1, x2, y2))
+                
+                # Save extracted clipart
+                output_filename = f"{base_name}_extracted_{i+1:03d}.png"
+                output_path = os.path.join(output_folder, output_filename)
+                extracted.save(output_path, "PNG")
+                
+                file_extracted_count += 1
+                extracted_count += 1
+                
+                print(f"  Extracted: {output_filename} ({w}x{h})")
+            
+            processed_files.append(f"{os.path.basename(image_path)} -> {file_extracted_count} cliparts")
+            
+        except Exception as e:
+            print(f"Error processing {image_path}: {e}")
+            continue
     
     return {
         "success": True,
-        "message": "Clipart extraction not yet implemented",
-        "extracted_count": 0
+        "message": f"Successfully extracted {extracted_count} clipart images from {len(processed_files)} files",
+        "extracted_count": extracted_count,
+        "processed_files": processed_files
     }

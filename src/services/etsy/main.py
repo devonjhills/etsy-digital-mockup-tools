@@ -262,15 +262,16 @@ class EtsyIntegration:
 
         # Upload images
         listing_id = listing.get("listing_id")
-        
+
         if not listing_id:
             logger.error("Failed to get listing ID from created listing.")
             return None
-            
+
         logger.info(f"Created listing with ID: {listing_id}")
-        
+
         # Wait longer for listing to be fully processed before uploading files
         import time
+
         time.sleep(5)
         logger.info("Waited 5 seconds for listing to be processed")
 
@@ -329,35 +330,43 @@ class EtsyIntegration:
         # Upload digital files if applicable
         is_digital = template.get("is_digital", True)
         logger.info(f"Listing is_digital: {is_digital}")
-        
+
         if is_digital:
             # Find zip files in the zipped folder
             zipped_folder = os.path.join(folder_path, "zipped")
             logger.info(f"Looking for zip files in: {zipped_folder}")
-            
+
             if os.path.exists(zipped_folder):
                 import glob
 
                 zip_paths = sorted(glob.glob(os.path.join(zipped_folder, "*.zip")))
-                logger.info(f"Found {len(zip_paths)} zip files: {[os.path.basename(p) for p in zip_paths]}")
+                logger.info(
+                    f"Found {len(zip_paths)} zip files: {[os.path.basename(p) for p in zip_paths]}"
+                )
 
                 uploaded_files = []
                 for i, zip_path in enumerate(zip_paths):
                     rank = i + 1  # Rank must be >= 1 per Etsy API docs
-                    logger.info(f"Uploading digital file: {os.path.basename(zip_path)} (rank {rank})")
+                    logger.info(
+                        f"Uploading digital file: {os.path.basename(zip_path)} (rank {rank})"
+                    )
                     file_result = self.listings.upload_digital_file(
                         listing_id=listing_id, file_path=zip_path, rank=rank
                     )
 
                     if file_result:
-                        logger.info(f"✓ Successfully uploaded digital file: {os.path.basename(zip_path)}")
+                        logger.info(
+                            f"✓ Successfully uploaded digital file: {os.path.basename(zip_path)}"
+                        )
                         uploaded_files.append(os.path.basename(zip_path))
                     else:
                         logger.error(f"✗ Failed to upload digital file: {zip_path}")
 
                 # Log upload completion
                 if uploaded_files:
-                    logger.info(f"✓ Digital file upload completed for listing {listing_id}")
+                    logger.info(
+                        f"✓ Digital file upload completed for listing {listing_id}"
+                    )
                 else:
                     logger.warning("No digital files were uploaded")
             else:
@@ -440,7 +449,9 @@ class EtsyIntegration:
 
                 # Step 4: Generate content using unified processor
                 logger.info(f"Generating content for {subfolder}...")
-                content = self._generate_content_with_processor(folder_path, product_type)
+                content = self._generate_content_with_processor(
+                    folder_path, product_type
+                )
 
                 # Step 4: Create listing with generated content
                 if content and content["title"]:
@@ -566,7 +577,9 @@ class EtsyIntegration:
 
                 # Step 4: Generate content using unified processor
                 logger.info(f"Generating content for {subfolder}...")
-                content = self._generate_content_with_processor(folder_path, product_type)
+                content = self._generate_content_with_processor(
+                    folder_path, product_type
+                )
 
                 # If title is empty but we have content, use folder name as fallback title
                 if content and not content["title"] and subfolder:
@@ -621,6 +634,7 @@ class EtsyIntegration:
                     listing_data = {
                         "folder_path": folder_path,
                         "folder_name": subfolder,
+                        "product_name": subfolder,
                         "product_type": product_type,
                         "title": title,
                         "description": content["description"],
@@ -628,6 +642,9 @@ class EtsyIntegration:
                         "mockup_images": mockup_images,
                         "zip_files": zip_files,
                         "video_files": video_files,
+                        "timestamp": __import__("datetime")
+                        .datetime.now()
+                        .isoformat(),  # Add timestamp
                     }
 
                     prepared_listings.append(listing_data)
@@ -748,6 +765,7 @@ class EtsyIntegration:
 
             # Process each image file that needs processing
             from PIL import Image
+
             # Removed old import - using Image.Resampling.LANCZOS directly
 
             # Start numbering from the highest existing number + 1
@@ -861,15 +879,19 @@ class EtsyIntegration:
                                 # Convert to RGB if needed (for JPEG compatibility)
                                 if img_to_save.mode in ("RGBA", "LA"):
                                     # For transparent images, convert to white background
-                                    background = Image.new("RGB", img_to_save.size, (255, 255, 255))
+                                    background = Image.new(
+                                        "RGB", img_to_save.size, (255, 255, 255)
+                                    )
                                     if img_to_save.mode == "RGBA":
-                                        background.paste(img_to_save, mask=img_to_save.split()[-1])
+                                        background.paste(
+                                            img_to_save, mask=img_to_save.split()[-1]
+                                        )
                                     else:
                                         background.paste(img_to_save)
                                     img_to_save = background
                                 elif img_to_save.mode != "RGB":
                                     img_to_save = img_to_save.convert("RGB")
-                                    
+
                                 img_to_save.save(
                                     new_file_path,
                                     format="JPEG",
@@ -925,38 +947,46 @@ class EtsyIntegration:
             # Use the unified processor architecture for all product types
             from src.core.processor_factory import ProcessorFactory
             from src.core.base_processor import ProcessingConfig
-            
+
             logger.info(f"Creating {product_type} mockups for {product_name}...")
-            
+
             # Create configuration for the processor
             config = ProcessingConfig(
-                product_type=product_type,
-                input_dir=folder_path,
-                output_dir=folder_path
+                product_type=product_type, input_dir=folder_path, output_dir=folder_path
             )
-            
+
             # Create processor and run mockup creation
             try:
                 processor = ProcessorFactory.create_processor(config)
             except ValueError as e:
-                logger.error(f"Unsupported product type for mockup generation: {product_type}")
+                logger.error(
+                    f"Unsupported product type for mockup generation: {product_type}"
+                )
                 logger.error(f"Error details: {e}")
                 return
-            
+
             # Create mockups
             mockup_result = processor.create_mockups()
             if mockup_result.get("success", True):
-                logger.info(f"Successfully created {product_type} mockups for {product_name}")
+                logger.info(
+                    f"Successfully created {product_type} mockups for {product_name}"
+                )
             else:
-                logger.error(f"Failed to create {product_type} mockups: {mockup_result.get('error', 'Unknown error')}")
-            
+                logger.error(
+                    f"Failed to create {product_type} mockups: {mockup_result.get('error', 'Unknown error')}"
+                )
+
             # Create videos
             logger.info(f"Creating {product_type} video for {product_name}...")
             video_result = processor.create_videos()
             if video_result.get("success", True):
-                logger.info(f"Successfully created {product_type} video for {product_name}")
+                logger.info(
+                    f"Successfully created {product_type} video for {product_name}"
+                )
             else:
-                logger.error(f"Failed to create {product_type} video: {video_result.get('error', 'Unknown error')}")
+                logger.error(
+                    f"Failed to create {product_type} video: {video_result.get('error', 'Unknown error')}"
+                )
 
             logger.info(f"Mockups generated successfully for {product_name}")
 
@@ -1198,60 +1228,64 @@ class EtsyIntegration:
         # Return whatever we got from the primary provider, even if incomplete
         return content
 
-    def _generate_content_with_processor(self, folder_path: str, product_type: str) -> Dict[str, Any]:
+    def _generate_content_with_processor(
+        self, folder_path: str, product_type: str
+    ) -> Dict[str, Any]:
         """
         Generate content using the unified processor architecture with AI.
-        
+
         Args:
             folder_path: Path to the product folder
             product_type: Type of product (pattern, clipart, border_clipart, journal_papers)
-            
+
         Returns:
             Generated content with title, description, and tags
         """
         try:
             # Import processors to register them
             from src.products.pattern.processor import PatternProcessor
-            from src.products.clipart.processor import ClipartProcessor  
+            from src.products.clipart.processor import ClipartProcessor
             from src.products.border_clipart.processor import BorderClipartProcessor
             from src.products.journal_papers.processor import JournalPapersProcessor
-            
+
             from src.core.processor_factory import ProcessorFactory
             from src.core.base_processor import ProcessingConfig
-            
+
             # Create configuration for the processor
             config = ProcessingConfig(
-                product_type=product_type,
-                input_dir=folder_path,
-                output_dir=folder_path
+                product_type=product_type, input_dir=folder_path, output_dir=folder_path
             )
-            
+
             # Create processor
             processor = ProcessorFactory.create_processor(config)
-            
+
             # Generate AI content
             content = processor.generate_etsy_content()
-            
+
             if content and not content.get("error"):
                 # Store content for later use in attribute setting
                 self._last_generated_content = content
-                logger.info(f"Generated content with processor for {product_type}: {content.get('title', 'No title')}")
-                
+                logger.info(
+                    f"Generated content with processor for {product_type}: {content.get('title', 'No title')}"
+                )
+
                 # Return in the expected format for Etsy integration
                 return {
                     "title": content.get("title", ""),
                     "description": content.get("description", ""),
-                    "tags": content.get("tags", [])
+                    "tags": content.get("tags", []),
                 }
             else:
-                logger.error(f"Failed to generate content with processor: {content.get('error', 'Unknown error')}")
+                logger.error(
+                    f"Failed to generate content with processor: {content.get('error', 'Unknown error')}"
+                )
                 # Fall back to old method
                 return self.generate_content_from_mockup(
                     folder_path=folder_path,
                     product_type=product_type,
                     instructions=DEFAULT_ETSY_INSTRUCTIONS,
                 )
-                
+
         except Exception as e:
             logger.error(f"Error generating content with processor: {e}")
             # Fall back to old method

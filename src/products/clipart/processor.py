@@ -40,14 +40,20 @@ class ClipartProcessor(BaseProcessor):
             results = {}
             
             # Create square mockup
+            self.logger.info("About to create square mockup...")
             results["square_mockup"] = self._create_square_mockup()
+            self.logger.info(f"Square mockup result: {results['square_mockup']}")
             
             # Create grid mockup (2x2)
+            self.logger.info("About to create grid mockup...")
             results["grid_mockup"] = self._create_grid_mockup()
             
             # Create transparency demo
             if self.config.custom_settings.get("create_transparency_demo", True):
                 results["transparency_demo"] = self._create_transparency_demo()
+            
+            # Create Pinterest mockup
+            results["pinterest_mockup"] = self._create_pinterest_mockup()
             
             return results
             
@@ -57,14 +63,24 @@ class ClipartProcessor(BaseProcessor):
     
     def _create_square_mockup(self) -> Dict[str, Any]:
         """Create square clipart mockup."""
-        from src.products.clipart.mockups import create_square_mockup
-        from src.utils.file_operations import find_files_by_extension
-        from PIL import Image
-        import os
+        self.logger.info("Starting square mockup creation...")
         
-        # Create mocks folder inside the input directory (like patterns)
-        mockup_dir = os.path.join(self.config.input_dir, "mocks")
-        ensure_dir_exists(mockup_dir)
+        try:
+            from src.products.clipart.mockups import create_square_mockup
+            from src.utils.file_operations import find_files_by_extension
+            from PIL import Image
+            import os
+            
+            self.logger.info("Imports successful for square mockup")
+            
+            # Create mocks folder inside the input directory (like patterns)
+            mockup_dir = os.path.join(self.config.input_dir, "mocks")
+            ensure_dir_exists(mockup_dir)
+            self.logger.info(f"Created mockup directory: {mockup_dir}")
+        
+        except Exception as import_error:
+            self.logger.error(f"Import error in square mockup: {import_error}")
+            return {"success": False, "error": f"Import error: {str(import_error)}"}
         
         try:
             # Find image files (excluding the mocks folder)
@@ -102,13 +118,18 @@ class ClipartProcessor(BaseProcessor):
             else:
                 mockup_image = result
             
+            if mockup_image is None:
+                return {"success": False, "error": "Mockup creation returned None"}
+            
             # Save the mockup
             output_path = os.path.join(mockup_dir, "main.png")
             mockup_image.save(output_path)
+            self.logger.info(f"Saved main mockup to: {output_path}")
             
             return {"success": True, "file": output_path, "output_folder": mockup_dir}
             
         except Exception as e:
+            self.logger.error(f"Square mockup creation failed: {e}")
             return {"success": False, "error": str(e)}
     
     def _create_grid_mockup(self) -> Dict[str, Any]:
@@ -245,22 +266,68 @@ class ClipartProcessor(BaseProcessor):
         except Exception as e:
             return {"success": False, "error": str(e)}
     
+    def _create_pinterest_mockup(self) -> Dict[str, Any]:
+        """Create Pinterest-optimized vertical mockup for clipart."""
+        try:
+            from src.services.processing.mockups.base import MockupProcessor
+            
+            mockup_processor = MockupProcessor(product_type="clipart")
+            
+            # Get product title from folder name
+            folder_name = os.path.basename(self.config.input_dir)
+            title = folder_name.replace('_', ' ').replace('-', ' ').title()
+            
+            # Prepare product data
+            product_data = {
+                'title': title,
+                'description': f'High-quality {title.lower()} clipart with transparent background',
+                'product_type': 'clipart'
+            }
+            
+            result_file = mockup_processor.create_pinterest_mockup(
+                self.config.input_dir, 
+                title,
+                product_data
+            )
+            
+            if result_file:
+                return {"success": True, "file": result_file, "output_folder": os.path.dirname(result_file)}
+            else:
+                return {"success": False, "error": "Failed to create Pinterest mockup"}
+                
+        except Exception as e:
+            return {"success": False, "error": str(e)}
     
     def extract_from_sheets(self) -> Dict[str, Any]:
         """Extract individual clipart from sprite sheets - custom workflow step."""
         try:
+            self.logger.info(f"🔍 Starting clipart extraction from: {self.config.input_dir}")
             from src.products.clipart.utils import extract_clipart_from_sheets
             
             extracted_dir = os.path.join(self.config.output_dir, "extracted")
             ensure_dir_exists(extracted_dir)
+            self.logger.info(f"📁 Created extraction directory: {extracted_dir}")
             
-            return extract_clipart_from_sheets(
+            result = extract_clipart_from_sheets(
                 input_folder=self.config.input_dir,
                 output_folder=extracted_dir
             )
             
+            if result.get("success"):
+                count = result.get("extracted_count", 0)
+                self.logger.info(f"✅ Extraction completed: {count} clipart images extracted")
+                if result.get("processed_files"):
+                    for file_info in result["processed_files"]:
+                        self.logger.info(f"   📄 {file_info}")
+            else:
+                self.logger.error(f"❌ Extraction failed: {result.get('message', 'Unknown error')}")
+            
+            return result
+            
         except Exception as e:
-            self.logger.error(f"Clipart extraction failed: {e}")
+            self.logger.error(f"❌ Clipart extraction failed: {e}")
+            import traceback
+            self.logger.error(f"Traceback: {traceback.format_exc()}")
             return {"success": False, "error": str(e)}
     
     

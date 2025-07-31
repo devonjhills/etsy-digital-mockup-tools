@@ -52,6 +52,9 @@ class PatternProcessor(BaseProcessor):
             # Create seamless tiling mockup
             results["seamless_tiling_mockup"] = self._create_seamless_tiling_mockup()
             
+            # Create Pinterest mockup
+            results["pinterest_mockup"] = self._create_pinterest_mockup()
+            
             return results
             
         except Exception as e:
@@ -128,6 +131,37 @@ class PatternProcessor(BaseProcessor):
         except Exception as e:
             return {"success": False, "error": str(e)}
     
+    def _create_pinterest_mockup(self) -> Dict[str, Any]:
+        """Create Pinterest-optimized vertical mockup for patterns."""
+        try:
+            from src.services.processing.mockups.base import MockupProcessor
+            
+            mockup_processor = MockupProcessor(product_type="pattern")
+            
+            # Get product title from folder name
+            folder_name = os.path.basename(self.config.input_dir)
+            title = folder_name.replace('_', ' ').replace('-', ' ').title()
+            
+            # Prepare product data
+            product_data = {
+                'title': title,
+                'description': f'Beautiful seamless {title.lower()} pattern for digital crafting',
+                'product_type': 'pattern'
+            }
+            
+            result_file = mockup_processor.create_pinterest_mockup(
+                self.config.input_dir, 
+                title,
+                product_data
+            )
+            
+            if result_file:
+                return {"success": True, "file": result_file, "output_folder": os.path.dirname(result_file)}
+            else:
+                return {"success": False, "error": "Failed to create Pinterest mockup"}
+                
+        except Exception as e:
+            return {"success": False, "error": str(e)}
     
     def create_seamless_pattern(self) -> Dict[str, Any]:
         """Create seamless pattern from input image - custom workflow step."""

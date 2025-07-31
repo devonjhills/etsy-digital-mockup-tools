@@ -14,49 +14,59 @@ logger = setup_logging(__name__)
 load_environment()
 
 
-def get_ai_provider(provider_name: str = "gemini", api_key: Optional[str] = None) -> Optional[Any]:
+def get_ai_provider(
+    provider_name: str = "gemini", api_key: Optional[str] = None
+) -> Optional[Any]:
     """Get an AI provider instance.
-    
+
     Args:
         provider_name: Name of the AI provider ("gemini" or "openai")
         api_key: Optional API key to use (if not provided, will try environment)
-        
+
     Returns:
         AI provider instance or None if not available
     """
     try:
-        logger.info(f"Attempting to create AI provider: {provider_name}, API key provided: {api_key is not None}")
-        
+        logger.info(
+            f"Attempting to create AI provider: {provider_name}, API key provided: {api_key is not None}"
+        )
+
         if provider_name.lower() == "gemini":
             if not api_key:
                 api_key = os.getenv("GEMINI_API_KEY")
-                logger.info(f"Retrieved Gemini API key from environment: {api_key is not None}")
+                logger.info(
+                    f"Retrieved Gemini API key from environment: {api_key is not None}"
+                )
             if not api_key:
                 logger.warning("GEMINI_API_KEY not found in environment or provided")
                 return None
-            
+
             from src.services.ai.providers.gemini_provider import GeminiProvider
+
             provider = GeminiProvider(api_key=api_key)
             logger.info(f"Created Gemini provider successfully: {provider is not None}")
             return provider
-            
+
         elif provider_name.lower() == "openai":
             if not api_key:
                 api_key = os.getenv("OPENAI_API_KEY")
-                logger.info(f"Retrieved OpenAI API key from environment: {api_key is not None}")
+                logger.info(
+                    f"Retrieved OpenAI API key from environment: {api_key is not None}"
+                )
             if not api_key:
                 logger.warning("OPENAI_API_KEY not found in environment or provided")
                 return None
-            
+
             from src.services.ai.providers.openai_provider import OpenAIProvider
+
             provider = OpenAIProvider(api_key=api_key)
             logger.info(f"Created OpenAI provider successfully: {provider is not None}")
             return provider
-            
+
         else:
             logger.error(f"Unknown AI provider: {provider_name}")
             return None
-            
+
     except ImportError as e:
         logger.error(f"Failed to import AI provider {provider_name}: {e}")
         return None
@@ -67,18 +77,18 @@ def get_ai_provider(provider_name: str = "gemini", api_key: Optional[str] = None
 
 def get_available_providers() -> Dict[str, bool]:
     """Get available AI providers and their status.
-    
+
     Returns:
         Dict mapping provider names to availability status
     """
     providers = {}
-    
+
     # Check Gemini
     providers["gemini"] = bool(os.getenv("GEMINI_API_KEY"))
-    
+
     # Check OpenAI
     providers["openai"] = bool(os.getenv("OPENAI_API_KEY"))
-    
+
     return providers
 
 
@@ -250,29 +260,31 @@ def process_ai_response(response_text: str, is_thinking_model: bool = False) -> 
     return response_text.strip()
 
 
-def generate_content_with_ai(ai_provider: Any, prompt: str, image_path: str = None) -> str:
+def generate_content_with_ai(
+    ai_provider: Any, prompt: str, image_path: str = None
+) -> str:
     """Generate content using AI provider.
-    
+
     Args:
         ai_provider: AI provider instance
         prompt: Text prompt for generation
         image_path: Optional path to image for analysis
-        
+
     Returns:
         Generated content string
     """
     if not ai_provider:
         logger.warning("No AI provider available for content generation")
         return ""
-    
+
     try:
         if image_path and os.path.exists(image_path):
             response = ai_provider.analyze_image_with_prompt(image_path, prompt)
         else:
             response = ai_provider.generate_text(prompt)
-        
+
         return process_ai_response(response)
-        
+
     except Exception as e:
         logger.error(f"AI content generation failed: {e}")
         return ""
@@ -280,43 +292,49 @@ def generate_content_with_ai(ai_provider: Any, prompt: str, image_path: str = No
 
 def parse_etsy_listing_response(response: str) -> Dict[str, str]:
     """
-    Parse the AI response from DEFAULT_ETSY_INSTRUCTIONS into title, description, and tags.
-    
+    Parse the AI response from DEFAULT_ETSY_INSTRUCTIONS into title, description, tags
+
     Args:
-        response: The AI response containing Title:, Description:, and Tags: sections
-        
+        response: The AI response containing Title:, Description:, Tags:
+
     Returns:
-        Dictionary with 'title', 'description', and 'tags' keys
+        Dictionary with 'title', 'description', 'tags' keys
     """
     try:
         # Initialize result dictionary
         result = {
-            'title': '',
-            'description': '',
-            'tags': ''
+            "title": "",
+            "description": "",
+            "tags": "",
         }
-        
+
         # Use regex to extract each section
-        title_match = re.search(r'Title:\s*(.+?)(?=\n|Description:|$)', response, re.DOTALL)
+        title_match = re.search(
+            r"Title:\s*(.+?)(?=\n|Description:|$)", response, re.DOTALL
+        )
         if title_match:
-            result['title'] = title_match.group(1).strip()
-        
-        description_match = re.search(r'Description:\s*(.+?)(?=Tags:|$)', response, re.DOTALL)
+            result["title"] = title_match.group(1).strip()
+
+        description_match = re.search(
+            r"Description:\s*(.+?)(?=Tags:|$)", response, re.DOTALL
+        )
         if description_match:
-            result['description'] = description_match.group(1).strip()
-        
-        tags_match = re.search(r'Tags:\s*(.+?)$', response, re.DOTALL)
+            result["description"] = description_match.group(1).strip()
+
+        tags_match = re.search(r"Tags:\s*(.+?)$", response, re.DOTALL)
         if tags_match:
-            result['tags'] = tags_match.group(1).strip()
-        
-        logger.info(f"Parsed Etsy listing - Title: {len(result['title'])} chars, Description: {len(result['description'])} chars, Tags: {len(result['tags'])} chars")
-        
+            result["tags"] = tags_match.group(1).strip()
+
+        logger.info(
+            f"Parsed Etsy listing - Title: {len(result['title'])} chars, Description: {len(result['description'])} chars, Tags: {len(result['tags'])} chars"
+        )
+
         return result
-        
+
     except Exception as e:
         logger.error(f"Failed to parse Etsy listing response: {e}")
         return {
-            'title': '',
-            'description': '',
-            'tags': ''
+            "title": "",
+            "description": "",
+            "tags": "",
         }

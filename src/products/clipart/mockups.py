@@ -8,7 +8,7 @@ from typing import List, Tuple, Optional
 from PIL import Image, ImageStat
 
 from src.utils.common import setup_logging, get_resampling_filter, safe_load_image
-from src.products.clipart.title import add_title_bar_and_text
+from src.products.clipart.title import add_title_bar_and_text, DEFAULT_FONT_CONFIG, DEFAULT_TITLE_FONT_STEP
 
 # Set up logging
 logger = setup_logging(__name__)
@@ -399,16 +399,6 @@ def create_square_mockup(
     subtitle_color = (min(r + 30, 255), min(g + 30, 255), min(b + 30, 255), a)
 
     logger.info(f"Selected text color: {selected_text_color}")
-
-    # Default configuration values
-    DEFAULT_FONT_CONFIG = {
-        "TITLE_FONT": "GreatVibes-Regular",
-        "SUBTITLE_FONT": "LibreBaskerville-Italic", 
-        "TITLE_MAX_FONT_SIZE": 250,
-        "TITLE_MIN_FONT_SIZE": 40,
-        "SUBTITLE_FONT_SIZE": 60
-    }
-    DEFAULT_TITLE_FONT_STEP = 5
 
     # Add title overlay
     logger.info("Adding title overlay...")

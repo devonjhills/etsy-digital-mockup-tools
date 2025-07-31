@@ -11,6 +11,18 @@ from src.utils.common import setup_logging, get_resampling_filter, get_font
 # Set up logging
 logger = setup_logging(__name__)
 
+# Default font configuration
+DEFAULT_FONT_CONFIG = {
+    "TITLE_FONT": "GreatVibes-Regular",
+    "SUBTITLE_FONT": "LibreBaskerville-Italic", 
+    "TITLE_MAX_FONT_SIZE": 250,
+    "TITLE_MIN_FONT_SIZE": 40,
+    "SUBTITLE_FONT_SIZE": 60
+}
+
+# Default title font step
+DEFAULT_TITLE_FONT_STEP = 5
+
 
 def add_title_bar_and_text(
     image: Image.Image,
@@ -86,15 +98,6 @@ def add_title_bar_and_text(
         except Exception as resize_err:
             logger.error(f"Error resizing background image: {resize_err}.")
 
-    # Default configuration values
-    DEFAULT_FONT_CONFIG = {
-        "TITLE_FONT": "GreatVibes-Regular",
-        "SUBTITLE_FONT": "LibreBaskerville-Italic", 
-        "TITLE_MAX_FONT_SIZE": 250,
-        "TITLE_MIN_FONT_SIZE": 40,
-        "SUBTITLE_FONT_SIZE": 60
-    }
-    DEFAULT_TITLE_FONT_STEP = 5
 
     # Use provided values or fall back to config values
     if title_font_name is None:

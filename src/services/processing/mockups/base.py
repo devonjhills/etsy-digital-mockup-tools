@@ -35,6 +35,63 @@ class MockupProcessor:
         else:
             return self._create_generic_main_mockup(input_folder, title)
     
+    def create_pinterest_mockup(self, input_folder: str, title: str, product_data: Dict[str, Any] = None) -> Optional[str]:
+        """
+        Create Pinterest-optimized vertical mockup (1000x1500px)
+        
+        Args:
+            input_folder: Folder containing source images
+            title: Title for the mockup
+            product_data: Additional product information
+            
+        Returns:
+            Path to created Pinterest mockup or None if failed
+        """
+        try:
+            from .pinterest import create_pinterest_mockup
+            
+            # Prepare product data
+            if product_data is None:
+                product_data = {}
+            
+            product_data.update({
+                'title': title,
+                'name': title,  # Use same title as main mockup
+                'product_type': self.product_type
+            })
+            
+            # Find images in input folder
+            image_files = []
+            for ext in ['.png', '.jpg', '.jpeg']:
+                image_files.extend([
+                    os.path.join(input_folder, f)
+                    for f in os.listdir(input_folder)
+                    if f.lower().endswith(ext) and os.path.isfile(os.path.join(input_folder, f))
+                ])
+            
+            if not image_files:
+                logger.warning("No images found for Pinterest mockup")
+                return None
+            
+            # Create output path
+            mockup_dir = os.path.join(input_folder, "mocks")
+            ensure_dir_exists(mockup_dir)
+            output_path = os.path.join(mockup_dir, "pinterest_mockup.png")
+            
+            # Create Pinterest mockup
+            success = create_pinterest_mockup(image_files, product_data, output_path)
+            
+            if success:
+                logger.info(f"Pinterest mockup created: {output_path}")
+                return output_path
+            else:
+                logger.error("Failed to create Pinterest mockup")
+                return None
+                
+        except Exception as e:
+            logger.error(f"Error creating Pinterest mockup: {e}")
+            return None
+    
     def _create_clipart_main_mockup(self, input_folder: str, title: str) -> Optional[str]:
         """Create main mockup for clipart."""
         try:

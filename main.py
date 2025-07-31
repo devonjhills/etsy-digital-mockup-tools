@@ -70,6 +70,7 @@ Examples:
     content_parser.add_argument('input_dir', help='Input directory containing images')
     content_parser.add_argument('--ai-provider', default='gemini', choices=['gemini', 'openai'])
     
+    
     return parser
 
 
@@ -218,6 +219,8 @@ def run_generate_content(args):
     except Exception as e:
         logger.error(f"Content generation failed: {e}")
         sys.exit(1)
+
+
 
 
 def main():

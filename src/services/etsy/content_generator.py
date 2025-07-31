@@ -76,7 +76,7 @@ class EtsyContentGenerator:
                 "tags": tags,
                 "category": category,
                 "image_count": image_count,
-                "image_analyzed": main_mockup
+                "image_analyzed": main_mockup,
             }
             
             # Add subcategory if provided
