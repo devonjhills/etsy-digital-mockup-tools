@@ -10,6 +10,9 @@ _A comprehensive toolkit for digital product creators and Etsy sellers_
 [![Google Gemini](https://img.shields.io/badge/Google%20Gemini-AI-purple)](https://ai.google.dev/)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
 
+<img width="1252" height="603" alt="Screenshot 2025-07-31 at 4 51 39 PM" src="https://github.com/user-attachments/assets/8c2284db-622a-456c-ad2b-4b349eccee26" />
+
+
 </div>
 
 ## 🚀 Overview
