@@ -1477,7 +1477,8 @@
           const data = await response.json();
           if (data.is_running) {
             setProcessingStatus(true, data.current_task || "Processing...");
-          } else if (!isProcessing) {
+          } else {
+            // Server reports not running, so reset UI regardless of client state
             setProcessingStatus(false, "Ready");
           }
         } catch (error) {
@@ -1495,12 +1496,28 @@
               addLogMessage(msg);
               const msgText =
                 typeof msg === "object" && msg.message ? msg.message : msg;
+              
+              // Check for completion messages and refresh prepared listings
               if (
                 msgText.includes("Successfully prepared") ||
                 msgText.includes("Upload complete") ||
                 msgText.includes("uploaded listings from prepared list")
               ) {
                 setTimeout(refreshPreparedListings, 1000);
+              }
+              
+              // Check for any completion messages and reset processing status
+              if (
+                msgText.includes("Successfully prepared") ||
+                msgText.includes("Successfully completed") ||
+                msgText.includes("Upload complete") ||
+                msgText.includes("preparation failed") ||
+                msgText.includes("processing failed") ||
+                msgText.includes("upload failed") ||
+                msgText.includes("Error")
+              ) {
+                // Force a status refresh immediately on completion/error messages
+                setTimeout(refreshStatus, 500);
               }
             });
 
