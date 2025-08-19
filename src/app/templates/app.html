@@ -10,6 +10,12 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
       rel="stylesheet"
     />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw=="
+      crossorigin="anonymous"
+    />
     <style>
       :root {
         --bg-dark: #111111;
@@ -333,12 +339,8 @@
         }
       }
 
-      .icon {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 1em;
-        height: 1em;
+      .btn i {
+        margin-right: 0.5rem;
       }
 
       .listing-editor {
@@ -411,6 +413,38 @@
       }
       .char-counter.error {
         color: var(--danger);
+      }
+
+      .save-indicator {
+        position: absolute;
+        top: 0.5rem;
+        right: 0.5rem;
+        padding: 0.25rem 0.5rem;
+        background: var(--success);
+        color: white;
+        border-radius: var(--radius-sm);
+        font-size: 0.75rem;
+        font-weight: 500;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        pointer-events: none;
+        z-index: 10;
+      }
+
+      .save-indicator.show {
+        opacity: 1;
+      }
+
+      .save-indicator.saving {
+        background: var(--warning);
+      }
+
+      .save-indicator.error {
+        background: var(--danger);
+      }
+
+      .listing-editor {
+        position: relative;
       }
 
       .tags-display {
@@ -568,16 +602,16 @@
       </header>
 
       <div class="tabs">
-        <div class="tab active" onclick="showTab('processing')">
+        <div class="tab" onclick="showTab('processing')">
           Image Processing
         </div>
-        <div class="tab" onclick="showTab('etsy')">Etsy Integration</div>
+        <div class="tab active" onclick="showTab('etsy')">Etsy Integration</div>
       </div>
 
       <main class="main-grid">
         <section>
           <!-- Image Processing Tab -->
-          <div id="processing-tab" class="tab-content active">
+          <div id="processing-tab" class="tab-content">
             <div class="card">
               <h2>Image Processing Workflow</h2>
 
@@ -620,26 +654,14 @@
               </div>
 
               <button class="btn" onclick="runWorkflow()" style="width: 100%">
-                <span class="icon">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="16"
-                    height="16"
-                    fill="currentColor"
-                    viewBox="0 0 16 16"
-                  >
-                    <path
-                      d="M10.804 8 5 4.633v6.734L10.804 8zm.792-.696a.802.802 0 0 1 0 1.392l-6.363 3.692C4.713 12.69 4 12.345 4 11.692V4.308c0-.653.713-.998 1.233-.696l6.363 3.692z"
-                    />
-                  </svg>
-                </span>
+                <i class="fas fa-play"></i>
                 Run Workflow
               </button>
             </div>
           </div>
 
           <!-- Etsy Integration Tab -->
-          <div id="etsy-tab" class="tab-content">
+          <div id="etsy-tab" class="tab-content active">
             <div class="card">
               <h2>Etsy Listing Generation</h2>
 
@@ -670,23 +692,7 @@
                   onclick="fullBulkProcessing()"
                   style="width: 100%"
                 >
-                  <span class="icon">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="16"
-                      height="16"
-                      fill="currentColor"
-                      viewBox="0 0 16 16"
-                    >
-                      <path
-                        d="M11.534 7h3.932a.25.25 0 0 1 .192.41l-1.966 2.36a.25.25 0 0 1-.384 0l-1.966-2.36a.25.25 0 0 1 .192-.41zm-11 2h3.932a.25.25 0 0 0 .192-.41L2.692 6.23a.25.25 0 0 0-.384 0L.342 8.59A.25.25 0 0 0 .534 9z"
-                      />
-                      <path
-                        fill-rule="evenodd"
-                        d="M8 3c-1.552 0-2.94.707-3.857 1.818a.5.5 0 1 1-.771-.636A6.002 6.002 0 0 1 13.917 7H12.5A4.5 4.5 0 0 0 8 3zM3.143 8.182a.5.5 0 1 1 .771.636A6.002 6.002 0 0 1 2.083 9H3.5A4.5 4.5 0 0 0 8 13c1.552 0 2.94-.707 3.857-1.818a.5.5 0 1 1 .771.636A6.002 6.002 0 0 1 2.083 9z"
-                      />
-                    </svg>
-                  </span>
+                  <i class="fas fa-cogs"></i>
                   Full Processing + AI Content
                 </button>
                 <button
@@ -694,26 +700,7 @@
                   onclick="prepareEtsyListings()"
                   style="width: 100%"
                 >
-                  <span class="icon">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="16"
-                      height="16"
-                      fill="currentColor"
-                      viewBox="0 0 16 16"
-                    >
-                      <path
-                        d="M13.405 7.425a.5.5 0 0 1 .488.663l-2.5 5a.5.5 0 0 1-.976-.174l1.29-2.58a.5.5 0 0 0-.256-.615l-3.32-1.66a.5.5 0 0 1-.176-.976l5-2.5a.5.5 0 0 1 .663.488zM4.5 2a.5.5 0 0 0-.5.5v1.25a.5.5 0 0 0 1 0V3h.5a.5.5 0 0 0 0-1h-1z"
-                      />
-                      <path
-                        d="M5.5 3a.5.5 0 0 0 0 1h.5a.5.5 0 0 0 0-1h-.5zM3 10.5a.5.5 0 0 1 .5-.5h1.25a.5.5 0 0 1 0 1H4v.5a.5.5 0 0 1-1 0v-1z"
-                      />
-                      <path
-                        d="M3.5 11a.5.5 0 0 0 0 1h.5a.5.5 0 0 0 0-1h-.5zm-2-4.5a.5.5 0 0 1 .5-.5h1.25a.5.5 0 0 1 0 1H2v.5a.5.5 0 0 1-1 0v-1z"
-                      />
-                      <path d="M1.5 7a.5.5 0 0 0 0 1h.5a.5.5 0 0 0 0-1h-.5z" />
-                    </svg>
-                  </span>
+                  <i class="fas fa-magic"></i>
                   Generate AI Content Only
                 </button>
                 <button
@@ -721,23 +708,7 @@
                   onclick="refreshPreparedListings()"
                   style="width: 100%"
                 >
-                  <span class="icon">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="16"
-                      height="16"
-                      fill="currentColor"
-                      viewBox="0 0 16 16"
-                    >
-                      <path
-                        fill-rule="evenodd"
-                        d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"
-                      />
-                      <path
-                        d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"
-                      />
-                    </svg>
-                  </span>
+                  <i class="fas fa-refresh"></i>
                   Load Prepared Listings
                 </button>
               </div>
@@ -769,22 +740,7 @@
                   class="btn btn-secondary"
                   onclick="refreshPreparedListings()"
                 >
-                  <span class="icon"
-                    ><svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="16"
-                      height="16"
-                      fill="currentColor"
-                      viewBox="0 0 16 16"
-                    >
-                      <path
-                        fill-rule="evenodd"
-                        d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"
-                      />
-                      <path
-                        d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"
-                      /></svg
-                  ></span>
+                  <i class="fas fa-refresh"></i>
                   Refresh
                 </button>
                 <button
@@ -792,22 +748,7 @@
                   onclick="deletePreparedListings()"
                   style="margin-left: auto"
                 >
-                  <span class="icon"
-                    ><svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="16"
-                      height="16"
-                      fill="currentColor"
-                      viewBox="0 0 16 16"
-                    >
-                      <path
-                        d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"
-                      />
-                      <path
-                        fill-rule="evenodd"
-                        d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"
-                      /></svg
-                  ></span>
+                  <i class="fas fa-trash"></i>
                   Delete All
                 </button>
               </div>
@@ -830,15 +771,38 @@
               </div>
             </div>
 
-            <div style="margin-top: 1rem; display: flex; gap: 0.5rem">
-              <button class="btn btn-secondary btn-small" onclick="clearLog()">
-                Clear Log
-              </button>
+            <div
+              style="
+                margin-top: 1rem;
+                display: flex;
+                gap: 0.5rem;
+                flex-wrap: wrap;
+                justify-content: space-between;
+              "
+            >
+              <div style="display: flex; gap: 0.5rem">
+                <button
+                  class="btn btn-secondary btn-small"
+                  onclick="clearLog()"
+                >
+                  <i class="fas fa-broom"></i>
+                  Clear Log
+                </button>
+                <button
+                  class="btn btn-secondary btn-small"
+                  onclick="refreshStatus()"
+                >
+                  <i class="fas fa-sync"></i>
+                  Refresh Status
+                </button>
+              </div>
               <button
-                class="btn btn-secondary btn-small"
-                onclick="refreshStatus()"
+                class="btn btn-danger btn-small"
+                onclick="clearInputFolder()"
+                title="Delete all files and folders in the input directory"
               >
-                Refresh Status
+                <i class="fas fa-folder-minus"></i>
+                Clear Folder
               </button>
             </div>
           </div>
@@ -852,16 +816,17 @@
     <script>
       // Global state
       let isProcessing = false;
+      let autoSaveTimeouts = {};
 
       // --- ICONS ---
       const ICONS = {
-        upload: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M10.114 6.03a.5.5 0 0 0-.514.853A4.002 4.002 0 0 1 12.5 10a.5.5 0 0 0 .5.5h.5a.5.5 0 0 0 .5-.5 5.002 5.002 0 0 0-4.368-4.97zM8.5 4.002a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v3.415a.5.5 0 0 0 .223.416l2 1.5a.5.5 0 0 0 .554-.832L9 8.185V4.002z"/><path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm7-8A7 7 0 1 1 1 8a7 7 0 0 1 14 0z"/></svg>`,
-        noListings: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M13 14H3a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h1.414A1.99 1.99 0 0 1 6 1.414L7.414 0H9.586L8.172 1.414A1.99 1.99 0 0 1 6.586 2H10a2 2 0 0 1 2 2v1.5a.5.5 0 0 1-1 0V4a1 1 0 0 0-1-1H3a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1V9.5a.5.5 0 0 1 1 0V12a2 2 0 0 1-2 2zM5 4h5a.5.5 0 0 1 0 1H5a.5.5 0 0 1 0-1z"/></svg>`,
-        etsyUpload: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M10.895 4.542c-.524.248-1.07.39-1.634.496C8.822 4.832 8.4 4.642 8.13 4.25h.003c-.27-.392-.69-.582-1.122-.776a4.34 4.34 0 0 0-1.635-.496c.264.48.375.984.38 1.488-.008.536-.168 1.05-.41 1.51-.532 1.016-1.424 1.555-2.56 1.625.27.392.69.582 1.122.776 1.072.495 2.227.478 3.225-.052.622.568 1.398.912 2.254.957.518.026 1.036-.026 1.546-.132.27-.392.69-.582 1.122-.776.5-.23.93-.39 1.28-.512.21-.072.416-.18.62-.272-.264-.48-.375-.984-.38-1.488.008-.536.168-1.05.41-1.51.532-1.016 1.424-1.555 2.56-1.625a4.18 4.18 0 0 0-1.122-.776c-1.072-.495-2.227-.478-3.225.052a4.53 4.53 0 0 0-2.254-.957 4.53 4.53 0 0 0-1.546.132z"/></svg>`,
-        save: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M2 1a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H9.5a1 1 0 0 0-1 1v4.5h2a.5.5 0 0 1 .354.854l-2.5 2.5a.5.5 0 0 1-.708 0l-2.5-2.5A.5.5 0 0 1 5.5 6.5h2V2a2 2 0 0 1 2-2H14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h2.5a.5.5 0 0 1 0 1H2z"/></svg>`,
-        reset: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8 3a.5.5 0 0 0-1 0v2.5H4.5a.5.5 0 0 0 0 1H7v1.5a.5.5 0 0 0 1 0V6h1.5a.5.5 0 0 0 0-1H8V3z"/><path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm7-8A7 7 0 1 1 1 8a7 7 0 0 1 14 0z"/></svg>`,
-        delete: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/><path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/></svg>`,
-        toastSuccess: `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16"><path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/></svg>`,
+        upload: `<i class="fas fa-upload"></i>`,
+        noListings: `<i class="fas fa-inbox"></i>`,
+        etsyUpload: `<i class="fab fa-etsy"></i>`,
+        save: `<i class="fas fa-save"></i>`,
+        reset: `<i class="fas fa-undo"></i>`,
+        delete: `<i class="fas fa-trash"></i>`,
+        toastSuccess: `<i class="fas fa-check-circle"></i>`,
       };
 
       // --- CORE SCRIPT (UNCHANGED LOGIC) ---
@@ -1144,17 +1109,22 @@
         const folderId = listing.folder_name.replace(/[^a-zA-Z0-9]/g, "_");
         return `
                 <div class="listing-editor" id="listing-${folderId}">
+                    <div class="save-indicator" id="save-indicator-${folderId}">Saved</div>
                     <h4>${listing.folder_name || "Unknown Listing"}</h4>
                     <div class="field-group">
                         <label for="title-${folderId}">Title (max 140)</label>
-                        <textarea id="title-${folderId}" oninput="updateCharCounter('title-${folderId}', 140)" maxlength="140" rows="2">${(
+                        <textarea id="title-${folderId}" oninput="handleAutoSave('${folderId}', '${
+          listing.folder_name
+        }'); updateCharCounter('title-${folderId}', 140)" maxlength="140" rows="2">${(
           listing.title || ""
         ).replace(/"/g, '"')}</textarea>
                         <div class="char-counter" id="title-${folderId}-counter"></div>
                     </div>
                     <div class="field-group">
                         <label for="description-${folderId}">Description</label>
-                        <textarea id="description-${folderId}" oninput="updateCharCounter('description-${folderId}', 0)" rows="5">${(
+                        <textarea id="description-${folderId}" oninput="handleAutoSave('${folderId}', '${
+          listing.folder_name
+        }'); updateCharCounter('description-${folderId}', 0)" rows="5">${(
           listing.description || ""
         )
           .replace(/</g, "<")
@@ -1168,17 +1138,12 @@
         )
           .map((tag) => `<span class="tag-chip">${tag}</span>`)
           .join("")}</div>
-                        <textarea id="tags-input-${folderId}" placeholder="Enter tags separated by commas..." oninput="updateTagsFromInput('${folderId}')" rows="3">${(
-          listing.tags || []
-        ).join(", ")}</textarea>
+                        <textarea id="tags-input-${folderId}" placeholder="Enter tags separated by commas..." oninput="updateTagsFromInput('${folderId}'); handleAutoSave('${folderId}', '${
+          listing.folder_name
+        }')" rows="3">${(listing.tags || []).join(", ")}</textarea>
                         <div class="char-counter" id="tags-${folderId}-counter"></div>
                     </div>
                     <div class="editor-actions">
-                        <button class="btn btn-small" onclick="saveListing('${
-                          listing.folder_name
-                        }')"><span class="icon">${
-          ICONS.save
-        }</span> Save Changes</button>
                         <button class="btn btn-secondary btn-small" onclick="resetListing('${folderId}', ${JSON.stringify(
           listing
         ).replace(/"/g, '"')})"><span class="icon">${
@@ -1261,6 +1226,99 @@
           counter.textContent = `${tags.length}/13 tags`;
           counter.className = "char-counter";
           if (tags.length > 10) counter.classList.add("warning");
+        }
+      }
+
+      function handleAutoSave(folderId, folderName) {
+        // Clear existing timeout for this listing
+        if (autoSaveTimeouts[folderId]) {
+          clearTimeout(autoSaveTimeouts[folderId]);
+        }
+
+        // Show saving indicator
+        showSaveIndicator(folderId, "saving");
+
+        // Set new timeout for auto-save (debounce for 1 second)
+        autoSaveTimeouts[folderId] = setTimeout(() => {
+          autoSaveListing(folderId, folderName);
+        }, 1000);
+      }
+
+      function showSaveIndicator(folderId, state = "saved") {
+        const indicator = document.getElementById(`save-indicator-${folderId}`);
+        if (!indicator) return;
+
+        indicator.className = "save-indicator show";
+
+        if (state === "saving") {
+          indicator.className += " saving";
+          indicator.textContent = "Saving...";
+        } else if (state === "error") {
+          indicator.className += " error";
+          indicator.textContent = "Error";
+          // Hide error indicator after 3 seconds
+          setTimeout(() => {
+            indicator.className = "save-indicator";
+          }, 3000);
+        } else {
+          indicator.textContent = "Saved";
+          // Hide saved indicator after 2 seconds
+          setTimeout(() => {
+            indicator.className = "save-indicator";
+          }, 2000);
+        }
+      }
+
+      async function autoSaveListing(folderId, folderName) {
+        const title = document.getElementById(`title-${folderId}`).value.trim();
+        const description = document
+          .getElementById(`description-${folderId}`)
+          .value.trim();
+        const tags = Array.from(
+          new Set(
+            document
+              .getElementById(`tags-input-${folderId}`)
+              .value.split(",")
+              .map((tag) => tag.trim())
+              .filter(Boolean)
+          )
+        );
+
+        // Validate before saving
+        if (title.length > 140) {
+          showSaveIndicator(folderId, "error");
+          return;
+        }
+        if (tags.length > 13) {
+          showSaveIndicator(folderId, "error");
+          return;
+        }
+        if (tags.some((t) => t.length > 20)) {
+          showSaveIndicator(folderId, "error");
+          return;
+        }
+
+        try {
+          const response = await fetch("/update-prepared-listing", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              folder_name: folderName,
+              title,
+              description,
+              tags,
+            }),
+          });
+          const data = await response.json();
+          if (response.ok) {
+            showSaveIndicator(folderId, "saved");
+          } else {
+            showSaveIndicator(folderId, "error");
+            console.error(`Failed to auto-save listing: ${data.error}`);
+          }
+        } catch (error) {
+          showSaveIndicator(folderId, "error");
+          console.error(`Error auto-saving listing: ${error.message}`);
         }
       }
 
@@ -1471,6 +1529,49 @@
         addLogMessage("Log cleared");
       }
 
+      async function clearInputFolder() {
+        if (isProcessing) {
+          alert(
+            "A workflow is already running. Please wait for it to complete."
+          );
+          return;
+        }
+
+        const confirmed = confirm(
+          "Are you sure you want to delete ALL files and folders in the input directory?\n\n" +
+            "This action cannot be undone!"
+        );
+
+        if (!confirmed) return;
+
+        try {
+          addLogMessage("Clearing input folder...", "info");
+
+          const response = await fetch("/clear-input", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+          });
+
+          const data = await response.json();
+
+          if (response.ok && data.success) {
+            addLogMessage(data.message, "success");
+            // Refresh folder info after clearing
+            updateFolderInfo();
+          } else {
+            addLogMessage(
+              `Failed to clear input folder: ${data.error || "Unknown error"}`,
+              "error"
+            );
+          }
+        } catch (error) {
+          addLogMessage(
+            `Error clearing input folder: ${error.message}`,
+            "error"
+          );
+        }
+      }
+
       async function refreshStatus() {
         try {
           const response = await fetch("/status");
@@ -1496,7 +1597,7 @@
               addLogMessage(msg);
               const msgText =
                 typeof msg === "object" && msg.message ? msg.message : msg;
-              
+
               // Check for completion messages and refresh prepared listings
               if (
                 msgText.includes("Successfully prepared") ||
@@ -1505,7 +1606,7 @@
               ) {
                 setTimeout(refreshPreparedListings, 1000);
               }
-              
+
               // Check for any completion messages and reset processing status
               if (
                 msgText.includes("Successfully prepared") ||

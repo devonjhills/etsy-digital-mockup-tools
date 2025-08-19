@@ -932,6 +932,26 @@ def delete_single_prepared_listing(data: Dict[str, Any]):
         return jsonify({"error": str(e)}), 500
 
 
+@app.route("/clear-input", methods=["POST"])
+def clear_input():
+    """Clear all contents from the input folder."""
+    try:
+        from src.utils.file_operations import clear_input_folder
+        
+        result = clear_input_folder()
+        
+        if result["success"]:
+            add_log(result["message"], "success")
+        else:
+            add_log(f"Failed to clear input folder: {result.get('error', 'Unknown error')}", "error")
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        add_log(f"Clear input failed: {str(e)}", "error")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 @app.route("/upload-prepared-listings", methods=["POST"])
 @validate_json_request
 def upload_prepared_listings(data: Dict[str, Any]):

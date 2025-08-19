@@ -287,6 +287,45 @@ def create_smart_zip_files(source_dir: str, output_dir: str, max_size_mb: float 
         return {"success": False, "error": str(e)}
 
 
+def clear_input_folder(input_dir: str = "input") -> Dict[str, Any]:
+    """Clear all contents from the input folder.
+    
+    Args:
+        input_dir: Path to the input directory (defaults to 'input')
+        
+    Returns:
+        Dict with operation results
+    """
+    try:
+        input_path = Path(input_dir)
+        
+        if not input_path.exists():
+            logger.info(f"Input directory does not exist: {input_dir}")
+            return {"success": True, "message": "Input directory does not exist"}
+        
+        deleted_items = []
+        for item in input_path.iterdir():
+            if item.is_dir():
+                shutil.rmtree(item)
+                deleted_items.append(f"folder: {item.name}")
+            else:
+                item.unlink()
+                deleted_items.append(f"file: {item.name}")
+        
+        logger.info(f"Cleared input folder: removed {len(deleted_items)} items")
+        
+        return {
+            "success": True,
+            "message": f"Successfully cleared input folder - removed {len(deleted_items)} items",
+            "deleted_items": deleted_items,
+            "count": len(deleted_items)
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to clear input folder: {e}")
+        return {"success": False, "error": str(e)}
+
+
 def get_safe_filename(filename: str) -> str:
     """Create a safe filename by removing/replacing problematic characters.
     
