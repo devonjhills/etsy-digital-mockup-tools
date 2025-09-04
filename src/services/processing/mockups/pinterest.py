@@ -338,16 +338,24 @@ class PinterestMockupGenerator:
 
             # Add subtle texture overlay if available
             if self.canvas_bg:
-                texture = resize_image(
-                    self.canvas_bg, self.PINTEREST_WIDTH, self.PINTEREST_HEIGHT
-                )
-                texture = texture.convert("RGBA")
+                try:
+                    texture = resize_image(
+                        self.canvas_bg, self.PINTEREST_WIDTH, self.PINTEREST_HEIGHT
+                    )
+                    texture = texture.convert("RGBA")
 
-                # Very subtle texture
-                alpha = Image.new("L", texture.size, 20)
-                texture.putalpha(alpha)
+                    # Ensure texture is exactly the same size as canvas
+                    if texture.size != (self.PINTEREST_WIDTH, self.PINTEREST_HEIGHT):
+                        texture = texture.resize((self.PINTEREST_WIDTH, self.PINTEREST_HEIGHT))
 
-                canvas = Image.alpha_composite(canvas.convert("RGBA"), texture)
+                    # Very subtle texture
+                    alpha = Image.new("L", texture.size, 20)
+                    texture.putalpha(alpha)
+
+                    canvas = Image.alpha_composite(canvas.convert("RGBA"), texture)
+                except Exception as tex_e:
+                    logger.warning(f"⚠️ Texture overlay error: {tex_e}. Skipping texture.")
+                    # Continue with plain background if texture fails
 
             return canvas
 

@@ -203,15 +203,11 @@ class BorderClipartProcessor(BaseProcessor):
             # Load the demo image
             demo_image = Image.open(demo_path)
             
-            # Apply watermark with settings appropriate for transparency demo
+            # Apply watermark with unified system defaults
             watermarked_image = apply_watermark(
                 image=demo_image,
                 text="digital veil",
-                font_name="Clattering",
-                font_size=60,  # Larger font for better visibility
-                text_color=(80, 80, 80),  # Darker color for better contrast
-                opacity=120,   # Higher opacity for more visibility
-                diagonal_spacing=350  # Closer spacing for better coverage
+                # Use unified system defaults for consistency
             )
             
             # Save watermarked version (overwrite original)

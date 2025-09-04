@@ -203,7 +203,7 @@ class ConfigManager:
             },
             layout_settings={
                 "subtitle_text_top": "{num_images} clip arts • Commercial Use",
-                "subtitle_bottom_text": "300 DPI • Transparent PNG",
+                "subtitle_bottom_text": '300 DPI • 5" • Transparent PNG',
                 "subtitle_spacing": 35,
                 "checkerboard_size": 30,
                 "transparency_demo_scale": 0.7,

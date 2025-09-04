@@ -23,7 +23,7 @@ class ImageConstants:
     MIN_FONT_SIZE = 8  # Minimum font size
     DEFAULT_DPI = 300  # Default DPI for image processing
     WATERMARK_PADDING = 20  # Padding around watermark text
-    WATERMARK_SPACING_RATIO = 0.25  # Ratio of image size for watermark spacing
+    WATERMARK_SPACING_RATIO = 0.35  # Ratio of image size for watermark spacing
     FONT_SCALE_RATIO = 0.05  # Ratio for auto-scaling fonts
 
 
@@ -47,7 +47,7 @@ class WatermarkDefaults:
     """Default values for watermarking."""
 
     TEXT = "digital veil"
-    FONT_NAME = "Clattering"
+    FONT_NAME = "Poppins-SemiBold"
     FONT_SIZE = 50
     COLOR = (120, 120, 120)
     OPACITY = 80
@@ -488,8 +488,8 @@ def _calculate_scaled_font_size(
 
 def _get_text_dimensions(
     draw: ImageDraw.ImageDraw, text: str, font: ImageFont.FreeTypeFont
-) -> Tuple[int, int]:
-    """Get text dimensions using the most appropriate method available.
+) -> Tuple[int, int, int, int]:
+    """Get text dimensions and offset using the most appropriate method available.
 
     Args:
         draw: ImageDraw object
@@ -497,15 +497,22 @@ def _get_text_dimensions(
         font: Font to use
 
     Returns:
-        (width, height) of the text
+        (width, height, offset_x, offset_y) of the text and its positioning offset
     """
     try:
-        # New method in newer PIL versions
+        # New method in newer PIL versions - gives us precise bounding box
         bbox = draw.textbbox((0, 0), text, font=font)
-        return bbox[2] - bbox[0], bbox[3] - bbox[1]
+        width = bbox[2] - bbox[0]
+        height = bbox[3] - bbox[1]
+        # Offset needed to position text properly (accounting for negative bbox values)
+        offset_x = -bbox[0]  # Compensate for negative left bearing
+        offset_y = -bbox[1]  # Compensate for ascenders/descenders
+        return width, height, offset_x, offset_y
     except AttributeError:
         # Fallback for older PIL versions
-        return draw.textsize(text, font=font)
+        width, height = draw.textsize(text, font=font)
+        # For older PIL, assume no offset needed (less precise)
+        return width, height, 0, 0
 
 
 def _calculate_watermark_spacing(
@@ -587,18 +594,22 @@ def _create_rotated_text_image(
     Returns:
         Rotated text image with transparency
     """
-    # Get text size for temporary image
+    # Get text size and positioning offset for temporary image
     temp_draw = ImageDraw.Draw(Image.new("RGBA", (1, 1)))
-    text_width, text_height = _get_text_dimensions(temp_draw, text, font)
+    text_width, text_height, offset_x, offset_y = _get_text_dimensions(temp_draw, text, font)
 
-    # Create temporary image with padding
+    # Create temporary image with padding (extra space for proper positioning)
     padding = ImageConstants.WATERMARK_PADDING
     temp_img = Image.new(
-        "RGBA", (text_width + padding, text_height + padding), (0, 0, 0, 0)
+        "RGBA", (text_width + padding * 2, text_height + padding * 2), (0, 0, 0, 0)
     )
     temp_draw = ImageDraw.Draw(temp_img)
+    
+    # Position text with proper offset to account for descenders/ascenders
+    text_x = padding + offset_x
+    text_y = padding + offset_y
     temp_draw.text(
-        (padding // 2, padding // 2), text, font=font, fill=(*text_color, opacity)
+        (text_x, text_y), text, font=font, fill=(*text_color, opacity)
     )
 
     # Rotate the text
@@ -633,11 +644,11 @@ def _is_position_visible(
 
 def apply_watermark(
     image: Image.Image,
-    text: str = "digital veil",
-    font_name: str = "Clattering",
-    font_size: int = 50,
-    text_color: Tuple[int, int, int] = (120, 120, 120),
-    opacity: int = 80,
+    text: str = WatermarkDefaults.TEXT,
+    font_name: str = WatermarkDefaults.FONT_NAME,
+    font_size: int = WatermarkDefaults.FONT_SIZE,
+    text_color: Tuple[int, int, int] = WatermarkDefaults.COLOR,
+    opacity: int = WatermarkDefaults.OPACITY,
     diagonal_spacing: Optional[int] = None,
 ) -> Image.Image:
     """Apply a clean diagonal text watermark to an image.
@@ -694,7 +705,8 @@ def apply_watermark(
 
         # Get dimensions for visibility checking
         temp_draw = ImageDraw.Draw(Image.new("RGBA", (1, 1)))
-        text_size = _get_text_dimensions(temp_draw, config.text, font)
+        text_dimensions = _get_text_dimensions(temp_draw, config.text, font)
+        text_size = (text_dimensions[0], text_dimensions[1])  # Only width and height
 
         # Place watermarks at calculated positions (optimized)
         rotated_width, rotated_height = rotated_text.size

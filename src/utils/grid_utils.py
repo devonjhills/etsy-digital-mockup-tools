@@ -315,17 +315,13 @@ class GridCreator:
             except Exception as e:
                 logger.error(f"Error processing image {img_path}: {e}")
         
-        # Add watermark using unified function
+        # Add watermark using unified function with updated defaults
         try:
             background_rgba = background.convert("RGBA")
             watermarked = apply_watermark(
                 image=background_rgba,
                 text=watermark_text,
-                font_name="DSMarkerFelt",
-                font_size=80,
-                text_color=(255, 255, 255),
-                opacity=128,
-                diagonal_spacing=400,
+                # Use unified system defaults - no need to override
             )
             final_image = watermarked.convert("RGB")
         except Exception as e:
@@ -361,15 +357,16 @@ def apply_watermark_to_grid(grid_path: str, logger=None) -> Optional[str]:
         # Load the grid image
         grid_image = Image.open(grid_path)
         
-        # Apply watermark using unified function
+        # Apply watermark using unified function with unified defaults
         watermarked_image = apply_watermark(
             image=grid_image,
             text="digital veil",
-            font_name="Clattering",
-            font_size=50,  # Larger font for better visibility
-            text_color=(80, 80, 80),  # Darker color for better contrast
-            opacity=110,   # Higher opacity for more visibility
-            diagonal_spacing=400  # Closer spacing for better coverage
+            # Use unified system defaults:
+            # - font_name: "Poppins-SemiBold" (WatermarkDefaults.FONT_NAME) 
+            # - font_size: 50 (WatermarkDefaults.FONT_SIZE)
+            # - text_color: (120, 120, 120) (WatermarkDefaults.COLOR)
+            # - opacity: 80 (WatermarkDefaults.OPACITY)  
+            # - diagonal_spacing: calculated from WATERMARK_SPACING_RATIO = 0.35
         )
         
         # Save watermarked version (overwrite original)

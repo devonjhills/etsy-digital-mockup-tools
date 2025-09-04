@@ -359,9 +359,7 @@ class JournalPapersProcessor(BaseProcessor):
         watermarked_canvas = apply_watermark(
             image=grid_canvas_rgba,
             text="digital veil",
-            font_name="DSMarkerFelt",
-            text_color=(255, 255, 255),
-            opacity=128,
+            # Use unified system defaults for consistency
         )
         grid_canvas = watermarked_canvas.convert("RGB")
 

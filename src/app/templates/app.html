@@ -349,6 +349,29 @@
         margin-bottom: 1rem;
         border: 1px solid var(--border);
         border-radius: var(--radius-md);
+        position: relative;
+        transition: var(--transition);
+      }
+
+      .listing-editor.uploading {
+        opacity: 0.6;
+        pointer-events: none;
+        background: var(--surface);
+        border-color: var(--primary);
+      }
+
+      .listing-editor.uploading::after {
+        content: "Uploading to Etsy - Read Only";
+        position: absolute;
+        top: 0.5rem;
+        left: 0.5rem;
+        background: var(--primary);
+        color: white;
+        padding: 0.25rem 0.75rem;
+        border-radius: var(--radius-sm);
+        font-size: 0.75rem;
+        font-weight: 600;
+        z-index: 10;
       }
 
       #prepared-listings-list {
@@ -443,9 +466,6 @@
         background: var(--danger);
       }
 
-      .listing-editor {
-        position: relative;
-      }
 
       .tags-display {
         display: flex;
@@ -688,6 +708,7 @@
                 style="display: flex; flex-direction: column; gap: 0.75rem"
               >
                 <button
+                  id="full-processing-btn"
                   class="btn"
                   onclick="fullBulkProcessing()"
                   style="width: 100%"
@@ -696,6 +717,7 @@
                   Full Processing + AI Content
                 </button>
                 <button
+                  id="generate-ai-content-btn"
                   class="btn btn-secondary"
                   onclick="prepareEtsyListings()"
                   style="width: 100%"
@@ -704,6 +726,7 @@
                   Generate AI Content Only
                 </button>
                 <button
+                  id="load-prepared-listings-btn"
                   class="btn btn-secondary"
                   onclick="refreshPreparedListings()"
                   style="width: 100%"
@@ -1041,9 +1064,7 @@
           setProcessingStatus(true, "Uploading to Etsy");
           updateUploadButtonState();
           addLogMessage(
-            `Starting upload of prepared listings to Etsy (${
-              isDraft ? "draft" : "active"
-            } mode)`,
+            `Starting upload of prepared listings to Etsy (${isDraft ? "draft" : "active"} mode). Listings are now read-only during upload.`,
             "info"
           );
           const response = await fetch("/upload-prepared-listings", {
@@ -1175,6 +1196,30 @@
         } else {
           uploadBtn.innerHTML = `<span class="icon">${ICONS.etsyUpload}</span> Upload to Etsy`;
         }
+        
+        // Update listing editors disabled state
+        updateListingEditorsState();
+      }
+
+      function updateListingEditorsState() {
+        const listingEditors = document.querySelectorAll('.listing-editor');
+        listingEditors.forEach(editor => {
+          if (isProcessing) {
+            editor.classList.add('uploading');
+            // Disable all form elements in the editor
+            const formElements = editor.querySelectorAll('textarea, button');
+            formElements.forEach(element => {
+              element.disabled = true;
+            });
+          } else {
+            editor.classList.remove('uploading');
+            // Re-enable all form elements in the editor
+            const formElements = editor.querySelectorAll('textarea, button');
+            formElements.forEach(element => {
+              element.disabled = false;
+            });
+          }
+        });
       }
 
       function updateCharCounter(inputId, maxLength) {
@@ -1463,6 +1508,53 @@
         indicator.className = statusClass;
         indicator.innerHTML = `${statusIcon}<span>${statusText}</span>`;
         updateUploadButtonState();
+        updateProcessingButtons();
+      }
+
+      function updateProcessingButtons() {
+        const fullProcessingBtn = document.getElementById("full-processing-btn");
+        const generateAiContentBtn = document.getElementById("generate-ai-content-btn");
+        const loadPreparedListingsBtn = document.getElementById("load-prepared-listings-btn");
+        const runWorkflowBtn = document.querySelector("button[onclick='runWorkflow()']");
+        const clearFolderBtn = document.querySelector("button[onclick='clearInputFolder()']");
+
+        // Get buttons to update
+        const buttonsToDisable = [
+          fullProcessingBtn,
+          generateAiContentBtn,
+          loadPreparedListingsBtn,
+          runWorkflowBtn,
+          clearFolderBtn
+        ].filter(btn => btn); // Filter out null values
+
+        buttonsToDisable.forEach(btn => {
+          btn.disabled = isProcessing;
+        });
+
+        // Update button text to show processing state
+        if (fullProcessingBtn) {
+          if (isProcessing) {
+            fullProcessingBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+          } else {
+            fullProcessingBtn.innerHTML = '<i class="fas fa-cogs"></i> Full Processing + AI Content';
+          }
+        }
+
+        if (generateAiContentBtn) {
+          if (isProcessing) {
+            generateAiContentBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+          } else {
+            generateAiContentBtn.innerHTML = '<i class="fas fa-magic"></i> Generate AI Content Only';
+          }
+        }
+
+        if (loadPreparedListingsBtn) {
+          if (isProcessing) {
+            loadPreparedListingsBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
+          } else {
+            loadPreparedListingsBtn.innerHTML = '<i class="fas fa-refresh"></i> Load Prepared Listings';
+          }
+        }
       }
 
       function showEtsyEditToast(listingId, folderName) {
@@ -1605,6 +1697,9 @@
                 msgText.includes("uploaded listings from prepared list")
               ) {
                 setTimeout(refreshPreparedListings, 1000);
+                if (msgText.includes("Upload complete")) {
+                  addLogMessage("Listings are now editable again.", "info");
+                }
               }
 
               // Check for any completion messages and reset processing status
