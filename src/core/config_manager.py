@@ -23,17 +23,17 @@ except ImportError:
 
 # Global font configuration
 def get_available_fonts() -> Dict[str, str]:
-    """Get available fonts with system fonts and project fallbacks."""
-    project_root = Path(__file__).parent.parent
+    """Get available fonts - use project fonts directly."""
+    project_root = Path(__file__).parent.parent.parent  # Go up to project root from src/core/
     assets_dir = project_root / "assets"
     fonts_dir = assets_dir / "fonts"
-    user_fonts_dir = Path.home() / "Library" / "Fonts"
 
     return {
-        # System fonts (preferred)
-        "GreatVibes-Regular": str(user_fonts_dir / "GreatVibes-Regular.ttf"),
-        "LibreBaskerville-Italic": str(user_fonts_dir / "LibreBaskerville-Italic.ttf"),
-        # Project fonts (fallbacks)
+        # Use Angelina (fancy script) as the main title font
+        "GreatVibes-Regular": str(fonts_dir / "Free Version Angelina.ttf"),
+        # Use Poppins for subtitles (clean, readable)
+        "LibreBaskerville-Italic": str(fonts_dir / "Poppins-SemiBold.ttf"),
+        # Project fonts
         "Clattering": str(fonts_dir / "Clattering.ttf"),
         "Cravelo": str(fonts_dir / "Cravelo DEMO.otf"),
         "MarkerFelt": str(fonts_dir / "DSMarkerFelt.ttf"),

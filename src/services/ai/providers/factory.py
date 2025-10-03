@@ -46,9 +46,7 @@ class AIProviderFactory:
 
             # Get model name from environment if not provided
             if not model_name:
-                model_name = os.environ.get(
-                    "GEMINI_MODEL", "gemini-2.5-flash-preview-05-20"
-                )
+                model_name = os.environ.get("GEMINI_MODEL", "gemini-2.5-pro")
 
             return GeminiProvider(api_key, model_name)
 

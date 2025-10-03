@@ -129,8 +129,8 @@ class VideoCreator:
         # Path for the video in the videos folder
         videos_output_path = os.path.join(videos_folder, os.path.basename(output_path))
         
-        # Create video writer with avc1 codec for better compatibility  
-        fourcc = cv2.VideoWriter_fourcc(*"avc1")
+        # Create video writer with mp4v codec for Ubuntu compatibility
+        fourcc = cv2.VideoWriter_fourcc(*"mp4v")
         video_writer = cv2.VideoWriter(videos_output_path, fourcc, fps, target_size)
         
         if not video_writer.isOpened():
@@ -265,8 +265,8 @@ class VideoCreator:
                 return False
             
             height, width = img.shape[:2]
-            fourcc = cv2.VideoWriter_fourcc(*"avc1")
-            
+            fourcc = cv2.VideoWriter_fourcc(*"mp4v")
+
             video = cv2.VideoWriter(output_path, fourcc, float(fps), (width, height))
             
             if not video.isOpened():
@@ -377,7 +377,7 @@ class VideoCreator:
             cv_tile = cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
             
             # Create video writer
-            fourcc = cv2.VideoWriter_fourcc(*"avc1")
+            fourcc = cv2.VideoWriter_fourcc(*"mp4v")
             video = cv2.VideoWriter(output_path, fourcc, float(fps), video_size)
             
             if not video.isOpened():
@@ -569,7 +569,7 @@ class VideoCreator:
         videos_output_path = os.path.join(videos_folder, os.path.basename(output_path))
         
         # Create video writer
-        fourcc = cv2.VideoWriter_fourcc(*"avc1")
+        fourcc = cv2.VideoWriter_fourcc(*"mp4v")
         video_writer = cv2.VideoWriter(videos_output_path, fourcc, fps, (video_width, video_height))
         
         if not video_writer.isOpened():

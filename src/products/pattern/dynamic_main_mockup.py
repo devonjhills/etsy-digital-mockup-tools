@@ -289,26 +289,25 @@ def create_dynamic_overlay(
     # Add text
     # Position text elements with perfect centering
 
-    # Center the title horizontally and position it slightly lower than center vertically
-    # to be more evenly spaced between the top and bottom subtitles
-    title_x = (width - title_width) // 2
-
-    # Calculate a position that's shifted down from the center by a small amount
-    # This creates more even spacing between the title and both subtitles
-    vertical_offset = 15  # Pixels to move the title down from center
-    title_y = backdrop_y + (backdrop_height - title_height) // 2 + vertical_offset
-
-    # Position top subtitle with more padding from the top of the backdrop
-    top_padding = 20  # Increased padding from the top of the backdrop
+    # Position top subtitle with padding from the top of the backdrop
+    top_padding = 20
     subtitle_y = backdrop_y + top_padding + (subtitle_height // 2)
 
     # Position bottom subtitle near the bottom of the backdrop
     bottom_subtitle_x = (width - bottom_subtitle_width) // 2
-    # Calculate position from the bottom of the backdrop with more padding
-    bottom_padding = 30  # Increased padding from the bottom of the backdrop
+    bottom_padding = 30
     bottom_subtitle_y = (
         backdrop_y + backdrop_height - bottom_subtitle_height - bottom_padding
     )
+
+    # Center the title horizontally
+    title_x = (width - title_width) // 2
+
+    # Center the title vertically between the top and bottom subtitles
+    # Calculate the space between subtitles and center the title in that space
+    space_top = subtitle_y + subtitle_height
+    space_bottom = bottom_subtitle_y
+    title_y = space_top + (space_bottom - space_top - title_height) // 2
 
     # Draw text elements with dynamic color selection for readability
     # Top subtitle - split into number and text with different font sizes

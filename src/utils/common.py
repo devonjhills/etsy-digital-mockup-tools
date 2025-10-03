@@ -778,6 +778,20 @@ def get_font(
             # Continue with normal font loading
             pass
 
+    # Check config manager for font mappings first
+    try:
+        from src.core.config_manager import get_available_fonts
+        font_mappings = get_available_fonts()
+        if font_name in font_mappings:
+            font_path = font_mappings[font_name]
+            if os.path.exists(font_path):
+                try:
+                    return ImageFont.truetype(font_path, size)
+                except Exception:
+                    pass
+    except Exception:
+        pass
+
     if fallback_names is None:
         fallback_names = []
 
@@ -788,6 +802,11 @@ def get_font(
         "/Library/Fonts",
         # User fonts
         os.path.expanduser("~/Library/Fonts"),
+        # Linux system fonts
+        "/usr/share/fonts",
+        "/usr/local/share/fonts",
+        os.path.expanduser("~/.fonts"),
+        os.path.expanduser("~/.local/share/fonts"),
     ]
 
     # First try to find the font in system font directories
