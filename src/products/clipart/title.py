@@ -306,10 +306,12 @@ def add_title_bar_and_text(
 
     # Create a text backdrop with rounded corners and semi-transparency
     # Add some padding around the text for the backdrop
+    # Increased bottom padding to accommodate title being moved up
     backdrop_padding_x = 40
     backdrop_padding_y = 30
+    backdrop_padding_y_bottom = 45  # Extra padding at bottom
     backdrop_width = text_width + backdrop_padding_x * 2
-    backdrop_height = total_content_height + backdrop_padding_y * 2
+    backdrop_height = total_content_height + backdrop_padding_y + backdrop_padding_y_bottom
 
     # Calculate position to center the backdrop
     backdrop_x = (canvas_w - backdrop_width) // 2
@@ -348,6 +350,8 @@ def add_title_bar_and_text(
         current_y += subtitle_top_height + subtitle_spacing
 
     # Draw title lines
+    # Apply vertical adjustment to move title up for Angelina font
+    title_vertical_adjustment = 40  # Move title UP by 40 pixels
     for i, line in enumerate(title_lines):
         try:
             bbox = draw.textbbox((0, 0), line, font=title_font)
@@ -357,18 +361,20 @@ def add_title_bar_and_text(
             line_width, line_height = draw.textsize(line, font=title_font)
 
         line_x = text_x + (text_width - line_width) // 2
+        # Apply adjustment to move title up
+        adjusted_y = current_y - title_vertical_adjustment
 
         # Add a subtle text shadow for better readability
         shadow_offset = 2
         draw.text(
-            (line_x + shadow_offset, current_y + shadow_offset),
+            (line_x + shadow_offset, adjusted_y + shadow_offset),
             line,
             font=title_font,
             fill=(0, 0, 0, 100),
         )
 
-        # Draw the main text
-        draw.text((line_x, current_y), line, font=title_font, fill=text_color)
+        # Draw the main text at adjusted position
+        draw.text((line_x, adjusted_y), line, font=title_font, fill=text_color)
 
         # Add spacing after each line except the last one
         if i < len(title_lines) - 1:

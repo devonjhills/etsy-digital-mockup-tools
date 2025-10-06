@@ -293,9 +293,10 @@ def create_dynamic_overlay(
     top_padding = 20
     subtitle_y = backdrop_y + top_padding + (subtitle_height // 2)
 
-    # Position bottom subtitle near the bottom of the backdrop
+    # Position bottom subtitle near the bottom of the backdrop with extra padding
+    # Added more padding to accommodate title being moved up
     bottom_subtitle_x = (width - bottom_subtitle_width) // 2
-    bottom_padding = 30
+    bottom_padding = 45  # Increased from 30 to 45 for more space beneath title
     bottom_subtitle_y = (
         backdrop_y + backdrop_height - bottom_subtitle_height - bottom_padding
     )
@@ -308,6 +309,10 @@ def create_dynamic_overlay(
     space_top = subtitle_y + subtitle_height
     space_bottom = bottom_subtitle_y
     title_y = space_top + (space_bottom - space_top - title_height) // 2
+
+    # Apply vertical adjustment to move title UP for Angelina font's lower rendering
+    title_vertical_adjustment = 40  # Move title UP by 40 pixels
+    title_y -= title_vertical_adjustment
 
     # Draw text elements with dynamic color selection for readability
     # Top subtitle - split into number and text with different font sizes

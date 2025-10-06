@@ -437,6 +437,10 @@ def create_shared_dynamic_overlay(
         + (available_space_bottom - available_space_top - title_height) // 2
     )
 
+    # Apply vertical adjustment to move title UP for Angelina font's lower rendering
+    title_vertical_adjustment = 40  # Move title UP by 40 pixels
+    title_center_y -= title_vertical_adjustment
+
     title_x = backdrop_x + (backdrop_width - title_width) // 2
     draw_text(
         draw=draw,

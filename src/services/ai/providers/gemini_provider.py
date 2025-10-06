@@ -34,9 +34,7 @@ except ImportError:
 class GeminiProvider(AIProvider):
     """Gemini AI provider implementation."""
 
-    def __init__(
-        self, api_key: str, model_name: str = "gemini-2.5-flash-preview-05-20"
-    ):
+    def __init__(self, api_key: str, model_name: str = "gemini-2.5-pro"):
         """
         Initialize the Gemini provider.
 
@@ -249,11 +247,11 @@ class GeminiProvider(AIProvider):
     def analyze_image_with_prompt(self, image_path: str, prompt: str) -> str:
         """
         Analyze an image with a given prompt using Gemini API.
-        
+
         Args:
             image_path: Path to the image file
             prompt: Text prompt for analysis
-            
+
         Returns:
             Generated text response
         """
@@ -326,7 +324,7 @@ class GeminiProvider(AIProvider):
             # Get the raw response text and process it
             raw_content = response.text.strip()
             logger.info("Successfully received response from Gemini API")
-            
+
             return process_ai_response(raw_content, is_thinking_model=False)
 
         except Exception as e:
@@ -336,10 +334,10 @@ class GeminiProvider(AIProvider):
     def generate_text(self, prompt: str) -> str:
         """
         Generate text using Gemini API.
-        
+
         Args:
             prompt: Text prompt for generation
-            
+
         Returns:
             Generated text response
         """
@@ -365,7 +363,7 @@ class GeminiProvider(AIProvider):
             # Get the raw response text and process it
             raw_content = response.text.strip()
             logger.info("Successfully received response from Gemini API")
-            
+
             return process_ai_response(raw_content, is_thinking_model=False)
 
         except Exception as e:
