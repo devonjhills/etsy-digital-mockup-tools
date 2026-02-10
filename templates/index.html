@@ -77,7 +77,7 @@
       }
 
       .container {
-        max-width: 1000px;
+        max-width: 1400px;
         margin: var(--spacing-lg) auto;
         background-color: var(--container-bg);
         padding: var(--spacing-xl);
@@ -85,6 +85,52 @@
         box-shadow: var(--shadow-offset) var(--shadow-offset) 0
           var(--border-color);
         position: relative;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .main-content {
+        display: flex;
+        gap: var(--spacing-lg);
+        margin-top: var(--spacing-lg);
+      }
+
+      .tabs-container {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .log-container {
+        width: 400px;
+        flex-shrink: 0;
+        position: sticky;
+        top: 0;
+        max-height: calc(100vh - 200px);
+        display: flex;
+        flex-direction: column;
+      }
+
+      .log-container .title-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+        border-bottom: 2px solid var(--primary-color);
+        padding-bottom: 8px;
+      }
+
+      .log-container h2 {
+        margin: 0;
+        color: var(--primary-color);
+        font-size: 1.6rem;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .log-container h2::before {
+        content: "\1F4DD"; /* Memo emoji */
+        font-size: 1.4rem;
       }
 
       h1,
@@ -177,6 +223,8 @@
         position: relative;
         box-shadow: var(--shadow-offset) var(--shadow-offset) 0
           rgba(0, 0, 0, 0.2);
+        overflow-y: auto;
+        max-height: calc(100vh - 200px);
       }
 
       .tab-content.active {
@@ -895,32 +943,15 @@
 
       /* Log section styling */
       .log-section {
-        margin-top: 32px;
         background-color: var(--section-bg);
         border-radius: 8px;
-        padding: 24px;
+        padding: 16px;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-      }
-
-      .log-header {
         display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 20px;
-      }
-
-      .log-title {
-        margin: 0;
-        font-size: 18px;
-        font-weight: 600;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
-
-      .log-title::before {
-        content: "\1F4DD"; /* Memo emoji */
-        font-size: 18px;
+        flex-direction: column;
+        height: 100%;
+        flex: 1;
+        min-height: 0;
       }
 
       .log-controls {
@@ -929,26 +960,60 @@
       }
 
       .log-button {
-        padding: 8px 14px;
-        font-size: 14px;
+        width: 40px;
+        height: 40px;
+        padding: 0;
+        font-size: 16px;
         display: flex;
         align-items: center;
-        gap: 6px;
+        justify-content: center;
+        border: var(--border-thin) solid var(--border-color);
+        background-color: var(--container-bg);
+        color: var(--text-color);
+        cursor: pointer;
+        transition: all 0.2s ease;
+        box-shadow: var(--shadow-offset) var(--shadow-offset) 0
+          rgba(0, 0, 0, 0.1);
+        position: relative;
+        border-radius: 50%;
+      }
+
+      .log-button:hover {
+        background-color: var(--primary-light);
+        transform: translateY(-2px);
+      }
+
+      .log-button:hover::after {
+        content: attr(data-tooltip);
+        position: absolute;
+        bottom: -30px;
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: var(--container-bg);
+        color: var(--text-color);
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        white-space: nowrap;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        z-index: 10;
+        border: 1px solid var(--border-color);
       }
 
       .log-button i {
-        font-size: 14px;
+        font-size: 16px;
       }
 
       .log-button.active {
         background-color: var(--secondary-color);
+        color: white;
       }
 
       .log-area {
         padding: 20px;
         background-color: var(--log-bg);
         border: var(--border-medium) solid var(--border-color);
-        height: 300px;
+        flex: 1;
         overflow-y: auto;
         font-family: "Space Mono", "JetBrains Mono", "Fira Code", monospace;
         font-size: 15px;
@@ -957,6 +1022,7 @@
         box-shadow: var(--shadow-offset) var(--shadow-offset) 0
           var(--border-color);
         position: relative;
+        min-height: 0;
       }
 
       /* Bulk tab styling */
@@ -1422,245 +1488,243 @@
     <div class="container">
       <h1>Mockup Tools & Etsy Integration</h1>
 
-      <div class="tabs">
-        <button class="tab active" id="pattern-tab">Pattern</button>
-        <button class="tab" id="clipart-tab">Clipart</button>
-        <button class="tab" id="etsy-tab">Etsy</button>
-        <button class="tab" id="ai-settings-tab">AI Settings</button>
-      </div>
-
-      <div id="pattern" class="tab-content active">
-        <h2>Pattern Tools</h2>
-
-        <div class="section">
-          <h3>Input Directory</h3>
-          <div class="form-group">
-            <label for="pattern-input-dir">Input Directory:</label>
-            <input
-              type="text"
-              id="pattern-input-dir"
-              name="pattern-input-dir"
-              value="input"
-            />
+      <div class="main-content">
+        <div class="tabs-container">
+          <div class="tabs">
+            <button class="tab active" id="pattern-tab">Pattern</button>
+            <button class="tab" id="clipart-tab">Clipart</button>
+            <button class="tab" id="etsy-tab">Etsy</button>
+            <button class="tab" id="ai-settings-tab">AI Settings</button>
           </div>
 
-          <div class="form-group">
-            <label for="ai-provider">AI Provider:</label>
-            <select id="ai-provider" name="ai-provider" class="enhanced-select">
-              <option value="openai">OpenAI</option>
-              <option value="gemini">Gemini 2.0 Flash</option>
-            </select>
-          </div>
+          <div id="pattern" class="tab-content active">
+            <h2>Pattern Tools</h2>
 
-          <div class="actions">
-            <button onclick="runPatternWorkflow()">
-              Run Complete Workflow
-            </button>
-            <button onclick="runPatternResize()">Resize Only</button>
-            <button onclick="runPatternMockups()">Create Mockups Only</button>
-          </div>
-        </div>
-      </div>
-
-      <div id="clipart" class="tab-content">
-        <h2>Clipart Tools</h2>
-
-        <div class="section">
-          <h3>Input Directory</h3>
-          <div class="form-group">
-            <label for="clipart-input-dir">Input Directory:</label>
-            <input
-              type="text"
-              id="clipart-input-dir"
-              name="clipart-input-dir"
-              value="input"
-            />
-          </div>
-
-          <div class="form-group">
-            <label for="clipart-ai-provider">AI Provider:</label>
-            <select
-              id="clipart-ai-provider"
-              name="clipart-ai-provider"
-              class="enhanced-select"
-            >
-              <option value="openai">OpenAI</option>
-              <option value="gemini">Gemini 2.0 Flash</option>
-            </select>
-          </div>
-
-          <div class="actions">
-            <button onclick="runClipartWorkflow()">
-              Run Complete Workflow
-            </button>
-            <button onclick="runClipartResize()">Resize Only</button>
-            <button onclick="runClipartMockups()">Create Mockups Only</button>
-            <button onclick="runClipartCropMulti()">
-              Extract Multiple Images
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div id="ai-settings" class="tab-content">
-        <h2>AI Settings</h2>
-
-        <div class="section">
-          <h3>Etsy Listing Instructions</h3>
-          <p>
-            Customize the instructions used to generate Etsy listings with AI:
-          </p>
-
-          <div class="form-group">
-            <textarea
-              id="ai-instructions"
-              rows="20"
-              style="width: 100%; font-family: monospace"
-            ></textarea>
-          </div>
-
-          <div class="actions">
-            <button onclick="saveAIInstructions()" class="primary-button">
-              <i class="fas fa-save"></i> Save Instructions
-            </button>
-            <button onclick="resetAIInstructions()" class="secondary-button">
-              <i class="fas fa-undo"></i> Reset to Default
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div id="etsy" class="tab-content">
-        <div class="etsy-header">
-          <h2>Etsy Integration</h2>
-          <div class="etsy-auth-container">
-            <button
-              id="auth-button"
-              onclick="authenticateEtsy()"
-              class="auth-button"
-              title="Authenticate with Etsy"
-            >
-              <i class="fas fa-key"></i> Connect Etsy
-            </button>
-            <div id="auth-status" class="auth-status"></div>
-          </div>
-        </div>
-
-        <!-- Bulk listings content -->
-        <div class="section bulk-preparation-section">
-          <div class="section-header">
-            <h3><i class="fas fa-layer-group"></i> Bulk Listing Preparation</h3>
-          </div>
-
-          <div class="bulk-form-container">
-            <div class="bulk-form-row">
+            <div class="section">
+              <h3>Input Directory</h3>
               <div class="form-group">
-                <label for="etsy-bulk-product-type">Product Type:</label>
-                <select
-                  id="etsy-bulk-product-type"
-                  name="etsy-bulk-product-type"
-                  class="enhanced-select"
-                >
-                  <option value="pattern">Pattern</option>
-                  <option value="clipart">Clipart</option>
-                  <option value="wall_art">Wall Art</option>
-                </select>
-              </div>
-
-              <div class="form-group">
-                <label for="bulk-ai-provider">AI Provider:</label>
-                <select
-                  id="bulk-ai-provider"
-                  name="bulk-ai-provider"
-                  class="enhanced-select"
-                >
-                  <option value="openai">OpenAI</option>
-                  <option value="gemini">Gemini 2.0 Flash</option>
-                </select>
-              </div>
-
-              <div class="form-group checkbox-group">
+                <label for="pattern-input-dir">Input Directory:</label>
                 <input
-                  type="checkbox"
-                  id="etsy-bulk-draft"
-                  name="etsy-bulk-draft"
-                  checked
+                  type="text"
+                  id="pattern-input-dir"
+                  name="pattern-input-dir"
+                  value="input"
                 />
-                <label for="etsy-bulk-draft">Create as Draft</label>
+              </div>
+
+              <div class="actions">
+                <button onclick="runPatternWorkflow()">
+                  Run Complete Workflow
+                </button>
+                <button onclick="runPatternResize()">Resize Only</button>
+                <button onclick="runPatternMockups()">
+                  Create Mockups Only
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div id="clipart" class="tab-content">
+            <h2>Clipart Tools</h2>
+
+            <div class="section">
+              <h3>Input Directory</h3>
+              <div class="form-group">
+                <label for="clipart-input-dir">Input Directory:</label>
+                <input
+                  type="text"
+                  id="clipart-input-dir"
+                  name="clipart-input-dir"
+                  value="input"
+                />
+              </div>
+
+              <div class="actions">
+                <button onclick="runClipartWorkflow()">
+                  Run Complete Workflow
+                </button>
+                <button onclick="runClipartResize()">Resize Only</button>
+                <button onclick="runClipartMockups()">
+                  Create Mockups Only
+                </button>
+                <button onclick="runClipartCropMulti()">
+                  Extract Multiple Images
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div id="ai-settings" class="tab-content">
+            <h2>AI Settings</h2>
+
+            <div class="section">
+              <h3>Etsy Listing Instructions</h3>
+              <p>
+                Customize the instructions used to generate Etsy listings with
+                AI:
+              </p>
+
+              <div class="form-group">
+                <textarea
+                  id="ai-instructions"
+                  rows="20"
+                  style="width: 100%; font-family: monospace"
+                ></textarea>
+              </div>
+
+              <div class="actions">
+                <button onclick="saveAIInstructions()" class="primary-button">
+                  <i class="fas fa-save"></i> Save Instructions
+                </button>
+                <button
+                  onclick="resetAIInstructions()"
+                  class="secondary-button"
+                >
+                  <i class="fas fa-undo"></i> Reset to Default
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div id="etsy" class="tab-content">
+            <div class="etsy-header">
+              <h2>Etsy Integration</h2>
+              <div class="etsy-auth-container">
+                <button
+                  id="auth-button"
+                  onclick="authenticateEtsy()"
+                  class="auth-button"
+                  title="Authenticate with Etsy"
+                >
+                  <i class="fas fa-key"></i> Connect Etsy
+                </button>
+                <div id="auth-status" class="auth-status"></div>
               </div>
             </div>
 
-            <div class="actions bulk-actions">
-              <button onclick="prepareBulkListings()" class="primary-button">
-                <i class="fas fa-cogs"></i> Prepare Bulk Listings
-              </button>
-              <button onclick="generateListingsOnly()" class="secondary-button">
-                <i class="fas fa-file-alt"></i> Generate Listings Only
-              </button>
-              <p class="bulk-info-text">
-                <i class="fas fa-info-circle"></i>
-                <span id="bulk-info-text"
-                  >Generates mockups, zip files, and listing content for all
-                  subfolders in the input directory.</span
-                >
-              </p>
+            <!-- Bulk listings content -->
+            <div class="section bulk-preparation-section">
+              <div class="section-header">
+                <h3>
+                  <i class="fas fa-layer-group"></i> Bulk Listing Preparation
+                </h3>
+              </div>
+
+              <div class="bulk-form-container">
+                <div class="bulk-form-row">
+                  <div class="form-group">
+                    <label for="etsy-bulk-product-type">Product Type:</label>
+                    <select
+                      id="etsy-bulk-product-type"
+                      name="etsy-bulk-product-type"
+                      class="enhanced-select"
+                    >
+                      <option value="pattern">Pattern</option>
+                      <option value="clipart">Clipart</option>
+                      <option value="wall_art">Wall Art</option>
+                    </select>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="bulk-ai-provider">AI Provider:</label>
+                    <select
+                      id="bulk-ai-provider"
+                      name="bulk-ai-provider"
+                      class="enhanced-select"
+                    >
+                      <option value="openai">OpenAI</option>
+                      <option value="gemini">Gemini</option>
+                    </select>
+                  </div>
+
+                </div>
+
+                <div class="actions bulk-actions">
+                  <button
+                    onclick="prepareBulkListings()"
+                    class="primary-button"
+                  >
+                    <i class="fas fa-cogs"></i> Prepare Bulk Listings
+                  </button>
+                  <button
+                    onclick="generateListingsOnly()"
+                    class="secondary-button"
+                  >
+                    <i class="fas fa-file-alt"></i> Generate Listings Only
+                  </button>
+                  <p class="bulk-info-text">
+                    <i class="fas fa-info-circle"></i>
+                    <span id="bulk-info-text"
+                      >Generates mockups, zip files, and listing content for all
+                      subfolders in the input directory.</span
+                    >
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div class="section prepared-listings-section">
+              <div class="section-header">
+                <h3><i class="fas fa-list-alt"></i> Prepared Listings</h3>
+                <div class="section-actions">
+                  <button
+                    onclick="showPreparedListings()"
+                    class="secondary-button"
+                    title="Refresh the prepared listings"
+                  >
+                    <i class="fas fa-sync-alt"></i> Refresh
+                  </button>
+                  <button
+                    onclick="deletePreparedListings()"
+                    class="danger-button"
+                    title="Delete all prepared listings"
+                  >
+                    <i class="fas fa-trash-alt"></i> Clear All
+                  </button>
+                </div>
+              </div>
+              <div
+                id="prepared-listings-container"
+                class="prepared-listings-content"
+              >
+                <div class="empty-state">
+                  <i class="fas fa-layer-group"></i>
+                  <p>
+                    No prepared listings yet. Click "Prepare Bulk Listings" to
+                    generate mockups, zip files, and listing content for all
+                    subfolders.
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
 
-        <div class="section prepared-listings-section">
-          <div class="section-header">
-            <h3><i class="fas fa-list-alt"></i> Prepared Listings</h3>
-            <div class="section-actions">
+        <div class="log-container">
+          <div class="title-row">
+            <h2>Live Console</h2>
+            <div class="log-controls">
               <button
-                onclick="showPreparedListings()"
-                class="secondary-button"
-                title="Refresh the prepared listings"
+                onclick="clearLog()"
+                class="log-button"
+                data-tooltip="Clear Log"
               >
-                <i class="fas fa-sync-alt"></i> Refresh
+                <i class="fas fa-trash-alt"></i>
               </button>
               <button
-                onclick="deletePreparedListings()"
-                class="danger-button"
-                title="Delete all prepared listings"
+                onclick="toggleAutoScroll()"
+                id="autoscroll-button"
+                class="log-button active"
+                data-tooltip="Auto-scroll: ON"
               >
-                <i class="fas fa-trash-alt"></i> Clear All
+                <i class="fas fa-scroll"></i>
               </button>
             </div>
           </div>
-          <div
-            id="prepared-listings-container"
-            class="prepared-listings-content"
-          >
-            <div class="empty-state">
-              <i class="fas fa-layer-group"></i>
-              <p>
-                No prepared listings yet. Click "Prepare Bulk Listings" to
-                generate mockups, zip files, and listing content for all
-                subfolders.
-              </p>
-            </div>
+          <div class="section log-section">
+            <div class="log-area" id="log"></div>
           </div>
         </div>
-      </div>
-
-      <div class="section log-section">
-        <div class="log-header">
-          <h3 class="log-title">Command Log</h3>
-          <div class="log-controls">
-            <button onclick="clearLog()" class="log-button">
-              <i class="fas fa-trash-alt"></i> Clear Log
-            </button>
-            <button
-              onclick="toggleAutoScroll()"
-              id="autoscroll-button"
-              class="log-button active"
-            >
-              <i class="fas fa-scroll"></i> Auto-scroll: ON
-            </button>
-          </div>
-        </div>
-        <div class="log-area" id="log"></div>
       </div>
     </div>
 
@@ -1737,13 +1801,15 @@
         autoScroll = !autoScroll;
         const button = document.getElementById("autoscroll-button");
         if (autoScroll) {
-          button.innerHTML = '<i class="fas fa-scroll"></i> Auto-scroll: ON';
+          button.innerHTML = '<i class="fas fa-scroll"></i>';
+          button.setAttribute("data-tooltip", "Auto-scroll: ON");
           button.classList.add("active");
           // Scroll to bottom immediately when turning on
           const logArea = document.getElementById("log");
           logArea.scrollTop = logArea.scrollHeight;
         } else {
-          button.innerHTML = '<i class="fas fa-scroll"></i> Auto-scroll: OFF';
+          button.innerHTML = '<i class="fas fa-scroll"></i>';
+          button.setAttribute("data-tooltip", "Auto-scroll: OFF");
           button.classList.remove("active");
         }
       }
@@ -1872,7 +1938,6 @@
 
       // Pattern actions
       function runPatternWorkflow() {
-        const provider = document.getElementById("ai-provider").value;
         fetch("/run", {
           method: "POST",
           headers: {
@@ -1882,7 +1947,6 @@
             command: "pattern-workflow",
             inputDir: document.getElementById("pattern-input-dir").value,
             createVideo: true,
-            provider: provider,
           }),
         })
           .then((response) => response.json())
@@ -1927,7 +1991,6 @@
 
       // Clipart actions
       function runClipartWorkflow() {
-        const provider = document.getElementById("clipart-ai-provider").value;
         fetch("/run", {
           method: "POST",
           headers: {
@@ -1937,7 +2000,6 @@
             command: "clipart-workflow",
             inputDir: document.getElementById("clipart-input-dir").value,
             createVideo: true,
-            provider: provider,
           }),
         })
           .then((response) => response.json())
@@ -2124,8 +2186,7 @@
         ).value;
         // Get the selected AI provider
         const provider = document.getElementById("bulk-ai-provider").value;
-        const providerName =
-          provider === "openai" ? "OpenAI" : "Gemini 2.0 Flash";
+        const providerName = provider === "openai" ? "OpenAI" : "Gemini";
 
         // Confirm with the user
         if (
@@ -2213,8 +2274,7 @@
         ).value;
         // Get the selected AI provider
         const provider = document.getElementById("bulk-ai-provider").value;
-        const providerName =
-          provider === "openai" ? "OpenAI" : "Gemini 2.0 Flash";
+        const providerName = provider === "openai" ? "OpenAI" : "Gemini";
 
         // Confirm with the user
         if (
@@ -2618,7 +2678,7 @@
       }
 
       function uploadPreparedListing(index) {
-        const draft = document.getElementById("etsy-bulk-draft").checked;
+        const draft = true; // Always create as draft
 
         // Confirm with the user
         if (

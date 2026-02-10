@@ -1,0 +1,1 @@
+# Clipart product processor

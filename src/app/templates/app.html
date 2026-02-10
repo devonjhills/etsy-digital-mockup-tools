@@ -1,0 +1,1728 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mockup Tools - Streamlined GUI</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw=="
+      crossorigin="anonymous"
+    />
+    <style>
+      :root {
+        --bg-dark: #111111;
+        --bg: #1a1a1a;
+        --surface: #242424;
+        --border: #333333;
+        --text: #e0e0e0;
+        --text-muted: #a0a0a0;
+        --primary: #007aff;
+        --primary-hover: #0056b3;
+        --success: #34c759;
+        --danger: #ff3b30;
+        --warning: #ff9500;
+        --shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        --radius-sm: 4px;
+        --radius-md: 8px;
+        --radius-lg: 12px;
+        --transition: all 0.2s ease-in-out;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      ::-webkit-scrollbar {
+        width: 8px;
+      }
+
+      ::-webkit-scrollbar-track {
+        background: var(--bg);
+      }
+
+      ::-webkit-scrollbar-thumb {
+        background: var(--border);
+        border-radius: var(--radius-sm);
+      }
+
+      ::-webkit-scrollbar-thumb:hover {
+        background: #444;
+      }
+
+      body {
+        font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
+          Roboto, sans-serif;
+        background: var(--bg-dark);
+        color: var(--text);
+        line-height: 1.6;
+        min-height: 100vh;
+        font-size: 14px;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+
+      .container {
+        max-width: 1300px;
+        margin: 0 auto;
+        padding: 2rem;
+      }
+
+      .header {
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .header h1 {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: white;
+      }
+
+      .card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: var(--shadow);
+      }
+
+      .main-grid {
+        display: grid;
+        grid-template-columns: 1fr 480px;
+        gap: 2rem;
+        align-items: start;
+      }
+
+      @media (max-width: 1024px) {
+        .main-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .card h2 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin: -1.5rem -1.5rem 1.5rem -1.5rem;
+        padding: 1rem 1.5rem;
+        color: white;
+        border-bottom: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.03);
+      }
+
+      .card h3 {
+        font-size: 1rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        color: var(--text);
+        border-bottom: 1px solid var(--border);
+        padding-bottom: 0.75rem;
+      }
+
+      .form-group {
+        margin-bottom: 1.25rem;
+      }
+
+      .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+        color: var(--text);
+        font-size: 0.9rem;
+      }
+
+      .form-control {
+        width: 100%;
+        padding: 0.75rem;
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        color: var(--text);
+        font-size: 0.9rem;
+        transition: var(--transition);
+      }
+
+      .form-control:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.25);
+      }
+
+      select.form-control {
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236B7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+        background-position: right 0.5rem center;
+        background-repeat: no-repeat;
+        background-size: 1.5em 1.5em;
+        padding-right: 2.5rem;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1.25rem;
+        background: var(--primary);
+        color: white;
+        border: none;
+        border-radius: var(--radius-md);
+        font-weight: 600;
+        font-size: 0.9rem;
+        cursor: pointer;
+        text-decoration: none;
+        transition: var(--transition);
+      }
+
+      .btn:hover:not(:disabled) {
+        background: var(--primary-hover);
+        transform: translateY(-1px);
+      }
+
+      .btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .btn-secondary {
+        background: var(--border);
+        color: var(--text);
+      }
+      .btn-secondary:hover:not(:disabled) {
+        background: #444;
+      }
+
+      .btn-small {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.8rem;
+        gap: 0.4rem;
+      }
+
+      .btn-danger {
+        background: var(--danger);
+      }
+      .btn-danger:hover:not(:disabled) {
+        background: #d00;
+      }
+
+      .tabs {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 2rem;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .tab {
+        padding: 0.75rem 0.25rem;
+        background: transparent;
+        color: var(--text-muted);
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 1rem;
+        border-bottom: 2px solid transparent;
+        margin-bottom: -1px;
+        transition: var(--transition);
+      }
+
+      .tab:hover {
+        color: var(--text);
+      }
+
+      .tab.active {
+        color: var(--primary);
+        border-bottom-color: var(--primary);
+      }
+
+      .tab-content {
+        display: none;
+      }
+
+      .tab-content.active {
+        display: block;
+      }
+
+      .info-box {
+        padding: 1rem;
+        background: var(--bg);
+        border-left: 3px solid var(--primary);
+        border-radius: var(--radius-sm);
+        color: var(--text-muted);
+        font-size: 0.9rem;
+        margin-bottom: 1.5rem;
+      }
+
+      .log-container {
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        padding: 1rem;
+        height: 450px;
+        overflow-y: auto;
+        font-family: "SF Mono", "Menlo", monospace;
+        font-size: 0.8rem;
+        line-height: 1.5;
+        margin-top: 1rem;
+      }
+
+      .log-message:not(:last-child) {
+        margin-bottom: 0.5rem;
+      }
+
+      .log-error {
+        color: var(--danger);
+      }
+      .log-success {
+        color: var(--success);
+      }
+      .log-info {
+        color: var(--primary);
+      }
+      .log-warning {
+        color: var(--warning);
+      }
+
+      .status {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.75rem 1.25rem;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        font-size: 0.9rem;
+        margin-bottom: 1rem;
+        transition: var(--transition);
+      }
+
+      .status .icon {
+        font-size: 1.1rem;
+      }
+
+      .status.running {
+        border-color: var(--primary);
+        color: var(--primary);
+        background: rgba(0, 122, 255, 0.1);
+      }
+
+      .status.ready .icon {
+        color: var(--success);
+      }
+      .status.error .icon {
+        color: var(--danger);
+      }
+
+      .spinner {
+        width: 16px;
+        height: 16px;
+        border: 2px solid var(--border);
+        border-top: 2px solid var(--primary);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      .btn i {
+        margin-right: 0.5rem;
+      }
+
+      .listing-editor {
+        background: var(--bg);
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        position: relative;
+        transition: var(--transition);
+      }
+
+      .listing-editor.uploading {
+        opacity: 0.6;
+        pointer-events: none;
+        background: var(--surface);
+        border-color: var(--primary);
+      }
+
+      .listing-editor.uploading::after {
+        content: "Uploading to Etsy - Read Only";
+        position: absolute;
+        top: 0.5rem;
+        left: 0.5rem;
+        background: var(--primary);
+        color: white;
+        padding: 0.25rem 0.75rem;
+        border-radius: var(--radius-sm);
+        font-size: 0.75rem;
+        font-weight: 600;
+        z-index: 10;
+      }
+
+      #prepared-listings-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      .listing-editor h4 {
+        margin: 0 0 1rem 0;
+        color: white;
+        font-size: 1.1rem;
+        font-weight: 600;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .field-group {
+        margin-bottom: 1rem;
+      }
+
+      .field-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-size: 0.9rem;
+        font-weight: 500;
+        color: var(--text);
+      }
+
+      .field-group textarea {
+        width: 100%;
+        padding: 0.75rem;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        color: var(--text);
+        font-size: 0.9rem;
+        font-family: inherit;
+        resize: vertical;
+        transition: var(--transition);
+      }
+
+      .field-group textarea:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.25);
+      }
+
+      .field-group textarea {
+        min-height: 80px;
+      }
+
+      .char-counter {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        margin-top: 0.5rem;
+        text-align: right;
+      }
+
+      .char-counter.warning {
+        color: var(--warning);
+      }
+      .char-counter.error {
+        color: var(--danger);
+      }
+
+      .save-indicator {
+        position: absolute;
+        top: 0.5rem;
+        right: 0.5rem;
+        padding: 0.25rem 0.5rem;
+        background: var(--success);
+        color: white;
+        border-radius: var(--radius-sm);
+        font-size: 0.75rem;
+        font-weight: 500;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        pointer-events: none;
+        z-index: 10;
+      }
+
+      .save-indicator.show {
+        opacity: 1;
+      }
+
+      .save-indicator.saving {
+        background: var(--warning);
+      }
+
+      .save-indicator.error {
+        background: var(--danger);
+      }
+
+
+      .tags-display {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 0.5rem;
+        min-height: 40px;
+        padding: 0.5rem;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-md);
+        align-items: center;
+      }
+
+      .tag-chip {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.25rem 0.75rem;
+        background: var(--primary);
+        color: white;
+        border-radius: var(--radius-sm);
+        font-size: 0.8rem;
+        font-weight: 500;
+      }
+
+      .tags-display:empty::before {
+        content: "No tags generated";
+        color: var(--text-muted);
+        font-style: italic;
+        font-size: 0.9rem;
+      }
+
+      .editor-actions {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 1.5rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid var(--border);
+      }
+
+      .toast-container {
+        position: fixed;
+        bottom: 2rem;
+        right: 2rem;
+        z-index: 1000;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        max-width: 400px;
+      }
+
+      .toast {
+        background: var(--surface);
+        color: var(--text);
+        padding: 1rem;
+        border: 1px solid var(--border);
+        border-left: 4px solid var(--success);
+        border-radius: var(--radius-md);
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        min-height: 60px;
+        animation: slideIn 0.3s ease-out;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+      }
+
+      .toast-icon {
+        font-size: 1.5rem;
+        color: var(--success);
+      }
+
+      .toast-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+      }
+
+      .toast-title {
+        font-weight: 600;
+        font-size: 1rem;
+        color: white;
+      }
+
+      .toast-message {
+        font-size: 0.9rem;
+        color: var(--text-muted);
+      }
+
+      .toast-actions {
+        display: flex;
+        gap: 0.75rem;
+        margin-top: 0.75rem;
+      }
+
+      .toast-link {
+        background: var(--primary);
+        color: white;
+        text-decoration: none;
+        padding: 0.5rem 1rem;
+        border-radius: var(--radius-md);
+        font-size: 0.85rem;
+        font-weight: 500;
+        border: none;
+        cursor: pointer;
+        transition: var(--transition);
+      }
+
+      .toast-link:hover {
+        opacity: 0.8;
+      }
+
+      .toast-close {
+        background: transparent;
+        border: none;
+        color: var(--text-muted);
+        cursor: pointer;
+        font-size: 1.5rem;
+        line-height: 1;
+        transition: var(--transition);
+      }
+
+      .toast-close:hover {
+        color: white;
+      }
+
+      @keyframes slideIn {
+        from {
+          transform: translateX(calc(100% + 2rem));
+          opacity: 0;
+        }
+        to {
+          transform: translateX(0);
+          opacity: 1;
+        }
+      }
+
+      @keyframes slideOut {
+        from {
+          transform: translateX(0);
+          opacity: 1;
+        }
+        to {
+          transform: translateX(calc(100% + 2rem));
+          opacity: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header class="header">
+        <h1>Mockup & Etsy Automation</h1>
+      </header>
+
+      <div class="tabs">
+        <div class="tab" onclick="showTab('processing')">
+          Image Processing
+        </div>
+        <div class="tab active" onclick="showTab('etsy')">Etsy Integration</div>
+      </div>
+
+      <main class="main-grid">
+        <section>
+          <!-- Image Processing Tab -->
+          <div id="processing-tab" class="tab-content">
+            <div class="card">
+              <h2>Image Processing Workflow</h2>
+
+              <div class="form-group">
+                <label for="product-type">Product Type</label>
+                <select
+                  id="product-type"
+                  class="form-control"
+                  onchange="updateProductType()"
+                >
+                  <option value="pattern">Patterns</option>
+                  <option value="clipart">Clipart</option>
+                  <option value="border_clipart">Border Clipart</option>
+                  <option value="journal_papers">Journal Papers</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="workflow-type">Workflow</label>
+                <select id="workflow-type" class="form-control">
+                  <option value="full">
+                    Full Workflow (Resize → Mockups → Video → Zip)
+                  </option>
+                  <option value="mockups-only">
+                    Mockups + Video (Skip resize)
+                  </option>
+                  <option value="resize-only">Resize Only</option>
+                  <option
+                    value="extract"
+                    id="extract-option"
+                    style="display: none"
+                  >
+                    Extract & Process (Clipart only)
+                  </option>
+                </select>
+              </div>
+
+              <div class="info-box" id="folder-info">
+                Will process all folders in input/ directory
+              </div>
+
+              <button class="btn" onclick="runWorkflow()" style="width: 100%">
+                <i class="fas fa-play"></i>
+                Run Workflow
+              </button>
+            </div>
+          </div>
+
+          <!-- Etsy Integration Tab -->
+          <div id="etsy-tab" class="tab-content active">
+            <div class="card">
+              <h2>Etsy Listing Generation</h2>
+
+              <div class="form-group">
+                <label for="etsy-ai-provider">AI Provider</label>
+                <select id="etsy-ai-provider" class="form-control">
+                  <option value="gemini">Google Gemini</option>
+                  <option value="openai">OpenAI</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="etsy-product-type">Product Type</label>
+                <select id="etsy-product-type" class="form-control">
+                  <option value="pattern">Pattern</option>
+                  <option value="clipart">Clipart</option>
+                  <option value="border_clipart">Border Clipart</option>
+                  <option value="journal_papers">Journal Papers</option>
+                </select>
+              </div>
+
+              <div
+                class="form-group"
+                style="display: flex; flex-direction: column; gap: 0.75rem"
+              >
+                <button
+                  id="full-processing-btn"
+                  class="btn"
+                  onclick="fullBulkProcessing()"
+                  style="width: 100%"
+                >
+                  <i class="fas fa-cogs"></i>
+                  Full Processing + AI Content
+                </button>
+                <button
+                  id="generate-ai-content-btn"
+                  class="btn btn-secondary"
+                  onclick="prepareEtsyListings()"
+                  style="width: 100%"
+                >
+                  <i class="fas fa-magic"></i>
+                  Generate AI Content Only
+                </button>
+                <button
+                  id="load-prepared-listings-btn"
+                  class="btn btn-secondary"
+                  onclick="refreshPreparedListings()"
+                  style="width: 100%"
+                >
+                  <i class="fas fa-refresh"></i>
+                  Load Prepared Listings
+                </button>
+              </div>
+            </div>
+
+            <div
+              id="prepared-listings-section"
+              style="display: none"
+              class="card"
+            >
+              <h3>Prepared Listings for Upload</h3>
+              <div id="prepared-listings-list"></div>
+
+              <div
+                style="
+                  display: flex;
+                  gap: 0.75rem;
+                  margin-top: 1.5rem;
+                  border-top: 1px solid var(--border);
+                  padding-top: 1.5rem;
+                "
+              >
+                <button
+                  id="upload-to-etsy-btn"
+                  class="btn"
+                  onclick="uploadPreparedListings()"
+                ></button>
+                <button
+                  class="btn btn-secondary"
+                  onclick="refreshPreparedListings()"
+                >
+                  <i class="fas fa-refresh"></i>
+                  Refresh
+                </button>
+                <button
+                  class="btn btn-danger"
+                  onclick="deletePreparedListings()"
+                  style="margin-left: auto"
+                >
+                  <i class="fas fa-trash"></i>
+                  Delete All
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <aside>
+          <!-- Status & Logs -->
+          <div class="card">
+            <h2>Status & Logs</h2>
+
+            <div id="status-indicator" class="status">
+              <span id="status-text">Ready</span>
+            </div>
+
+            <div class="log-container" id="log-container">
+              <div class="log-message">
+                Ready to process your digital products...
+              </div>
+            </div>
+
+            <div
+              style="
+                margin-top: 1rem;
+                display: flex;
+                gap: 0.5rem;
+                flex-wrap: wrap;
+                justify-content: space-between;
+              "
+            >
+              <div style="display: flex; gap: 0.5rem">
+                <button
+                  class="btn btn-secondary btn-small"
+                  onclick="clearLog()"
+                >
+                  <i class="fas fa-broom"></i>
+                  Clear Log
+                </button>
+                <button
+                  class="btn btn-secondary btn-small"
+                  onclick="refreshStatus()"
+                >
+                  <i class="fas fa-sync"></i>
+                  Refresh Status
+                </button>
+              </div>
+              <button
+                class="btn btn-danger btn-small"
+                onclick="clearInputFolder()"
+                title="Delete all files and folders in the input directory"
+              >
+                <i class="fas fa-folder-minus"></i>
+                Clear Folder
+              </button>
+            </div>
+          </div>
+        </aside>
+      </main>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <script>
+      // Global state
+      let isProcessing = false;
+      let autoSaveTimeouts = {};
+
+      // --- ICONS ---
+      const ICONS = {
+        upload: `<i class="fas fa-upload"></i>`,
+        noListings: `<i class="fas fa-inbox"></i>`,
+        etsyUpload: `<i class="fab fa-etsy"></i>`,
+        save: `<i class="fas fa-save"></i>`,
+        reset: `<i class="fas fa-undo"></i>`,
+        delete: `<i class="fas fa-trash"></i>`,
+        toastSuccess: `<i class="fas fa-check-circle"></i>`,
+      };
+
+      // --- CORE SCRIPT (UNCHANGED LOGIC) ---
+
+      document.addEventListener("DOMContentLoaded", function () {
+        updateFolderInfo();
+        startLogPolling();
+        refreshPreparedListings();
+        updateProductType();
+        updateUploadButtonState();
+      });
+
+      function showTab(tabName) {
+        document
+          .querySelectorAll(".tab-content")
+          .forEach((content) => content.classList.remove("active"));
+        document
+          .querySelectorAll(".tab")
+          .forEach((tab) => tab.classList.remove("active"));
+        document.getElementById(tabName + "-tab").classList.add("active");
+        event.currentTarget.classList.add("active");
+      }
+
+      function updateProductType() {
+        const productType = document.getElementById("product-type").value;
+        const extractOption = document.getElementById("extract-option");
+
+        if (productType === "clipart") {
+          extractOption.style.display = "block";
+        } else {
+          extractOption.style.display = "none";
+          if (document.getElementById("workflow-type").value === "extract") {
+            document.getElementById("workflow-type").value = "full";
+          }
+        }
+      }
+
+      async function updateFolderInfo() {
+        try {
+          const response = await fetch("/get-subfolders");
+          const data = await response.json();
+          const folderCount = data.subfolders.length;
+          const folderNames = data.subfolders.join(", ");
+          const infoText =
+            folderCount > 0
+              ? `Found ${folderCount} folder(s) to process: ${folderNames}`
+              : "No folders found in the input/ directory.";
+          document.getElementById("folder-info").textContent = infoText;
+        } catch (error) {
+          addLogMessage("Error loading folder info: " + error.message, "error");
+          document.getElementById("folder-info").textContent =
+            "Error loading folder information";
+        }
+      }
+
+      async function runWorkflow() {
+        if (isProcessing) {
+          alert(
+            "A workflow is already running. Please wait for it to complete."
+          );
+          return;
+        }
+
+        const processorType = document.getElementById("product-type").value;
+        const workflowType = document.getElementById("workflow-type").value;
+        const workflowSteps = getWorkflowSteps(processorType, workflowType);
+
+        try {
+          setProcessingStatus(true, `Running ${processorType} batch workflow`);
+          addLogMessage(
+            `Starting ${processorType} workflow with steps: ${workflowSteps.join(
+              ", "
+            )}`,
+            "info"
+          );
+
+          const response = await fetch("/run-workflow", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              processor_type: processorType,
+              workflow_steps: workflowSteps,
+            }),
+          });
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+          }
+          const data = await response.json();
+          addLogMessage(
+            `Successfully started ${processorType} batch workflow for all folders`,
+            "success"
+          );
+        } catch (error) {
+          addLogMessage("Error starting workflow: " + error.message, "error");
+          setProcessingStatus(false, "Error");
+        }
+      }
+
+      function getWorkflowSteps(type, workflow) {
+        if (workflow === "resize-only") return ["resize"];
+        if (workflow === "mockups-only") return ["mockup", "video", "zip"];
+        if (workflow === "extract" && type === "clipart") return ["extract"];
+        return ["resize", "mockup", "video", "zip"];
+      }
+
+      async function prepareEtsyListings() {
+        if (isProcessing) {
+          alert("A workflow is already running. Please wait.");
+          return;
+        }
+        const productType = document.getElementById("etsy-product-type").value;
+        const aiProvider = document.getElementById("etsy-ai-provider").value;
+        try {
+          setProcessingStatus(true, "Preparing Etsy listings with AI");
+          addLogMessage(
+            `Starting AI content generation for ${productType} products using ${aiProvider}`,
+            "info"
+          );
+          const response = await fetch("/prepare-etsy-listings", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              processor_type: productType,
+              ai_provider: aiProvider,
+            }),
+          });
+          const data = await response.json();
+          if (response.ok) {
+            addLogMessage(
+              "Listing preparation started successfully",
+              "success"
+            );
+            addLogMessage(data.message, "info");
+            setTimeout(() => refreshPreparedListings(), 3000);
+          } else {
+            addLogMessage("Listing preparation failed: " + data.error, "error");
+            setProcessingStatus(false, "Ready");
+          }
+        } catch (error) {
+          addLogMessage(
+            "Error starting listing preparation: " + error.message,
+            "error"
+          );
+          setProcessingStatus(false, "Ready");
+        }
+      }
+
+      async function fullBulkProcessing() {
+        if (isProcessing) {
+          alert("A workflow is already running. Please wait.");
+          return;
+        }
+        const productType = document.getElementById("etsy-product-type").value;
+        const aiProvider = document.getElementById("etsy-ai-provider").value;
+        const confirmed = confirm(
+          `This will run the complete processing workflow for ${productType} products:\n\n` +
+            `1. Resize images\n2. Create mockups\n3. Generate zip files\n4. Generate AI content\n\n` +
+            `This may take several minutes. Continue?`
+        );
+        if (!confirmed) return;
+        try {
+          setProcessingStatus(
+            true,
+            "Full bulk processing - this may take several minutes"
+          );
+          addLogMessage(
+            `Starting full bulk processing for ${productType} products using ${aiProvider}`,
+            "info"
+          );
+          const response = await fetch("/full-bulk-processing", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              processor_type: productType,
+              ai_provider: aiProvider,
+            }),
+          });
+          const data = await response.json();
+          if (response.ok) {
+            addLogMessage(
+              "Full bulk processing started successfully",
+              "success"
+            );
+            addLogMessage(data.message, "info");
+            setTimeout(() => refreshPreparedListings(), 10000);
+          } else {
+            addLogMessage(
+              "Full bulk processing failed: " + data.error,
+              "error"
+            );
+            setProcessingStatus(false, "Ready");
+          }
+        } catch (error) {
+          addLogMessage(
+            "Error starting full bulk processing: " + error.message,
+            "error"
+          );
+          setProcessingStatus(false, "Ready");
+        }
+      }
+
+      async function uploadPreparedListings() {
+        if (isProcessing) {
+          alert("A workflow is already running. Please wait.");
+          return;
+        }
+        const isDraft = true;
+        try {
+          window.scrollTo({ top: 0, behavior: "smooth" });
+          setProcessingStatus(true, "Uploading to Etsy");
+          updateUploadButtonState();
+          addLogMessage(
+            `Starting upload of prepared listings to Etsy (${isDraft ? "draft" : "active"} mode). Listings are now read-only during upload.`,
+            "info"
+          );
+          const response = await fetch("/upload-prepared-listings", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ is_draft: isDraft }),
+          });
+          const data = await response.json();
+          if (response.ok) {
+            addLogMessage("Etsy upload started successfully", "success");
+            addLogMessage(data.message, "info");
+          } else {
+            addLogMessage("Etsy upload failed: " + data.error, "error");
+            setProcessingStatus(false, "Ready");
+            updateUploadButtonState();
+          }
+        } catch (error) {
+          addLogMessage(
+            "Error starting Etsy upload: " + error.message,
+            "error"
+          );
+          setProcessingStatus(false, "Ready");
+          updateUploadButtonState();
+        }
+      }
+
+      async function refreshPreparedListings() {
+        try {
+          const response = await fetch("/get-prepared-listings");
+          const data = await response.json();
+          const section = document.getElementById("prepared-listings-section");
+          const listContainer = document.getElementById(
+            "prepared-listings-list"
+          );
+
+          if (data.success && data.count > 0) {
+            section.style.display = "block";
+            listContainer.innerHTML = data.listings
+              .map(createListingEditor)
+              .join("");
+            data.listings.forEach((listing) => {
+              const folderId = listing.folder_name.replace(
+                /[^a-zA-Z0-9]/g,
+                "_"
+              );
+              setTimeout(() => {
+                updateCharCounter(`title-${folderId}`, 140);
+                updateCharCounter(`description-${folderId}`, 0);
+                updateTagsCounter(folderId, listing.tags || []);
+              }, 100);
+            });
+          } else {
+            listContainer.innerHTML = "";
+            section.style.display = "none";
+          }
+          updateUploadButtonState();
+        } catch (error) {
+          console.error("Error refreshing prepared listings:", error);
+        }
+      }
+
+      function createListingEditor(listing) {
+        const folderId = listing.folder_name.replace(/[^a-zA-Z0-9]/g, "_");
+        return `
+                <div class="listing-editor" id="listing-${folderId}">
+                    <div class="save-indicator" id="save-indicator-${folderId}">Saved</div>
+                    <h4>${listing.folder_name || "Unknown Listing"}</h4>
+                    <div class="field-group">
+                        <label for="title-${folderId}">Title (max 140)</label>
+                        <textarea id="title-${folderId}" oninput="handleAutoSave('${folderId}', '${
+          listing.folder_name
+        }'); updateCharCounter('title-${folderId}', 140)" maxlength="140" rows="2">${(
+          listing.title || ""
+        ).replace(/"/g, '"')}</textarea>
+                        <div class="char-counter" id="title-${folderId}-counter"></div>
+                    </div>
+                    <div class="field-group">
+                        <label for="description-${folderId}">Description</label>
+                        <textarea id="description-${folderId}" oninput="handleAutoSave('${folderId}', '${
+          listing.folder_name
+        }'); updateCharCounter('description-${folderId}', 0)" rows="5">${(
+          listing.description || ""
+        )
+          .replace(/</g, "<")
+          .replace(/>/g, ">")}</textarea>
+                        <div class="char-counter" id="description-${folderId}-counter"></div>
+                    </div>
+                    <div class="field-group">
+                        <label>Tags (max 13 tags, 20 chars each)</label>
+                        <div class="tags-display" id="tags-display-${folderId}">${(
+          listing.tags || []
+        )
+          .map((tag) => `<span class="tag-chip">${tag}</span>`)
+          .join("")}</div>
+                        <textarea id="tags-input-${folderId}" placeholder="Enter tags separated by commas..." oninput="updateTagsFromInput('${folderId}'); handleAutoSave('${folderId}', '${
+          listing.folder_name
+        }')" rows="3">${(listing.tags || []).join(", ")}</textarea>
+                        <div class="char-counter" id="tags-${folderId}-counter"></div>
+                    </div>
+                    <div class="editor-actions">
+                        <button class="btn btn-secondary btn-small" onclick="resetListing('${folderId}', ${JSON.stringify(
+          listing
+        ).replace(/"/g, '"')})"><span class="icon">${
+          ICONS.reset
+        }</span> Reset</button>
+                        <button class="btn btn-danger btn-small" onclick="deleteSingleListing('${
+                          listing.folder_name
+                        }')" style="margin-left: auto;"><span class="icon">${
+          ICONS.delete
+        }</span> Delete</button>
+                    </div>
+                </div>`;
+      }
+
+      function updateUploadButtonState() {
+        const uploadBtn = document.getElementById("upload-to-etsy-btn");
+        if (!uploadBtn) return;
+
+        const hasPreparedListings =
+          document.getElementById("prepared-listings-list").children.length > 0;
+        const shouldDisable = !hasPreparedListings || isProcessing;
+
+        uploadBtn.disabled = shouldDisable;
+
+        if (isProcessing) {
+          uploadBtn.innerHTML = `<span class="icon">${ICONS.upload}</span> Uploading...`;
+        } else if (!hasPreparedListings) {
+          uploadBtn.innerHTML = `<span class="icon">${ICONS.noListings}</span> No Listings to Upload`;
+        } else {
+          uploadBtn.innerHTML = `<span class="icon">${ICONS.etsyUpload}</span> Upload to Etsy`;
+        }
+        
+        // Update listing editors disabled state
+        updateListingEditorsState();
+      }
+
+      function updateListingEditorsState() {
+        const listingEditors = document.querySelectorAll('.listing-editor');
+        listingEditors.forEach(editor => {
+          if (isProcessing) {
+            editor.classList.add('uploading');
+            // Disable all form elements in the editor
+            const formElements = editor.querySelectorAll('textarea, button');
+            formElements.forEach(element => {
+              element.disabled = true;
+            });
+          } else {
+            editor.classList.remove('uploading');
+            // Re-enable all form elements in the editor
+            const formElements = editor.querySelectorAll('textarea, button');
+            formElements.forEach(element => {
+              element.disabled = false;
+            });
+          }
+        });
+      }
+
+      function updateCharCounter(inputId, maxLength) {
+        const input = document.getElementById(inputId);
+        const counter = document.getElementById(inputId + "-counter");
+        const currentLength = input.value.length;
+
+        counter.className = "char-counter";
+        if (maxLength > 0) {
+          counter.textContent = `${currentLength}/${maxLength}`;
+          if (currentLength > maxLength) counter.classList.add("error");
+          else if (currentLength > maxLength * 0.9)
+            counter.classList.add("warning");
+        } else {
+          counter.textContent = `${currentLength} chars`;
+        }
+      }
+
+      function updateTagsFromInput(folderId) {
+        const tagsInput = document.getElementById(`tags-input-${folderId}`);
+        const tagsDisplay = document.getElementById(`tags-display-${folderId}`);
+        const tags = Array.from(
+          new Set(
+            tagsInput.value
+              .split(",")
+              .map((tag) => tag.trim())
+              .filter(Boolean)
+          )
+        );
+
+        tagsDisplay.innerHTML = tags
+          .map((tag) => `<span class="tag-chip">${tag}</span>`)
+          .join("");
+        updateTagsCounter(folderId, tags);
+      }
+
+      function updateTagsCounter(folderId, tags = []) {
+        const counter = document.getElementById(`tags-${folderId}-counter`);
+        let errors = [];
+        if (tags.length > 13) errors.push(`Too many tags (${tags.length}/13)`);
+        const longTag = tags.find((tag) => tag.length > 20);
+        if (longTag)
+          errors.push(`"${longTag}" is too long (${longTag.length}/20)`);
+
+        if (errors.length > 0) {
+          counter.textContent = errors[0];
+          counter.className = "char-counter error";
+        } else {
+          counter.textContent = `${tags.length}/13 tags`;
+          counter.className = "char-counter";
+          if (tags.length > 10) counter.classList.add("warning");
+        }
+      }
+
+      function handleAutoSave(folderId, folderName) {
+        // Clear existing timeout for this listing
+        if (autoSaveTimeouts[folderId]) {
+          clearTimeout(autoSaveTimeouts[folderId]);
+        }
+
+        // Show saving indicator
+        showSaveIndicator(folderId, "saving");
+
+        // Set new timeout for auto-save (debounce for 1 second)
+        autoSaveTimeouts[folderId] = setTimeout(() => {
+          autoSaveListing(folderId, folderName);
+        }, 1000);
+      }
+
+      function showSaveIndicator(folderId, state = "saved") {
+        const indicator = document.getElementById(`save-indicator-${folderId}`);
+        if (!indicator) return;
+
+        indicator.className = "save-indicator show";
+
+        if (state === "saving") {
+          indicator.className += " saving";
+          indicator.textContent = "Saving...";
+        } else if (state === "error") {
+          indicator.className += " error";
+          indicator.textContent = "Error";
+          // Hide error indicator after 3 seconds
+          setTimeout(() => {
+            indicator.className = "save-indicator";
+          }, 3000);
+        } else {
+          indicator.textContent = "Saved";
+          // Hide saved indicator after 2 seconds
+          setTimeout(() => {
+            indicator.className = "save-indicator";
+          }, 2000);
+        }
+      }
+
+      async function autoSaveListing(folderId, folderName) {
+        const title = document.getElementById(`title-${folderId}`).value.trim();
+        const description = document
+          .getElementById(`description-${folderId}`)
+          .value.trim();
+        const tags = Array.from(
+          new Set(
+            document
+              .getElementById(`tags-input-${folderId}`)
+              .value.split(",")
+              .map((tag) => tag.trim())
+              .filter(Boolean)
+          )
+        );
+
+        // Validate before saving
+        if (title.length > 140) {
+          showSaveIndicator(folderId, "error");
+          return;
+        }
+        if (tags.length > 13) {
+          showSaveIndicator(folderId, "error");
+          return;
+        }
+        if (tags.some((t) => t.length > 20)) {
+          showSaveIndicator(folderId, "error");
+          return;
+        }
+
+        try {
+          const response = await fetch("/update-prepared-listing", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              folder_name: folderName,
+              title,
+              description,
+              tags,
+            }),
+          });
+          const data = await response.json();
+          if (response.ok) {
+            showSaveIndicator(folderId, "saved");
+          } else {
+            showSaveIndicator(folderId, "error");
+            console.error(`Failed to auto-save listing: ${data.error}`);
+          }
+        } catch (error) {
+          showSaveIndicator(folderId, "error");
+          console.error(`Error auto-saving listing: ${error.message}`);
+        }
+      }
+
+      async function saveListing(folderName) {
+        const folderId = folderName.replace(/[^a-zA-Z0-9]/g, "_");
+        const title = document.getElementById(`title-${folderId}`).value.trim();
+        const description = document
+          .getElementById(`description-${folderId}`)
+          .value.trim();
+        const tags = Array.from(
+          new Set(
+            document
+              .getElementById(`tags-input-${folderId}`)
+              .value.split(",")
+              .map((tag) => tag.trim())
+              .filter(Boolean)
+          )
+        );
+
+        if (title.length > 140) return alert(`Title is too long.`);
+        if (tags.length > 13) return alert(`Too many tags.`);
+        if (tags.some((t) => t.length > 20))
+          return alert(`One or more tags are too long.`);
+
+        try {
+          const response = await fetch("/update-prepared-listing", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              folder_name: folderName,
+              title,
+              description,
+              tags,
+            }),
+          });
+          const data = await response.json();
+          if (response.ok) {
+            addLogMessage(
+              `Successfully updated listing for ${folderName}`,
+              "success"
+            );
+          } else {
+            addLogMessage(`Failed to update listing: ${data.error}`, "error");
+            alert(data.error);
+          }
+        } catch (error) {
+          addLogMessage(`Error updating listing: ${error.message}`, "error");
+          alert(`Error updating listing: ${error.message}`);
+        }
+      }
+
+      function resetListing(folderId, originalListing) {
+        const listing = JSON.parse(originalListing.replace(/"/g, '"'));
+        document.getElementById(`title-${folderId}`).value =
+          listing.title || "";
+        document.getElementById(`description-${folderId}`).value =
+          listing.description || "";
+        const tagsInput = document.getElementById(`tags-input-${folderId}`);
+        tagsInput.value = (listing.tags || []).join(", ");
+        updateTagsFromInput(folderId);
+        updateCharCounter(`title-${folderId}`, 140);
+        updateCharCounter(`description-${folderId}`, 0);
+      }
+
+      async function deleteSingleListing(folderName) {
+        if (!confirm(`Delete prepared listing for "${folderName}"?`)) return;
+        try {
+          const response = await fetch("/delete-single-prepared-listing", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ folder_name: folderName }),
+          });
+          const data = await response.json();
+          if (response.ok) {
+            addLogMessage(
+              `Successfully deleted prepared listing for ${folderName}`,
+              "success"
+            );
+            refreshPreparedListings();
+          } else {
+            addLogMessage(`Failed to delete listing: ${data.error}`, "error");
+            alert(data.error);
+          }
+        } catch (error) {
+          addLogMessage(`Error deleting listing: ${error.message}`, "error");
+          alert(`Error deleting listing: ${error.message}`);
+        }
+      }
+
+      async function deletePreparedListings() {
+        if (isProcessing) return alert("A workflow is already running.");
+        if (
+          !confirm("Delete all prepared listings? (A backup will be created)")
+        )
+          return;
+        try {
+          addLogMessage("Deleting prepared listings...", "info");
+          const response = await fetch("/delete-prepared-listings", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+          });
+          const data = await response.json();
+          if (response.ok && data.success) {
+            addLogMessage(data.message, "success");
+            if (data.backup_created)
+              addLogMessage(
+                "Backup saved to prepared_listings_backup.json",
+                "info"
+              );
+            refreshPreparedListings();
+          } else {
+            addLogMessage(
+              data.message ||
+                "Failed to delete prepared listings: " + data.error,
+              "error"
+            );
+          }
+        } catch (error) {
+          addLogMessage(
+            "Error deleting prepared listings: " + error.message,
+            "error"
+          );
+        }
+      }
+
+      function setProcessingStatus(processing, statusText) {
+        isProcessing = processing;
+        const indicator = document.getElementById("status-indicator");
+        let statusClass = "status";
+        let statusIcon = `<span class="icon">✅</span>`;
+
+        if (processing) {
+          statusClass = "status running";
+          statusIcon = '<div class="spinner"></div>';
+        } else if (statusText.toLowerCase().includes("error")) {
+          statusClass = "status error";
+          statusIcon = `<span class="icon">❌</span>`;
+        } else {
+          statusClass = "status ready";
+        }
+
+        indicator.className = statusClass;
+        indicator.innerHTML = `${statusIcon}<span>${statusText}</span>`;
+        updateUploadButtonState();
+        updateProcessingButtons();
+      }
+
+      function updateProcessingButtons() {
+        const fullProcessingBtn = document.getElementById("full-processing-btn");
+        const generateAiContentBtn = document.getElementById("generate-ai-content-btn");
+        const loadPreparedListingsBtn = document.getElementById("load-prepared-listings-btn");
+        const runWorkflowBtn = document.querySelector("button[onclick='runWorkflow()']");
+        const clearFolderBtn = document.querySelector("button[onclick='clearInputFolder()']");
+
+        // Get buttons to update
+        const buttonsToDisable = [
+          fullProcessingBtn,
+          generateAiContentBtn,
+          loadPreparedListingsBtn,
+          runWorkflowBtn,
+          clearFolderBtn
+        ].filter(btn => btn); // Filter out null values
+
+        buttonsToDisable.forEach(btn => {
+          btn.disabled = isProcessing;
+        });
+
+        // Update button text to show processing state
+        if (fullProcessingBtn) {
+          if (isProcessing) {
+            fullProcessingBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+          } else {
+            fullProcessingBtn.innerHTML = '<i class="fas fa-cogs"></i> Full Processing + AI Content';
+          }
+        }
+
+        if (generateAiContentBtn) {
+          if (isProcessing) {
+            generateAiContentBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+          } else {
+            generateAiContentBtn.innerHTML = '<i class="fas fa-magic"></i> Generate AI Content Only';
+          }
+        }
+
+        if (loadPreparedListingsBtn) {
+          if (isProcessing) {
+            loadPreparedListingsBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading...';
+          } else {
+            loadPreparedListingsBtn.innerHTML = '<i class="fas fa-refresh"></i> Load Prepared Listings';
+          }
+        }
+      }
+
+      function showEtsyEditToast(listingId, folderName) {
+        const toastContainer = document.getElementById("toast-container");
+        const toastId = `toast-${Date.now()}`;
+        const toast = document.createElement("div");
+        toast.className = "toast";
+        toast.id = toastId;
+
+        toast.innerHTML = `
+                <div class="toast-icon">${ICONS.toastSuccess}</div>
+                <div class="toast-content">
+                    <div class="toast-title">Listing Created!</div>
+                    <div class="toast-message">${folderName} is now a draft on Etsy.</div>
+                    <div class="toast-actions">
+                        <a href="https://www.etsy.com/your/shops/me/listing-editor/edit/${listingId}" target="_blank" class="toast-link" onclick="removeToast('${toastId}')">Edit on Etsy</a>
+                    </div>
+                </div>
+                <button class="toast-close" onclick="removeToast('${toastId}')" title="Close">×</button>`;
+
+        toastContainer.appendChild(toast);
+      }
+
+      function removeToast(toastId) {
+        const toast = document.getElementById(toastId);
+        if (toast) {
+          toast.style.animation = "slideOut 0.3s ease-in forwards";
+          setTimeout(() => toast.remove(), 300);
+        }
+      }
+
+      function addLogMessage(messageData, type = "info") {
+        const logContainer = document.getElementById("log-container");
+        const messageElement = document.createElement("div");
+
+        let message =
+          typeof messageData === "object" && messageData.message
+            ? messageData.message
+            : messageData;
+        let level =
+          typeof messageData === "object" && messageData.level
+            ? messageData.level
+            : type;
+
+        messageElement.className = `log-message log-${level}`;
+        const uploadMatch = message.match(
+          /✓ Successfully uploaded: (.+) \(ID: (\d+)\)/
+        );
+
+        if (uploadMatch) {
+          const [, folderName, listingId] = uploadMatch;
+          messageElement.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+          showEtsyEditToast(listingId, folderName);
+        } else {
+          messageElement.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+        }
+
+        logContainer.appendChild(messageElement);
+        logContainer.scrollTop = logContainer.scrollHeight;
+      }
+
+      function clearLog() {
+        document.getElementById("log-container").innerHTML = "";
+        addLogMessage("Log cleared");
+      }
+
+      async function clearInputFolder() {
+        if (isProcessing) {
+          alert(
+            "A workflow is already running. Please wait for it to complete."
+          );
+          return;
+        }
+
+        const confirmed = confirm(
+          "Are you sure you want to delete ALL files and folders in the input directory?\n\n" +
+            "This action cannot be undone!"
+        );
+
+        if (!confirmed) return;
+
+        try {
+          addLogMessage("Clearing input folder...", "info");
+
+          const response = await fetch("/clear-input", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+          });
+
+          const data = await response.json();
+
+          if (response.ok && data.success) {
+            addLogMessage(data.message, "success");
+            // Refresh folder info after clearing
+            updateFolderInfo();
+          } else {
+            addLogMessage(
+              `Failed to clear input folder: ${data.error || "Unknown error"}`,
+              "error"
+            );
+          }
+        } catch (error) {
+          addLogMessage(
+            `Error clearing input folder: ${error.message}`,
+            "error"
+          );
+        }
+      }
+
+      async function refreshStatus() {
+        try {
+          const response = await fetch("/status");
+          const data = await response.json();
+          if (data.is_running) {
+            setProcessingStatus(true, data.current_task || "Processing...");
+          } else {
+            // Server reports not running, so reset UI regardless of client state
+            setProcessingStatus(false, "Ready");
+          }
+        } catch (error) {
+          addLogMessage("Error refreshing status: " + error.message, "error");
+        }
+      }
+
+      function startLogPolling() {
+        setInterval(async () => {
+          try {
+            const response = await fetch("/log");
+            const data = await response.json();
+
+            data.messages.forEach((msg) => {
+              addLogMessage(msg);
+              const msgText =
+                typeof msg === "object" && msg.message ? msg.message : msg;
+
+              // Check for completion messages and refresh prepared listings
+              if (
+                msgText.includes("Successfully prepared") ||
+                msgText.includes("Upload complete") ||
+                msgText.includes("uploaded listings from prepared list")
+              ) {
+                setTimeout(refreshPreparedListings, 1000);
+                if (msgText.includes("Upload complete")) {
+                  addLogMessage("Listings are now editable again.", "info");
+                }
+              }
+
+              // Check for any completion messages and reset processing status
+              if (
+                msgText.includes("Successfully prepared") ||
+                msgText.includes("Successfully completed") ||
+                msgText.includes("Upload complete") ||
+                msgText.includes("preparation failed") ||
+                msgText.includes("processing failed") ||
+                msgText.includes("upload failed") ||
+                msgText.includes("Error")
+              ) {
+                // Force a status refresh immediately on completion/error messages
+                setTimeout(refreshStatus, 500);
+              }
+            });
+
+            await refreshStatus();
+          } catch (error) {
+            // Silently ignore polling errors to prevent log spam
+          }
+        }, 2000);
+      }
+    </script>
+  </body>
+</html>
