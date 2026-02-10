@@ -34,7 +34,7 @@ except ImportError:
 class GeminiProvider(AIProvider):
     """Gemini AI provider implementation."""
 
-    def __init__(self, api_key: str, model_name: str = "gemini-2.5-pro"):
+    def __init__(self, api_key: str, model_name: str = "gemini-3-flash-preview"):
         """
         Initialize the Gemini provider.
 

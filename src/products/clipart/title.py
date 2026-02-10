@@ -380,7 +380,10 @@ def add_title_bar_and_text(
         if i < len(title_lines) - 1:
             current_y += line_height + title_line_spacing
         else:
-            current_y += line_height + subtitle_spacing
+            # Add extra padding to account for title descenders (script fonts have long descenders)
+            # The title is moved up by title_vertical_adjustment, so we need less extra space
+            title_descender_padding = 30
+            current_y += line_height + subtitle_spacing + title_descender_padding
 
     # Draw subtitle bottom
     if subtitle_bottom:
