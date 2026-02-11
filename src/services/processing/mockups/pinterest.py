@@ -954,11 +954,19 @@ class PinterestMockupGenerator:
                         except:
                             cta_font = get_font("Free Version Angelina.ttf", 44)
 
-            # CTA button background - larger
-            button_width = 480  # Wider
-            button_height = 75  # Taller
+            # Measure text first, then size button to fit
+            text_bbox = draw.textbbox((0, 0), cta_text, font=cta_font)
+            text_width = text_bbox[2] - text_bbox[0]
+            text_height = text_bbox[3] - text_bbox[1]
+
+            # Size button to text with generous padding
+            h_padding = 60
+            v_padding = 30
+            button_width = text_width + (h_padding * 2)
+            button_height = text_height + (v_padding * 2)
             button_x = (self.PINTEREST_WIDTH - button_width) // 2
-            button_y = self.CTA_START + 45
+            # Center button vertically within CTA section
+            button_y = self.CTA_START + (self.CTA_HEIGHT - button_height) // 2
 
             # Clean gradient button background
             draw.rounded_rectangle(
@@ -988,13 +996,9 @@ class PinterestMockupGenerator:
                 fill=highlight_color,
             )
 
-            # CTA text with dynamic color
-            text_bbox = draw.textbbox((0, 0), cta_text, font=cta_font)
-            text_width = text_bbox[2] - text_bbox[0]
-            text_height = text_bbox[3] - text_bbox[1]
-
-            text_x = (self.PINTEREST_WIDTH - text_width) // 2
-            text_y = button_y + (button_height - text_height) // 2
+            # Center text in button, accounting for textbbox offset
+            text_x = button_x + (button_width - text_width) // 2 - text_bbox[0]
+            text_y = button_y + (button_height - text_height) // 2 - text_bbox[1]
 
             draw.text((text_x, text_y), cta_text, fill=button_text_color, font=cta_font)
 
@@ -1020,6 +1024,7 @@ class PinterestMockupGenerator:
             # Add logo if available - MUCH LARGER
             logo_size = 80  # Much larger logo
             logo_x = None
+            bottom_padding = 20  # Reserve padding so nothing gets clipped
 
             if self.logo:
                 # Resize logo to fit footer
@@ -1050,22 +1055,28 @@ class PinterestMockupGenerator:
 
                 text_bbox = draw.textbbox((0, 0), self.brand_name, font=footer_font)
                 text_width = text_bbox[2] - text_bbox[0]
+                text_height = text_bbox[3] - text_bbox[1]
 
                 # Total width for logo + spacing + text
                 total_width = logo_size + 15 + text_width
                 start_x = (self.PINTEREST_WIDTH - total_width) // 2
 
+                # Usable footer area with bottom padding
+                usable_height = self.FOOTER_HEIGHT - bottom_padding
+                content_height = max(logo_size, text_height)
+
                 logo_x = start_x
-                logo_y = self.FOOTER_START + (self.FOOTER_HEIGHT - logo_size) // 2
+                logo_y = self.FOOTER_START + (usable_height - logo_size) // 2
 
                 # Paste logo
                 canvas.paste(logo_resized, (logo_x, logo_y), logo_resized)
 
-                # Brand name text next to logo
+                # Brand name text next to logo, accounting for textbbox offset
                 text_x = logo_x + logo_size + 15
                 text_y = (
                     self.FOOTER_START
-                    + (self.FOOTER_HEIGHT - (text_bbox[3] - text_bbox[1])) // 2
+                    + (usable_height - text_height) // 2
+                    - text_bbox[1]
                 )
 
                 draw.text(
@@ -1103,8 +1114,12 @@ class PinterestMockupGenerator:
                 text_width = text_bbox[2] - text_bbox[0]
                 text_height = text_bbox[3] - text_bbox[1]
 
-                text_x = (self.PINTEREST_WIDTH - text_width) // 2
-                text_y = self.FOOTER_START + (self.FOOTER_HEIGHT - text_height) // 2
+                # Usable footer area with bottom padding
+                usable_height = self.FOOTER_HEIGHT - bottom_padding
+
+                # Account for textbbox offset for proper centering
+                text_x = (self.PINTEREST_WIDTH - text_width) // 2 - text_bbox[0]
+                text_y = self.FOOTER_START + (usable_height - text_height) // 2 - text_bbox[1]
 
                 draw.text(
                     (text_x, text_y),
