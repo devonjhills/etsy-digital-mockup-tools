@@ -418,9 +418,9 @@ class PinterestMockupGenerator:
                 width=3,
             )
 
-            # Center text in badge
-            text_x = badge_x + (badge_width - text_width) // 2
-            text_y = badge_y + (badge_height - text_height) // 2
+            # Center text in badge, accounting for textbbox offset
+            text_x = badge_x + (badge_width - text_width) // 2 - text_bbox[0]
+            text_y = badge_y + (badge_height - text_height) // 2 - text_bbox[1]
 
             draw.text(
                 (text_x, text_y), badge_text, fill=colors["badge_text"], font=font
@@ -928,85 +928,8 @@ class PinterestMockupGenerator:
         product_data: Dict[str, Any],
         colors: Dict[str, Tuple[int, int, int]],
     ) -> Image.Image:
-        """Add call-to-action section"""
-        try:
-            draw = ImageDraw.Draw(canvas)
-
-            # CTA text
-            cta_text = "Click to Shop Now!"
-
-            # Use GreatVibes-Regular for CTA like main mockup titles
-            try:
-                cta_font = get_font("GreatVibes-Regular", 48)  # Main mockup font, large
-            except:
-                try:
-                    cta_font = get_font(
-                        "Great Vibes", 48
-                    )  # System Great Vibes font fallback
-                except:
-                    try:
-                        cta_font = get_font(
-                            "DSMarkerFelt.ttf", 44
-                        )  # Fallback to project font
-                    except:
-                        try:
-                            cta_font = get_font("Clattering.ttf", 44)
-                        except:
-                            cta_font = get_font("Free Version Angelina.ttf", 44)
-
-            # Measure text first, then size button to fit
-            text_bbox = draw.textbbox((0, 0), cta_text, font=cta_font)
-            text_width = text_bbox[2] - text_bbox[0]
-            text_height = text_bbox[3] - text_bbox[1]
-
-            # Size button to text with generous padding
-            h_padding = 60
-            v_padding = 30
-            button_width = text_width + (h_padding * 2)
-            button_height = text_height + (v_padding * 2)
-            button_x = (self.PINTEREST_WIDTH - button_width) // 2
-            # Center button vertically within CTA section
-            button_y = self.CTA_START + (self.CTA_HEIGHT - button_height) // 2
-
-            # Clean gradient button background
-            draw.rounded_rectangle(
-                [button_x, button_y, button_x + button_width, button_y + button_height],
-                radius=30,
-                fill=colors["button_bg"],
-                outline=colors["primary"],
-                width=3,
-            )
-
-            # Simple highlight effect - just a lighter top section (no alpha)
-            button_text_color = colors.get("button_text", colors["text_light"])
-            if button_text_color == (255, 255, 255):  # White text = dark button
-                highlight_color = tuple(min(255, c + 20) for c in colors["button_bg"])
-            else:  # Dark text = light button
-                highlight_color = tuple(max(0, c - 20) for c in colors["button_bg"])
-
-            # Top highlight without alpha
-            draw.rounded_rectangle(
-                [
-                    button_x + 3,
-                    button_y + 3,
-                    button_x + button_width - 3,
-                    button_y + button_height // 2,
-                ],
-                radius=27,
-                fill=highlight_color,
-            )
-
-            # Center text in button, accounting for textbbox offset
-            text_x = button_x + (button_width - text_width) // 2 - text_bbox[0]
-            text_y = button_y + (button_height - text_height) // 2 - text_bbox[1]
-
-            draw.text((text_x, text_y), cta_text, fill=button_text_color, font=cta_font)
-
-            return canvas
-
-        except Exception as e:
-            logger.warning(f"⚠️ CTA section error: {e}")
-            return canvas
+        """CTA section removed - return canvas unchanged"""
+        return canvas
 
     def _add_footer_section(
         self, canvas: Image.Image, colors: Dict[str, Tuple[int, int, int]]

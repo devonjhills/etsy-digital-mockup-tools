@@ -377,7 +377,7 @@ class EtsyAuth:
         return {
             "Authorization": f"Bearer {self.access_token}",
             "Content-Type": "application/json",
-            "x-api-key": self.api_key,
+            "x-api-key": f"{self.api_key}:{self.api_secret}",
         }
 
     def is_authenticated(self) -> bool:
